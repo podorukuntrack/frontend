@@ -1,5 +1,6 @@
 import { Loader2, AlertTriangle, X, CheckCircle, Info } from 'lucide-react';
-import { useState, useEffect} from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 // ==========================================
 // 1. LOADING STATES
@@ -38,7 +39,9 @@ export function EmptyState({ icon: Icon, title, description, action }) {
   );
 }
 
-
+// ==========================================
+// 3. TOAST CONTAINER
+// ==========================================
 export function ToastContainer() {
   const [toasts, setToasts] = useState([]);
 
@@ -82,25 +85,34 @@ export function ToastContainer() {
 }
 
 // ==========================================
-// 4. MODALS & DIALOGS
+// 4. MODALS & DIALOGS (Diperbarui dengan Portal)
 // ==========================================
 export function Modal({ open, onClose, title, children, size = 'md' }) {
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose(); };
-    if (open) document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
+    if (open) {
+      document.addEventListener('keydown', handler);
+      document.body.style.overflow = 'hidden'; // Mengunci scroll body
+    }
+    return () => {
+      document.removeEventListener('keydown', handler);
+      document.body.style.overflow = 'unset'; // Mengembalikan scroll
+    };
   }, [open, onClose]);
 
   if (!open) return null;
   const sizes = { sm: 'max-w-md', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl' };
   
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/80 backdrop-blur-sm transition-opacity" onClick={onClose} />
+  const modalContent = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+      <div 
+        className="absolute inset-0 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm transition-opacity" 
+        onClick={onClose} 
+      />
       <div className={`relative w-full ${sizes[size]} bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl animate-fadeIn overflow-hidden`}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
           <h2 className="font-semibold text-slate-900 dark:text-slate-100">{title}</h2>
-          <button onClick={onClose} className="btn-ghost p-1.5 rounded-lg">
+          <button onClick={onClose} className="btn-ghost p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -108,6 +120,8 @@ export function Modal({ open, onClose, title, children, size = 'md' }) {
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
 
 export function Confirm({ open, onClose, onConfirm, title, description, confirmLabel = 'Hapus', loading }) {
@@ -117,7 +131,7 @@ export function Confirm({ open, onClose, onConfirm, title, description, confirmL
       <div className="flex gap-3 justify-end">
         <button className="btn-secondary" onClick={onClose} disabled={loading}>Batal</button>
         <button className="btn-danger" onClick={onConfirm} disabled={loading}>
-          {loading && <Spinner size="sm" className="!text-current" />}
+          {loading && <Spinner size="sm" className="!text-current mr-2" />}
           {confirmLabel}
         </button>
       </div>

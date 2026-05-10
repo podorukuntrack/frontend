@@ -1,130 +1,149 @@
 import { useEffect, useState } from 'react';
-import { progressAPI, unitsAPI } from '../../api/services';
-import { PageLoader, EmptyState, Modal, ProgressBar, Select } from '../../components/ui';
+import { progressAPI, assignmentsAPI } from '../../api/services';
+import { PageLoader, EmptyState, Modal, ProgressBar, SearchInput } from '../../components/ui';
 import { useToast } from '../../hooks/useToast';
-import { formatDate, extractError } from '../../utils/helpers';
+import { formatDate, formatCurrency, extractError } from '../../utils/helpers';
 import { useAuth } from '../../context/AuthContext';
-import { TrendingUp, Plus, Pencil, Calendar, StickyNote } from 'lucide-react';
+import { TrendingUp, Plus, Pencil, Calendar, Receipt, Hammer, User, CheckCircle } from 'lucide-react';
 
-const EMPTY_FORM = { unit_id: '', tahap: '', progress_percentage: 0, tanggal_update: '', catatan: '' };
-
-// ─────────────────────────────────────────────────────────────
-// Normalize: ubah struktur nested dari API → flat yang dipakai komponen
-// API mengembalikan: { id, tahap, progress_percentage, tanggal_update, catatan, unit: { id, nomor_unit, progress_percentage, cluster: { nama_cluster, project: { nama_proyek } } } }
-// Komponen butuh: { progress_id, unit_id, nomor_unit, nama_cluster, nama_proyek, tahap, progress_pembangunan, tanggal_update, catatan }
-// ─────────────────────────────────────────────────────────────
-function normalize(item) {
-  const unit = item.unit || {};
-  const cluster = unit.cluster || {};
-  const project = cluster.project || cluster.projects || {};
-
-  return {
-    // ID progress (untuk edit)
-    progress_id: item.id,
-
-    // Field unit (untuk grouping & tampilan)
-    unit_id:    unit.id         || item.unit_id,
-    nomor_unit: unit.nomor_unit || item.nomor_unit || '—',
-    nama_cluster: cluster.nama_cluster || item.nama_cluster || '—',
-    nama_proyek:  project.nama_proyek  || item.nama_proyek  || '—',
-
-    // Progress step ini
-    tahap:               item.tahap,
-    progress_pembangunan: item.progress_percentage ?? item.progress_pembangunan ?? 0,
-    tanggal_update:      item.tanggal_update,
-    catatan:             item.catatan || '',
-
-    // Opsional: nama pembeli dari relasi assignment (jika API sertakan)
-    nama_pembeli: item.nama_pembeli || null,
-  };
-}
+const EMPTY_BUILD_FORM = { tahap: '', progress_percentage: 0, tanggal_update: '', catatan: '' };
+const EMPTY_PAY_FORM   = { jumlah_bayar: '', tanggal_bayar: '', catatan: '' };
 
 export default function ProgressPage() {
   const { isRole } = useAuth();
-  const { toast } = useToast();
-  const [progress, setProgress] = useState([]);
-  const [units, setUnits] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filterUnit, setFilterUnit] = useState('');
-  const [modal, setModal] = useState({ open: false, mode: 'create', data: null });
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState(EMPTY_FORM);
+  const { toast }  = useToast();
 
-  // ── Load data progress ──────────────────────────────────────
-  const load = async () => {
-    setLoading(true);
-    try {
-      const params = filterUnit ? { unit_id: filterUnit } : {};
-      const r = await progressAPI.list(params);
+  const [data,       setData]       = useState([]);
+  const [loading,    setLoading]    = useState(true);
+  const [search,     setSearch]     = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
 
-      const raw = r.data?.data || r.data || [];
-      // Normalize semua item supaya field-nya konsisten
-      const normalized = Array.isArray(raw) ? raw.map(normalize) : [];
-      setProgress(normalized);
-    } catch (err) {
-      toast(extractError(err), 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [buildModal, setBuildModal] = useState({ open: false, mode: 'view', activeId: null, editId: null, originalPct: 0 });
+  const [payModal,   setPayModal]   = useState({ open: false, mode: 'view', activeId: null, history: [], sisaTagihan: 0 });
 
- 
+  // Always read the freshest slice of data by ID lookup
+  const activeBuildData = data.find(d => d.assignment_id === buildModal.activeId) || null;
+  const activePayData   = data.find(d => d.assignment_id === payModal.activeId)   || null;
 
-  useEffect(() => { 
-    const fetchProgress = async () => {
+  const [buildForm, setBuildForm] = useState(EMPTY_BUILD_FORM);
+  const [payForm,   setPayForm]   = useState(EMPTY_PAY_FORM);
+  const [saving,    setSaving]    = useState(false);
+
+  // ── 1. Fetch ────────────────────────────────────────────────────
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchAllData = async () => {
+      if (refreshKey === 0) setLoading(true);
+
       try {
-        const params = filterUnit ? { unit_id: filterUnit } : {};
-        const r = await progressAPI.list(params);
-        setProgress(r.data.data || []);
+        const [rAssign, rProg] = await Promise.all([
+          assignmentsAPI.list({ limit: 100 }),
+          progressAPI.list({ limit: 100 }),
+        ]);
+
+        if (!isMounted) return;
+
+        const assignments     = rAssign.data?.data || [];
+        const progressRecords = rProg.data?.data   || [];
+
+        const mergedData = assignments.map(a => {
+          const unitId = a.unit?.id;
+
+          // FIX: explicitly read p.unit.id (guaranteed by the fixed backend JOIN query).
+          // Also guard: skip any record where unit.id is missing/mismatched.
+          const historyFisik = progressRecords
+            .filter(p => {
+              const pUnitId = p.unit?.id;          // set by mapProgressResponse in backend
+              return pUnitId && pUnitId === unitId; // strict string-to-string UUID match
+            })
+            .sort((x, y) => new Date(y.tanggal_update) - new Date(x.tanggal_update));
+
+          // Total = SUM of all incremental percentages, capped at 100
+          const totalFisikPct = historyFisik.reduce(
+            (acc, curr) => acc + Number(curr.progress_percentage ?? 0), 0
+          );
+
+          const isCashLunas = a.pembayaran?.tipe === 'cash_lunas';
+          const payPct = isCashLunas ? 100 : Number(a.pembayaran?.persentase_dibayar ?? 0);
+
+          return {
+            assignment_id:    a.id,
+            tanggal_pembelian: a.tanggal_pembelian,
+            unit:             a.unit,
+            customer:         a.user,
+            pembayaran:       a.pembayaran,
+            historyFisik,
+            latestFisik:      historyFisik[0] || null,
+            fisik_pct:        Math.min(totalFisikPct, 100),
+            pay_pct:          Math.min(payPct, 100),
+          };
+        });
+
+        setData(mergedData);
       } catch (err) {
-        console.error(err);
+        if (isMounted) toast(extractError(err), 'error');
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
-    fetchProgress();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterUnit]);
-  // ── Load daftar unit untuk dropdown filter & form ───────────
-  useEffect(() => {
-    unitsAPI.list({ limit: 500 }).then(r => setUnits(r.data?.data || []));
-  }, []);
+    fetchAllData();
+    return () => { isMounted = false; };
+  }, [refreshKey, toast]);
 
-  // ── Modal helpers ───────────────────────────────────────────
-  const openCreate = () => {
-    setForm({ ...EMPTY_FORM, tanggal_update: new Date().toISOString().split('T')[0] });
-    setModal({ open: true, mode: 'create' });
+
+  // ── 2. Build (Fisik) handlers ───────────────────────────────────
+  const openBuildModal = (item) => {
+    setBuildModal({ open: true, mode: 'view', activeId: item.assignment_id, editId: null, originalPct: 0 });
   };
 
-  const openEdit = (p) => {
-    setForm({
-      unit_id:             p.unit_id,
-      tahap:               p.tahap,
-      progress_percentage: p.progress_pembangunan,
-      tanggal_update:      p.tanggal_update,
-      catatan:             p.catatan || '',
+  // FIX: guard against undefined p.id before entering edit mode
+  const handleOpenEdit = (p) => {
+    const editId = p.id ?? p.progress_id;
+    if (!editId) {
+      toast('ID progress tidak ditemukan, coba refresh halaman.', 'error');
+      return;
+    }
+    const pct = Number(p.progress_percentage ?? 0);
+    setBuildForm({
+      tahap:              p.tahap,
+      progress_percentage: pct,
+      tanggal_update:     p.tanggal_update?.split('T')[0] ?? '',
+      catatan:            p.catatan || '',
     });
-    setModal({ open: true, mode: 'edit', data: p });
+    setBuildModal(prev => ({ ...prev, mode: 'edit', editId, originalPct: pct }));
   };
 
-  const handleSave = async (e) => {
+  const handleSaveBuild = async (e) => {
     e.preventDefault();
+
+    // Extra safety: should never reach here with undefined, but guard anyway
+    if (buildModal.mode === 'edit' && !buildModal.editId) {
+      toast('ID progress tidak valid, tidak dapat menyimpan.', 'error');
+      return;
+    }
+
     setSaving(true);
     try {
-      const payload = { ...form, progress_percentage: parseInt(form.progress_percentage) };
-      if (modal.mode === 'create') {
+      const payload = {
+        unit_id:             activeBuildData.unit.id,
+        tahap:               buildForm.tahap,
+        progress_percentage: Number(buildForm.progress_percentage),
+        tanggal_update:      buildForm.tanggal_update,
+        catatan:             buildForm.catatan,
+      };
+
+      if (buildModal.mode === 'create') {
         await progressAPI.create(payload);
-        toast('Progress berhasil ditambahkan', 'success');
+        toast('Progress bangunan ditambahkan!', 'success');
       } else {
-        await progressAPI.update(modal.data.progress_id, {
-          progress_percentage: payload.progress_percentage,
-          catatan: payload.catatan,
-        });
-        toast('Progress berhasil diperbarui', 'success');
+        await progressAPI.update(buildModal.editId, payload);
+        toast('Data progress diperbarui!', 'success');
       }
-      setModal({ open: false });
-      load();
+
+      setBuildModal(prev => ({ ...prev, mode: 'view', editId: null, originalPct: 0 }));
+      setRefreshKey(prev => prev + 1);
     } catch (err) {
       toast(extractError(err), 'error');
     } finally {
@@ -132,251 +151,429 @@ export default function ProgressPage() {
     }
   };
 
-  // ── Opsi dropdown unit ──────────────────────────────────────
-  const unitOptions = units.map(u => ({
-    value: u.id,
-    label: `${u.nomor_unit} — ${u.cluster?.nama_cluster || 'No Cluster'}`,
-  }));
 
-  // ── Grouping: 1 card per unit, berisi timeline tahapannya ───
-  // Setelah normalize, semua item sudah punya unit_id yang benar
-  const grouped = progress.reduce((acc, p) => {
-    const key = p.unit_id || 'unknown';
-    if (!acc[key]) {
-      acc[key] = {
-        nomor_unit:   p.nomor_unit,
-        nama_cluster: p.nama_cluster,
-        nama_proyek:  p.nama_proyek,
-        items: [],
-      };
+  // ── 3. Payment handlers ─────────────────────────────────────────
+  const openPayModal = async (item) => {
+    try {
+      if (item.pembayaran?.tipe !== 'cash_lunas') {
+        const rPay = await assignmentsAPI.getPayments(item.assignment_id);
+        setPayModal({ open: true, mode: 'view', activeId: item.assignment_id, history: rPay.data?.data || [], sisaTagihan: 0 });
+      } else {
+        const mockLunasHistory = [{
+          id:           'lunas-auto',
+          jumlah_bayar:  item.pembayaran?.harga_total || 0,
+          tanggal_bayar: item.tanggal_pembelian || new Date().toISOString(),
+          catatan:      'Pembayaran Cash Lunas diselesaikan secara penuh pada saat transaksi pembelian unit.',
+          dicatat_oleh: 'Sistem Otomatis',
+        }];
+        setPayModal({ open: true, mode: 'view', activeId: item.assignment_id, history: mockLunasHistory, sisaTagihan: 0 });
+      }
+    } catch (err) {
+      toast(extractError(err), 'error');
     }
-    acc[key].items.push(p);
-    return acc;
-  }, {});
+  };
 
-  // Progress terbaru per unit = item dengan progress_pembangunan tertinggi
-  const latestPct = (items) =>
-    Math.max(...items.map(i => i.progress_pembangunan || 0));
+  const handleSavePay = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const payload   = { ...payForm, jumlah_bayar: Number(payForm.jumlah_bayar) };
+      const maxBayar  = (activePayData?.pembayaran?.harga_total || 0) - (activePayData?.pembayaran?.total_dibayar || 0);
+
+      if (payload.jumlah_bayar > maxBayar) {
+        toast(`Gagal: Maksimal pembayaran adalah ${formatCurrency(maxBayar)}`, 'error');
+        setSaving(false);
+        return;
+      }
+
+      await assignmentsAPI.createPayment(activePayData.assignment_id, payload);
+      toast('Pembayaran berhasil dicatat', 'success');
+
+      const rPay = await assignmentsAPI.getPayments(activePayData.assignment_id);
+      setPayModal(prev => ({ ...prev, mode: 'view', history: rPay.data?.data || [] }));
+      setRefreshKey(prev => prev + 1);
+    } catch (err) {
+      toast(extractError(err), 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const filteredData = data.filter(d => {
+    const q = search.toLowerCase();
+    return (
+      d.unit?.nomor_unit?.toLowerCase().includes(q) ||
+      d.customer?.nama?.toLowerCase().includes(q) ||
+      d.unit?.cluster?.nama_cluster?.toLowerCase().includes(q)
+    );
+  });
+
+  // Percentage helpers for the build form
+  // basePctExcludingEdit = total excluding the record currently being edited
+  const basePctExcludingEdit =
+    (activeBuildData?.fisik_pct || 0) -
+    (buildModal.mode === 'edit' ? buildModal.originalPct : 0);
+  const maxSisa = Math.max(0, 100 - basePctExcludingEdit);
 
   return (
     <div className="space-y-6">
+
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
-            Progress Pembangunan
-          </h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Monitor Progress</h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-            {Object.keys(grouped).length} unit · {progress.length} riwayat update
+            {data.length} unit sedang dalam tahap pembangunan &amp; cicilan.
           </p>
         </div>
-        {isRole('super_admin', 'admin') && (
-          <button className="btn-primary whitespace-nowrap" onClick={openCreate}>
-            <Plus className="w-4 h-4 mr-1" />Tambah Progress
-          </button>
-        )}
+        <div className="w-full sm:w-80">
+          <SearchInput value={search} onChange={setSearch} placeholder="Cari unit atau nama pembeli..." />
+        </div>
       </div>
 
-      {/* ── Filter unit ── */}
-      <div className="w-full sm:w-72">
-        <Select
-          value={filterUnit}
-          onChange={setFilterUnit}
-          options={unitOptions}
-          placeholder="Semua Unit"
-        />
-      </div>
-
-      {/* ── Konten utama ── */}
-      {loading ? (
-        <PageLoader />
-      ) : Object.keys(grouped).length === 0 ? (
-        <EmptyState
-          icon={TrendingUp}
-          title="Belum ada progress"
-          description="Data tidak ditemukan atau belum ada update."
-        />
+      {/* ── Table ── */}
+      {loading ? <PageLoader /> : filteredData.length === 0 ? (
+        <EmptyState icon={TrendingUp} title="Tidak ada data" description="Belum ada unit yang ter-assign atau cocok dengan pencarian." />
       ) : (
-        <div className="grid gap-6">
-          {Object.entries(grouped).map(([unitId, group]) => {
-            const pct = latestPct(group.items);
-            return (
-              <div key={unitId} className="card p-6">
-
-                {/* ── Card header: nama unit + progress bar ── */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-6 border-b border-slate-100 dark:border-slate-800">
-                  <div>
-                    <h3 className="font-bold text-lg text-slate-900 dark:text-white">
-                      Unit {group.nomor_unit}
-                    </h3>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mt-0.5">
-                      {group.nama_cluster} — {group.nama_proyek}
-                    </p>
-                  </div>
-
-                  {/* Badge persentase + bar */}
-                  <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700/50">
-                    <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400 font-mono w-10 text-right">
-                      {pct}%
-                    </span>
-                    <ProgressBar
-                      value={pct}
-                      className="w-32 !bg-slate-200 dark:!bg-slate-700"
-                    />
-                  </div>
-                </div>
-
-                {/* ── Timeline tahapan ── */}
-                <div className="relative pl-2">
-                  <div className="absolute left-[19px] top-2 bottom-4 w-px bg-slate-200 dark:bg-slate-800" />
-                  <div className="space-y-6">
-                    {[...group.items]
-                      .sort((a, b) => b.progress_pembangunan - a.progress_pembangunan)
-                      .map((p, i) => (
-                        <div key={p.progress_id || i} className="flex gap-5 relative">
-                          {/* Dot timeline */}
-                          <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center z-10 border-2 ${
-                            i === 0
-                              ? 'bg-indigo-50 border-indigo-200 dark:bg-indigo-500/20 dark:border-indigo-500/30'
-                              : 'bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-700'
-                          }`}>
-                            <div className={`w-2.5 h-2.5 rounded-full ${
-                              i === 0 ? 'bg-indigo-600 dark:bg-indigo-400' : 'bg-slate-300 dark:bg-slate-600'
-                            }`} />
-                          </div>
-
-                          {/* Isi card tahapan */}
-                          <div className="flex-1 bg-slate-50 dark:bg-slate-800/30 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                {/* Nama tahap + badge % */}
-                                <div className="flex items-center gap-2.5 mb-1.5">
-                                  <span className="font-semibold text-slate-900 dark:text-slate-100">
-                                    {p.tahap}
-                                  </span>
-                                  <span className="text-xs font-bold text-indigo-600 bg-indigo-100 dark:text-indigo-400 dark:bg-indigo-500/20 px-2 py-0.5 rounded-md">
-                                    {p.progress_pembangunan}%
-                                  </span>
-                                </div>
-
-                                {/* Tanggal + nama pembeli */}
-                                <div className="flex flex-wrap items-center gap-3 text-xs font-medium text-slate-500 dark:text-slate-400">
-                                  <div className="flex items-center gap-1.5">
-                                    <Calendar className="w-3.5 h-3.5" />
-                                    {formatDate(p.tanggal_update)}
-                                  </div>
-                                  {p.nama_pembeli && (
-                                    <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
-                                      <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
-                                      <span>Pemilik: {p.nama_pembeli}</span>
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* Catatan */}
-                                {p.catatan && (
-                                  <div className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300 mt-3 bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
-                                    <StickyNote className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-400" />
-                                    <p className="leading-relaxed">{p.catatan}</p>
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Tombol edit (hanya di tahap terbaru / i===0) */}
-                              {isRole('super_admin', 'admin') && i === 0 && (
-                                <button
-                                  onClick={() => openEdit(p)}
-                                  className="btn-ghost !p-2 bg-white dark:bg-slate-800 shadow-sm ml-3 flex-shrink-0"
-                                >
-                                  <Pencil className="w-3.5 h-3.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400" />
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+        <div className="card overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-2xl">
+          <table className="w-full text-sm text-left whitespace-nowrap">
+            <thead className="bg-slate-50/80 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+              <tr>
+                <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-300">Unit &amp; Cluster</th>
+                <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-300">Customer</th>
+                <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-300">Total Bangunan</th>
+                <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-300">Total Finansial</th>
+                <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-300 text-center">Kelola Progress</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {filteredData.map((item) => (
+                <tr key={item.assignment_id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
+                  <td className="px-6 py-4">
+                    <div className="font-bold text-slate-900 dark:text-white">{item.unit?.nomor_unit}</div>
+                    <div className="text-xs text-slate-500">{item.unit?.cluster?.nama_cluster}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold">
+                        {item.customer?.nama?.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="font-medium text-slate-700 dark:text-slate-200">{item.customer?.nama}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 w-56">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                        {item.latestFisik?.tahap || 'Belum dimulai'}
+                      </span>
+                      <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{item.fisik_pct}%</span>
+                    </div>
+                    <ProgressBar value={item.fisik_pct} className="!bg-slate-200 dark:!bg-slate-700 h-1.5" />
+                  </td>
+                  <td className="px-6 py-4 w-56">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">
+                        {item.pembayaran?.tipe?.replace('_', ' ')}
+                      </span>
+                      <span className={`text-xs font-bold ${item.pay_pct >= 100 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                        {item.pay_pct}%
+                      </span>
+                    </div>
+                    <ProgressBar value={item.pay_pct} className="!bg-slate-200 dark:!bg-slate-700 h-1.5" />
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => openBuildModal(item)}
+                        className="btn-secondary !py-1.5 !px-3 !bg-indigo-50 !border-transparent !text-indigo-700 hover:!bg-indigo-100 dark:!bg-indigo-500/10 dark:!text-indigo-300 text-xs shadow-sm flex items-center gap-1.5"
+                      >
+                        <Hammer className="w-3.5 h-3.5" /> <span>Fisik</span>
+                      </button>
+                      <button
+                        onClick={() => openPayModal(item)}
+                        className={`btn-secondary !py-1.5 !px-3 text-xs shadow-sm flex items-center gap-1.5 !border-transparent ${
+                          item.pay_pct >= 100
+                            ? '!bg-emerald-50 !text-emerald-700 hover:!bg-emerald-100 dark:!bg-emerald-500/10 dark:!text-emerald-300'
+                            : '!bg-amber-50 !text-amber-700 hover:!bg-amber-100 dark:!bg-amber-500/10 dark:!text-amber-300'
+                        }`}
+                      >
+                        <Receipt className="w-3.5 h-3.5" /> <span>Dana</span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
-      {/* ── Modal tambah / edit ── */}
+      {/* ============================================================ */}
+      {/* MODAL 1: PROGRESS FISIK                                       */}
+      {/* ============================================================ */}
       <Modal
-        open={modal.open}
-        onClose={() => setModal({ open: false })}
-        title={modal.mode === 'create' ? 'Tambah Progress' : 'Edit Progress'}
+        open={buildModal.open}
+        onClose={() => setBuildModal({ open: false, mode: 'view', activeId: null, editId: null, originalPct: 0 })}
+        title={`Fisik: Unit ${activeBuildData?.unit?.nomor_unit}`}
       >
-        <form onSubmit={handleSave} className="space-y-5">
-          {modal.mode === 'create' && (
-            <div className="space-y-1.5">
-              <label className="label">Unit</label>
-              <Select
-                value={form.unit_id}
-                onChange={v => setForm(f => ({ ...f, unit_id: v }))}
-                options={unitOptions}
-                placeholder="Pilih unit..."
-              />
-            </div>
+        <div className="space-y-4">
+
+          {buildModal.mode === 'view' && (
+            <>
+              {/* Summary card */}
+              <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl flex items-center justify-between border border-slate-100 dark:border-slate-700">
+                <div>
+                  <p className="text-xs text-slate-500 mb-0.5">Pemilik Unit</p>
+                  <p className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
+                    <User className="w-4 h-4 text-slate-400" /> {activeBuildData?.customer?.nama}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-slate-500 mb-0.5">Total Pembangunan</p>
+                  <p className="font-bold text-indigo-600 dark:text-indigo-400 text-lg">{activeBuildData?.fisik_pct}%</p>
+                </div>
+              </div>
+
+              {/* History */}
+              <div className="max-h-[300px] overflow-y-auto pr-1 space-y-3 mt-2">
+                {activeBuildData?.historyFisik?.length === 0 ? (
+                  <p className="text-center py-6 text-sm text-slate-500">Belum ada riwayat pembangunan.</p>
+                ) : (
+                  activeBuildData?.historyFisik?.map((p, idx) => {
+                    const pct = Number(p.progress_percentage ?? 0);
+                    return (
+                      <div key={p.id || idx} className="p-3 border border-slate-100 dark:border-slate-700 rounded-xl">
+                        <div className="flex justify-between items-start mb-2">
+                          <h4 className="font-bold text-slate-800 dark:text-slate-100">{p.tahap}</h4>
+                          <div className="flex items-center gap-2 shrink-0 ml-2">
+                            <span className="badge bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400">
+                              +{pct}%
+                            </span>
+                            {/* FIX: always visible — removed opacity-0 group-hover:opacity-100
+                                which made the button untappable on touch screens */}
+                            {isRole('admin', 'super_admin') && (
+                              <button
+                                onClick={() => handleOpenEdit(p)}
+                                className="p-1.5 rounded-md border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-400 hover:text-indigo-600 hover:border-indigo-300 dark:hover:text-indigo-400 transition-colors"
+                                title="Edit tahap ini"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center text-xs text-slate-500 mb-2 gap-1.5">
+                          <Calendar className="w-3.5 h-3.5" /> {formatDate(p.tanggal_update)}
+                        </div>
+                        {p.catatan && (
+                          <p className="text-sm text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg mt-1">
+                            {p.catatan}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {isRole('admin', 'super_admin') && (activeBuildData?.fisik_pct ?? 0) < 100 && (
+                <button
+                  className="btn-primary w-full mt-2"
+                  onClick={() => {
+                    setBuildForm({ ...EMPTY_BUILD_FORM, tanggal_update: new Date().toISOString().split('T')[0] });
+                    setBuildModal(prev => ({ ...prev, mode: 'create', editId: null, originalPct: 0 }));
+                  }}
+                >
+                  <Plus className="w-4 h-4 mr-1.5" /> Tambah Tahap Pembangunan
+                </button>
+              )}
+            </>
           )}
 
-          <div className="space-y-1.5">
-            <label className="label">Tahap</label>
-            <input
-              className="input"
-              placeholder="Contoh: Pondasi, Struktur Beton..."
-              value={form.tahap}
-              onChange={e => setForm(f => ({ ...f, tahap: e.target.value }))}
-              disabled={modal.mode === 'edit'}
-              required
-            />
-          </div>
+          {(buildModal.mode === 'create' || buildModal.mode === 'edit') && (
+            <form onSubmit={handleSaveBuild} className="space-y-4">
+              <div className="bg-indigo-50 dark:bg-indigo-900/20 text-indigo-800 dark:text-indigo-300 p-3 rounded-lg text-sm border border-indigo-200 dark:border-indigo-800/50">
+                {buildModal.mode === 'edit' ? (
+                  <>
+                    Tahap lain sudah menyumbang <strong>{basePctExcludingEdit}%</strong>.
+                    Nilai tahap ini dapat diubah antara <strong>0% — {maxSisa}%</strong>.
+                  </>
+                ) : (
+                  <>
+                    Pembangunan sudah mencapai <strong>{activeBuildData?.fisik_pct ?? 0}%</strong>.
+                    Anda dapat menambah hingga <strong>{maxSisa}%</strong> pada tahap baru ini.
+                  </>
+                )}
+              </div>
 
-          <div className="space-y-1.5">
-            <label className="label">Progress ({form.progress_percentage}%)</label>
-            <input
-              type="range" min={0} max={100} step={5}
-              className="w-full accent-indigo-600"
-              value={form.progress_percentage}
-              onChange={e => setForm(f => ({ ...f, progress_percentage: e.target.value }))}
-            />
-            <div className="flex justify-between text-xs text-slate-400">
-              <span>0%</span><span>50%</span><span>100%</span>
-            </div>
-          </div>
+              <div className="space-y-1.5">
+                <label className="label">Nama Tahap Pengerjaan</label>
+                <input
+                  className="input"
+                  required
+                  value={buildForm.tahap}
+                  onChange={e => setBuildForm(f => ({ ...f, tahap: e.target.value }))}
+                  placeholder="Contoh: Pemasangan Atap..."
+                />
+              </div>
 
-          <div className="space-y-1.5">
-            <label className="label">Tanggal Update</label>
-            <input
-              type="date" className="input"
-              value={form.tanggal_update}
-              onChange={e => setForm(f => ({ ...f, tanggal_update: e.target.value }))}
-              required
-            />
-          </div>
+              <div className="space-y-1.5">
+                <label className="label">
+                  Persentase Tahap Ini &nbsp;
+                  <span className="font-bold text-indigo-600 dark:text-indigo-400">+{buildForm.progress_percentage}%</span>
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max={maxSisa}
+                  step="1"
+                  className="w-full accent-indigo-600"
+                  value={buildForm.progress_percentage}
+                  onChange={e => setBuildForm(f => ({ ...f, progress_percentage: Number(e.target.value) }))}
+                />
+                <div className="flex justify-between text-xs text-slate-400">
+                  <span>0%</span><span>{maxSisa}%</span>
+                </div>
+              </div>
 
-          <div className="space-y-1.5">
-            <label className="label">Catatan</label>
-            <textarea
-              className="input min-h-[80px] resize-none"
-              placeholder="Keterangan kondisi lapangan..."
-              value={form.catatan}
-              onChange={e => setForm(f => ({ ...f, catatan: e.target.value }))}
-            />
-          </div>
+              <div className="space-y-1.5">
+                <label className="label">Tanggal Laporan</label>
+                <input
+                  type="date"
+                  required
+                  className="input"
+                  value={buildForm.tanggal_update}
+                  onChange={e => setBuildForm(f => ({ ...f, tanggal_update: e.target.value }))}
+                />
+              </div>
 
-          <div className="flex gap-3 justify-end pt-4">
-            <button type="button" className="btn-secondary" onClick={() => setModal({ open: false })}>
-              Batal
-            </button>
-            <button type="submit" className="btn-primary" disabled={saving}>
-              {saving ? 'Menyimpan...' : 'Simpan Data'}
-            </button>
-          </div>
-        </form>
+              <div className="space-y-1.5">
+                <label className="label">Catatan Lapangan</label>
+                <textarea
+                  className="input min-h-[80px]"
+                  value={buildForm.catatan}
+                  onChange={e => setBuildForm(f => ({ ...f, catatan: e.target.value }))}
+                  placeholder="Opsional..."
+                />
+              </div>
+
+              <div className="flex gap-3 pt-3">
+                <button
+                  type="button"
+                  className="btn-secondary flex-1"
+                  disabled={saving}
+                  onClick={() => setBuildModal(prev => ({ ...prev, mode: 'view', editId: null, originalPct: 0 }))}
+                >
+                  Kembali
+                </button>
+                <button type="submit" className="btn-primary flex-1" disabled={saving}>
+                  {saving ? 'Menyimpan...' : buildModal.mode === 'edit' ? 'Perbarui Progress' : 'Simpan Progress'}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
       </Modal>
+
+      {/* ============================================================ */}
+      {/* MODAL 2: FINANSIAL (PEMBAYARAN)                               */}
+      {/* ============================================================ */}
+      <Modal
+        open={payModal.open}
+        onClose={() => setPayModal({ open: false, mode: 'view', activeId: null, history: [], sisaTagihan: 0 })}
+        title={`Keuangan: Unit ${activePayData?.unit?.nomor_unit}`}
+      >
+        <div className="space-y-4">
+          {payModal.mode === 'view' ? (() => {
+            const isCashLunas  = activePayData?.pembayaran?.tipe === 'cash_lunas';
+            const hargaTotal   = activePayData?.pembayaran?.harga_total   || 0;
+            const totalDibayar = isCashLunas ? hargaTotal : (activePayData?.pembayaran?.total_dibayar || 0);
+            const sisaTagihan  = hargaTotal - totalDibayar;
+
+            return (
+              <>
+                <div className={`p-4 rounded-xl flex justify-between border ${sisaTagihan <= 0 ? 'bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800' : 'bg-slate-50 border-slate-100 dark:bg-slate-800 dark:border-slate-700'}`}>
+                  <div>
+                    <p className={`text-xs mb-0.5 uppercase tracking-wider font-bold ${sisaTagihan <= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500'}`}>Total Dibayar</p>
+                    <p className={`text-lg font-bold ${sisaTagihan <= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-emerald-600'}`}>{formatCurrency(totalDibayar)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-xs mb-0.5 uppercase tracking-wider font-bold ${sisaTagihan <= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500'}`}>
+                      {sisaTagihan <= 0 ? 'Status' : 'Sisa Tagihan'}
+                    </p>
+                    {sisaTagihan <= 0 ? (
+                      <p className="text-lg font-bold flex items-center justify-end gap-1 text-emerald-600 dark:text-emerald-400">
+                        <CheckCircle className="w-5 h-5" /> LUNAS
+                      </p>
+                    ) : (
+                      <p className="text-lg font-bold text-slate-800 dark:text-slate-100">{formatCurrency(sisaTagihan)}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="max-h-[300px] overflow-y-auto pr-1 space-y-3 mt-2">
+                  {payModal.history.length === 0 ? (
+                    <p className="text-center py-6 text-sm text-slate-500">Belum ada riwayat pembayaran.</p>
+                  ) : (
+                    payModal.history.map((p, idx) => (
+                      <div key={p.id || idx} className="p-3 border border-slate-100 dark:border-slate-700 rounded-xl">
+                        <p className="font-bold text-slate-900 dark:text-white text-base">{formatCurrency(p.jumlah_bayar)}</p>
+                        <div className="flex items-center text-xs text-slate-500 mt-1 gap-2">
+                          <span><Calendar className="w-3.5 h-3.5 inline mr-1 -mt-0.5" />{formatDate(p.tanggal_bayar)}</span>
+                          <span>•</span>
+                          <span>Oleh: {p.dicatat_oleh || 'Sistem'}</span>
+                        </div>
+                        {p.catatan && (
+                          <p className={`text-sm mt-2 p-2 rounded-lg italic ${isCashLunas ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-slate-50 text-slate-600 dark:bg-slate-800/50 dark:text-slate-400'}`}>
+                            "{p.catatan}"
+                          </p>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {isRole('admin', 'super_admin') && sisaTagihan > 0 && (
+                  <button
+                    className="btn-primary !bg-emerald-600 hover:!bg-emerald-700 w-full mt-2"
+                    onClick={() => {
+                      setPayForm({ ...EMPTY_PAY_FORM, tanggal_bayar: new Date().toISOString().split('T')[0] });
+                      setPayModal(prev => ({ ...prev, mode: 'create', sisaTagihan }));
+                    }}
+                  >
+                    <Plus className="w-4 h-4 mr-1.5" /> Catat Pembayaran
+                  </button>
+                )}
+              </>
+            );
+          })() : (
+            <form onSubmit={handleSavePay} className="space-y-4">
+              <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 p-3 rounded-lg text-sm border border-amber-200 dark:border-amber-800/50 mb-4">
+                Sisa tagihan yang harus dilunasi adalah <strong>{formatCurrency(payModal.sisaTagihan)}</strong>. Anda tidak dapat menginput melebihi nominal ini.
+              </div>
+              <div className="space-y-1.5">
+                <label className="label">Jumlah Nominal Transfer/Cash (Rp)</label>
+                <input type="number" required className="input" placeholder="0" max={payModal.sisaTagihan} value={payForm.jumlah_bayar} onChange={e => setPayForm(f => ({ ...f, jumlah_bayar: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="label">Tanggal Transaksi</label>
+                <input type="date" required className="input" value={payForm.tanggal_bayar} onChange={e => setPayForm(f => ({ ...f, tanggal_bayar: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="label">Keterangan / Berita Acara</label>
+                <textarea className="input min-h-[80px]" placeholder="Misal: Cicilan ke-3 via BCA..." value={payForm.catatan} onChange={e => setPayForm(f => ({ ...f, catatan: e.target.value }))} />
+              </div>
+              <div className="flex gap-3 pt-3">
+                <button type="button" className="btn-secondary flex-1" disabled={saving} onClick={() => setPayModal(prev => ({ ...prev, mode: 'view' }))}>Kembali</button>
+                <button type="submit" className="btn-primary !bg-emerald-600 hover:!bg-emerald-700 flex-1" disabled={saving}>
+                  {saving ? 'Menyimpan...' : 'Simpan Transaksi'}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      </Modal>
+
     </div>
   );
 }

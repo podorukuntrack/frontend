@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { clustersAPI, projectsAPI } from "../../api/services";
 import {
   PageLoader,
@@ -14,6 +14,9 @@ import { extractError, formatDate } from "../../utils/helpers";
 import { useAuth } from "../../context/AuthContext";
 import { Layers, Plus, Pencil, Trash2, Home } from "lucide-react";
 
+const EMPTY_FORM = { project_id: "", nama_cluster: "", jumlah_unit: "" };
+const LIMIT = 12;
+
 export default function ClustersPage() {
   const { isRole } = useAuth();
   const { toast } = useToast();
@@ -26,71 +29,86 @@ export default function ClustersPage() {
   const [filterProject, setFilterProject] = useState("");
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const limit = 12;
   
+  // State untuk kontrol modal & form
   const [modal, setModal] = useState({ open: false, mode: "create", data: null });
   const [confirm, setConfirm] = useState({ open: false, id: null });
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ project_id: "", nama_cluster: "", jumlah_unit: "" });
+  const [form, setForm] = useState(EMPTY_FORM);
 
-  
-  const load = async () => {
-    setLoading(true);
+  // 1. Fungsi Load Utama (Dibuat stabil dengan useCallback)
+  const loadClusters = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     try {
       const params = {
         page,
-        limit,
-        search: search || undefined,
+        limit: LIMIT,
+        search: search.trim() || undefined,
         project_id: filterProject || undefined,
       };
       const r = await clustersAPI.list(params);
       setClusters(r.data.data || []);
+      // Pastikan backend mengirim meta.total
       setTotal(r.data.meta?.total || 0);
     } catch (err) {
       toast(extractError(err), "error");
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, search, filterProject, toast]);
 
-  useEffect(() => {
-    projectsAPI.list().then((r) => setProjects(r.data.data || []));
-  }, []);
+  // 2. Effect untuk fetch data cluster saat filter/search/page berubah
+// Ganti bagian useEffect Anda dengan pola ini:
+useEffect(() => {
+  let isMounted = true;
 
-  // Gunakan satu useEffect gabungan dan deklarasikan fecthing di dalamnya
-  useEffect(() => {
-    const fetchClusters = async () => {
-      try {
-        const params = {
-          page,
-          limit,
-          search: search || undefined,
-          project_id: filterProject || undefined,
-        };
-        const r = await clustersAPI.list(params);
+  const fetchClusters = async () => {
+    // Jangan panggil loadClusters() secara sinkron jika loadClusters mengubah state
+    // Lakukan fetching di sini atau pastikan loadClusters dibungkus callback
+    try {
+      setLoading(true);
+      const params = {
+        page,
+        limit: LIMIT,
+        search: search.trim() || undefined,
+        project_id: filterProject || undefined,
+      };
+      const r = await clustersAPI.list(params);
+      
+      if (isMounted) {
         setClusters(r.data.data || []);
         setTotal(r.data.meta?.total || 0);
-      } catch (err) {
-        toast(extractError(err), "error");
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (err) {
+      if (isMounted) toast(extractError(err), "error");
+    } finally {
+      if (isMounted) setLoading(false);
+    }
+  };
 
-    fetchClusters();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, filterProject, search]);
+  fetchClusters();
 
+  return () => { isMounted = false; };
+}, [page, filterProject, search, toast]); // State dependencies
+
+  // 3. Fetch daftar proyek (hanya sekali saat mount)
+  useEffect(() => {
+    projectsAPI.list()
+      .then((r) => setProjects(r.data.data || []))
+      .catch((err) => console.error("Gagal ambil proyek:", err));
+  }, []);
+
+  // 4. Handlers
   const openCreate = () => {
-    setForm({ project_id: filterProject || "", nama_cluster: "", jumlah_unit: "" });
-    setModal({ open: true, mode: "create" });
+    setForm({ ...EMPTY_FORM, project_id: filterProject || "" });
+    setModal({ open: true, mode: "create", data: null });
   };
 
   const openEdit = (c) => {
     setForm({
-      project_id: c.project?.id || "",
+      project_id: c.project_id || c.project?.id || "",
       nama_cluster: c.nama_cluster,
-      jumlah_unit: c.jumlah_unit,
+      jumlah_unit: c.jumlah_unit.toString(),
     });
     setModal({ open: true, mode: "edit", data: c });
   };
@@ -99,7 +117,11 @@ export default function ClustersPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      const payload = { ...form, jumlah_unit: parseInt(form.jumlah_unit) || 0 };
+      const payload = { 
+        ...form, 
+        jumlah_unit: parseInt(form.jumlah_unit) || 0 
+      };
+
       if (modal.mode === "create") {
         await clustersAPI.create(payload);
         toast("Cluster berhasil dibuat", "success");
@@ -108,7 +130,7 @@ export default function ClustersPage() {
         toast("Cluster berhasil diperbarui", "success");
       }
       setModal({ open: false });
-      load();
+      loadClusters(true); // Re-fetch tanpa spinner besar
     } catch (err) {
       toast(extractError(err), "error");
     } finally {
@@ -122,7 +144,7 @@ export default function ClustersPage() {
       await clustersAPI.delete(confirm.id);
       toast("Cluster berhasil dihapus", "success");
       setConfirm({ open: false });
-      load();
+      loadClusters(true);
     } catch (err) {
       toast(extractError(err), "error");
     } finally {
@@ -141,7 +163,7 @@ export default function ClustersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Cluster</h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{total} cluster tersedia</p>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{total} cluster terdaftar</p>
         </div>
         {isRole("super_admin", "admin") && (
           <button className="btn-primary whitespace-nowrap" onClick={openCreate}>
@@ -177,17 +199,17 @@ export default function ClustersPage() {
         <EmptyState
           icon={Layers}
           title="Belum ada cluster"
-          description="Tambahkan cluster ke proyek Anda untuk mengelompokkan unit."
+          description={search ? "Hasil pencarian tidak ditemukan." : "Tambahkan cluster ke proyek Anda."}
         />
       ) : (
         <>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
             {clusters.map((c) => (
-              <div key={c.id} className="card-hover p-6 group flex flex-col justify-between h-full">
+              <div key={c.id} className="card-hover p-6 group flex flex-col justify-between h-full border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl">
                 <div>
                   <div className="flex items-start justify-between mb-4">
-                    <span className="inline-flex px-2.5 py-1 rounded-md text-xs font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20">
-                      {c.project?.nama_proyek || "Tidak ada Proyek"}
+                    <span className="inline-flex px-2.5 py-1 rounded-md text-[10px] uppercase tracking-wider font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20">
+                      {c.project?.nama_proyek || "General"}
                     </span>
                     {isRole("super_admin", "admin") && (
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -205,60 +227,68 @@ export default function ClustersPage() {
                   </h3>
                 </div>
                 
-                <div className="pt-4 mt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-400">
-                    <Home className="w-4 h-4" />
-                    <span>{c.jumlah_unit} Unit</span>
+                <div className="pt-4 mt-2 border-t border-slate-50 dark:border-slate-800/50 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-slate-600 dark:text-slate-300">
+                    <Home className="w-4 h-4 text-slate-400" />
+                    <span>{c.jumlah_unit} <span className="text-slate-400 font-normal">Unit</span></span>
                   </div>
-                  <p className="text-slate-400 dark:text-slate-500 text-xs font-medium">
+                  <p className="text-slate-400 dark:text-slate-500 text-[10px] font-medium uppercase">
                     {formatDate(c.created_at)}
                   </p>
                 </div>
               </div>
             ))}
           </div>
-          <Pagination page={page} total={total} limit={limit} onChange={setPage} />
+          <Pagination page={page} total={total} limit={LIMIT} onChange={setPage} />
         </>
       )}
 
-      {/* MODAL */}
+      {/* MODAL CREATE/EDIT */}
       <Modal
         open={modal.open}
         onClose={() => setModal({ open: false })}
         title={modal.mode === "create" ? "Tambah Cluster" : "Edit Cluster"}
+        size="md"
       >
-        <form onSubmit={handleSave} className="space-y-4">
+        <form onSubmit={handleSave} className="space-y-5">
           <div className="space-y-1.5">
-            <label className="label">Proyek</label>
+            <label className="label">Pilih Proyek</label>
             <Select
               value={form.project_id}
               onChange={(v) => setForm((f) => ({ ...f, project_id: v }))}
               options={projectOptions}
-              placeholder="Pilih proyek..."
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="label">Nama Cluster</label>
-            <input
-              className="input"
               required
-              value={form.nama_cluster}
-              onChange={(e) => setForm((f) => ({ ...f, nama_cluster: e.target.value }))}
-              placeholder="Contoh: Cluster Utama"
+              placeholder="Pilih proyek..."
+              className="w-full"
             />
           </div>
-          <div className="space-y-1.5">
-            <label className="label">Jumlah Unit</label>
-            <input
-              className="input"
-              type="number"
-              min="0"
-              value={form.jumlah_unit}
-              onChange={(e) => setForm((f) => ({ ...f, jumlah_unit: e.target.value }))}
-              placeholder="0"
-            />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="label">Nama Cluster</label>
+              <input
+                className="input w-full"
+                required
+                value={form.nama_cluster}
+                onChange={(e) => setForm((f) => ({ ...f, nama_cluster: e.target.value }))}
+                placeholder="Contoh: Cluster Sakura"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="label">Jumlah Unit</label>
+              <input
+                className="input w-full"
+                type="number"
+                min="0"
+                required
+                value={form.jumlah_unit}
+                onChange={(e) => setForm((f) => ({ ...f, jumlah_unit: e.target.value }))}
+                placeholder="0"
+              />
+            </div>
           </div>
-          <div className="flex gap-3 justify-end pt-4 mt-2 border-t border-slate-100 dark:border-slate-800">
+
+          <div className="flex gap-3 justify-end pt-5 mt-2 border-t border-slate-100 dark:border-slate-800">
             <button type="button" className="btn-secondary" onClick={() => setModal({ open: false })} disabled={saving}>
               Batal
             </button>
@@ -269,13 +299,13 @@ export default function ClustersPage() {
         </form>
       </Modal>
 
-      {/* CONFIRMATION */}
+      {/* CONFIRM DELETE */}
       <Confirm
         open={confirm.open}
         onClose={() => setConfirm({ open: false })}
         onConfirm={handleDelete}
         title="Hapus Cluster"
-        description="Apakah Anda yakin ingin menghapus cluster ini? Cluster hanya bisa dihapus jika tidak ada unit yang terikat di dalamnya."
+        description="Data cluster akan dihapus permanen. Pastikan tidak ada data unit di dalam cluster ini."
         loading={saving}
       />
     </div>

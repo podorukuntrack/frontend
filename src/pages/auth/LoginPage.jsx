@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Spinner } from '../../components/ui';
 import { extractError } from '../../utils/helpers';
@@ -135,12 +135,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="text-center text-slate-500 dark:text-slate-400 text-sm mt-8">
-            Belum punya akun?{' '}
-            <Link to="/register" className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-semibold transition-colors">
-              Daftar di sini
-            </Link>
-          </p>
+         
         </div>
       </div>
     </div>
