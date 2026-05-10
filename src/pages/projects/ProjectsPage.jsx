@@ -4,9 +4,9 @@ import { PageLoader, EmptyState, SearchInput, Modal, Confirm } from '../../compo
 import { useToast } from '../../hooks/useToast';
 import { getStatusColor, getStatusLabel, formatDate, extractError } from '../../utils/helpers';
 import { useAuth } from '../../context/AuthContext';
-import { FolderKanban, Plus, Pencil, Trash2, MapPin, Calendar, Building } from 'lucide-react';
+import { FolderKanban, Plus, Pencil, Trash2, MapPin, Calendar } from 'lucide-react';
 
-const EMPTY_FORM = { nama_proyek: '', lokasi: '', deskripsi: '', developer: '', status: 'active' };
+const EMPTY_FORM = { nama_proyek: '', lokasi: '', deskripsi: '', status: 'active' };
 
 export default function ProjectsPage() {
   const { isRole } = useAuth();
@@ -59,7 +59,7 @@ const load = async () => {
   };
   
   const openEdit = (p) => {
-    setForm({ nama_proyek: p.nama_proyek, lokasi: p.lokasi, deskripsi: p.deskripsi || '', developer: p.developer || '', status: p.status });
+    setForm({ nama_proyek: p.nama_proyek, lokasi: p.lokasi, deskripsi: p.deskripsi || '', status: p.status });
     setModal({ open: true, mode: 'edit', data: p });
   };
 
@@ -141,12 +141,7 @@ const load = async () => {
                   <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-400" />
                   <span className="line-clamp-1">{p.lokasi}</span>
                 </div>
-                {p.developer && (
-                  <div className="flex items-start gap-2.5 text-sm text-slate-600 dark:text-slate-400 font-medium">
-                    <Building className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-400" />
-                    <span className="line-clamp-1">{p.developer}</span>
-                  </div>
-                )}
+               
                 <div className="flex items-start gap-2.5 text-sm text-slate-500 dark:text-slate-500">
                   <Calendar className="w-4 h-4 mt-0.5 flex-shrink-0" />
                   <span>Dibuat {formatDate(p.created_at)}</span>
@@ -169,10 +164,7 @@ const load = async () => {
               <label className="label">Lokasi</label>
               <input className="input" required value={form.lokasi} onChange={e => setForm(f => ({ ...f, lokasi: e.target.value }))} placeholder="Contoh: Jakarta Timur" />
             </div>
-            <div className="space-y-1.5">
-              <label className="label">Developer</label>
-              <input className="input" value={form.developer} onChange={e => setForm(f => ({ ...f, developer: e.target.value }))} placeholder="PT Constructor Indonesia" />
-            </div>
+          
           </div>
           <div className="space-y-1.5">
             <label className="label">Deskripsi</label>
