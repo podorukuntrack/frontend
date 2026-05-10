@@ -1,8 +1,15 @@
 import { useNavigate } from 'react-router-dom';
-import { ShieldAlert, ArrowLeft, Home } from 'lucide-react';
+import { ShieldAlert, LogOut } from 'lucide-react';
+import { useAuth } from '../context/AuthContext'; // Sesuaikan path jika perlu
 
 export default function UnauthorizedPage() {
   const navigate = useNavigate();
+  const { logout } = useAuth();
+
+  const handleLogout = () => {
+    logout(); // Menghapus token / sesi login
+    navigate('/login', { replace: true }); // Lempar ke login dan hapus history
+  };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[70vh] text-center px-6 animate-fadeIn">
@@ -16,25 +23,17 @@ export default function UnauthorizedPage() {
         Akses Ditolak
       </h1>
       <p className="text-slate-500 dark:text-slate-400 text-base max-w-md mb-10 leading-relaxed font-medium">
-        Maaf, Anda tidak memiliki izin akses (role) yang memadai untuk melihat halaman ini. Silakan hubungi administrator jika Anda merasa ini adalah sebuah kesalahan.
+        Maaf, akun Anda tidak memiliki izin untuk melihat halaman ini. Silakan keluar dan masuk kembali menggunakan akun dengan hak akses yang sesuai.
       </p>
       
       {/* Actions */}
-      <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+      <div className="flex justify-center w-full sm:w-auto">
         <button 
-          onClick={() => navigate(-1)} 
-          className="btn-secondary w-full sm:w-auto justify-center py-2.5 px-5"
+          onClick={handleLogout} 
+          className="btn-primary w-full sm:w-auto justify-center py-2.5 px-6"
         >
-          <ArrowLeft className="w-4 h-4 mr-1.5" /> 
-          Kembali ke Sebelumnya
-        </button>
-        
-        <button 
-          onClick={() => navigate('/')} 
-          className="btn-primary w-full sm:w-auto justify-center py-2.5 px-5"
-        >
-          <Home className="w-4 h-4 mr-1.5" /> 
-          Halaman Utama
+          <LogOut className="w-4 h-4 mr-2" /> 
+          Keluar & Kembali ke Login
         </button>
       </div>
     </div>
