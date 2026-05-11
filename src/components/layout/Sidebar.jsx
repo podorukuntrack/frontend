@@ -11,7 +11,7 @@ import { useState } from 'react';
 // 1. Deklarasi navItems dikembalikan agar ikon terpakai dan tidak undefined
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard', roles: ['super_admin', 'admin'] },
-  { to: '/companies', icon: Building2, label: 'Perusahaan', roles: ['super_admin'] },
+  { to: '/companies', icon: Building2, label: 'Perusahaanjay', roles: ['super_admin'] },
   { to: '/projects', icon: FolderKanban, label: 'Proyek', roles: [ 'admin'] },
   { to: '/clusters', icon: Layers, label: 'Cluster', roles: [ 'admin'] },
   { to: '/units', icon: Home, label: 'Unit', roles: ['admin', 'customer'] },
