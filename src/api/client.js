@@ -1,20 +1,20 @@
 import axios from 'axios';
 
-const BASE_URL = 'https://backend-dama-production.up.railway.app/api';
+const BASE_URL = import.meta.env.VITE_API_URL;
 
 const api = axios.create({
   baseURL: BASE_URL,
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Request interceptor: attach token
+// Request interceptor
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-// Response interceptor: handle token refresh on 401
+// Response interceptor
 api.interceptors.response.use(
   (res) => res,
   async (err) => {
