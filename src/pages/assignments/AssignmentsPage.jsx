@@ -202,7 +202,7 @@ export default function AssignmentsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
-            Assignment
+            Penjualan
           </h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
             {total} total unit terjual
@@ -210,7 +210,7 @@ export default function AssignmentsPage() {
         </div>
         {isRole("super_admin", "admin") && (
           <button className="btn-primary" onClick={openCreate}>
-            <Plus className="w-4 h-4 mr-1" /> Assign Unit
+            <Plus className="w-4 h-4 mr-1" /> Tambah Unit Terjual
           </button>
         )}
       </div>

@@ -15,7 +15,7 @@ const navItems = [
   { to: '/projects', icon: FolderKanban, label: 'Proyek', roles: [ 'admin'] },
   { to: '/clusters', icon: Layers, label: 'Cluster', roles: [ 'admin'] },
   { to: '/units', icon: Home, label: 'Unit', roles: ['admin', 'customer'] },
-  { to: '/assignments', icon: ClipboardList, label: 'Assignment', roles: [ 'admin', 'customer'] },
+  { to: '/assignments', icon: ClipboardList, label: 'Penjualan', roles: [ 'admin', 'customer'] },
   { to: '/progress', icon: TrendingUp, label: 'Progress', roles: ['admin', 'customer'] },
   { to: '/documentation', icon: FileImage, label: 'Dokumentasi', roles: [ 'admin', 'customer'] },
   { to: '/users', icon: Users, label: 'Pengguna', roles: ['super_admin', 'admin'] },
