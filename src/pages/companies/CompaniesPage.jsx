@@ -14,35 +14,33 @@ export default function CompaniesPage() {
   const [modal, setModal] = useState({ open: false, mode: 'create', data: null });
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [tick, setTick] = useState(0);
 
-  
-const load = async () => {
-    setLoading(true);
-    try {
-      const r = await companiesAPI.list();
-      setCompanies(r.data.data || []);
-    } catch (err) {
-      toast(extractError(err), 'error'); // Pastikan extractError dan toast sudah ada
-    } finally {
-      setLoading(false);
-    }
-  };
+  // ─── Fetch companies ─────────────────────────────────────────────
+  useEffect(() => {
+    let cancelled = false;
 
-  useEffect(() => { 
     const fetchCompanies = async () => {
+      setLoading(true);
       try {
         const r = await companiesAPI.list();
+        if (cancelled) return;
         setCompanies(r.data.data || []);
       } catch (err) {
-        console.error(err);
+        if (!cancelled) toast(extractError(err), 'error');
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchCompanies();
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [tick]);
+  // ─── Helper: trigger refetch setelah mutasi ──────────────────
+  const refetch = () => setTick(t => t + 1);
+
+  // ─── Handlers ────────────────────────────────────────────────────
   const openCreate = () => { 
     setForm(EMPTY_FORM); 
     setModal({ open: true, mode: 'create' }); 
@@ -65,7 +63,7 @@ const load = async () => {
         toast('Perusahaan berhasil diperbarui', 'success'); 
       }
       setModal({ open: false });
-      load();
+      refetch();
     } catch (err) { 
       toast(extractError(err), 'error'); 
     } finally { 

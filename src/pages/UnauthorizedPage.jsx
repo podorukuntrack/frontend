@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { ShieldAlert, LogOut } from 'lucide-react';
-import { useAuth } from '../context/AuthContext'; // Sesuaikan path jika perlu
+import { useAuth } from '../context/useAuth'; // Sesuaikan path jika perlu
 
 export default function UnauthorizedPage() {
   const navigate = useNavigate();

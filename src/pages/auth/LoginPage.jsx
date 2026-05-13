@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
 import { Spinner } from '../../components/ui';
 import { extractError } from '../../utils/helpers';
 import { Building2, Eye, EyeOff } from 'lucide-react';

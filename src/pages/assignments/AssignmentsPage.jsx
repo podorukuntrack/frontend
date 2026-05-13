@@ -20,7 +20,7 @@ import {
   extractError,
 } from "../../utils/helpers";
 import { useToast } from "../../hooks/useToast";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/useAuth";
 import { ClipboardList, Plus, Pencil } from "lucide-react";
 
 const EMPTY_FORM = {

@@ -1,83 +1,127 @@
-import { useEffect, useState } from 'react';
-import { projectsAPI } from '../../api/services';
-import { PageLoader, EmptyState, SearchInput, Modal, Confirm } from '../../components/ui';
-import { useToast } from '../../hooks/useToast';
-import { getStatusColor, getStatusLabel, formatDate, extractError } from '../../utils/helpers';
-import { useAuth } from '../../context/AuthContext';
-import { FolderKanban, Plus, Pencil, Trash2, MapPin, Calendar } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { projectsAPI } from "../../api/services";
+import {
+  PageLoader,
+  EmptyState,
+  SearchInput,
+  Modal,
+  Confirm,
+} from "../../components/ui";
+import { useToast } from "../../hooks/useToast";
+import {
+  getStatusColor,
+  getStatusLabel,
+  formatDate,
+  extractError,
+} from "../../utils/helpers";
+import { useAuth } from "../../context/useAuth";
+import {
+  FolderKanban,
+  Plus,
+  Pencil,
+  Trash2,
+  MapPin,
+  Calendar,
+} from "lucide-react";
 
-const EMPTY_FORM = { nama_proyek: '', lokasi: '', deskripsi: '', status: 'active' };
+const EMPTY_FORM = {
+  nama_proyek: "",
+  lokasi: "",
+  deskripsi: "",
+  status: "active",
+};
 
 export default function ProjectsPage() {
   const { isRole } = useAuth();
   const { toast } = useToast();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [modal, setModal] = useState({ open: false, mode: 'create', data: null });
+  const [search, setSearch] = useState("");
+  const [modal, setModal] = useState({
+    open: false,
+    mode: "create",
+    data: null,
+  });
   const [confirm, setConfirm] = useState({ open: false, id: null });
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [tick, setTick] = useState(0);
 
+  // ─── Fetch projects ──────────────────────────────────────────────
+  useEffect(() => {
+    let cancelled = false;
 
-const load = async () => {
-    setLoading(true);
-    try {
-      const r = await projectsAPI.list();
-      setProjects(r.data.data || []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { 
     const fetchProjects = async () => {
+      setLoading(true);
       try {
-        const r = await projectsAPI.list();
-        setProjects(r.data.data || []);
+        const r = await projectsAPI.list({ limit: 100 });
+        if (cancelled) return;
+
+        // 1. Log 'r' secara utuh, BUKAN r.data
+        console.log("Response Utuh:", r);
+
+        // 2. Gunakan optional chaining (?.) untuk mencegah crash
+        // Sesuaikan ini berdasarkan hasil console.log di atas.
+        // Jika r.data sudah array, cukup gunakan r.data.
+        // Jika r adalah array-nya langsung, gunakan r.
+        const fetchedData = r?.data?.data || r?.data || r || [];
+
+        setProjects(fetchedData);
       } catch (err) {
-        console.error(err);
+        if (!cancelled) toast(extractError(err), "error");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchProjects();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  
-  const filtered = projects.filter(p =>
-    p.nama_proyek?.toLowerCase().includes(search.toLowerCase()) ||
-    p.lokasi?.toLowerCase().includes(search.toLowerCase())
+    return () => {
+      cancelled = true;
+    };
+  }, [tick]);
+
+const filtered = projects.filter(
+    (p) =>
+      // Ubah p.nama_proyek menjadi p.name
+      (p.name?.toLowerCase() || "").includes(search.toLowerCase()) ||
+      // Tambahkan fallback string kosong agar tidak crash jika lokasi null
+      (p.lokasi?.toLowerCase() || "").includes(search.toLowerCase()),
   );
 
-  const openCreate = () => { 
-    setForm(EMPTY_FORM); 
-    setModal({ open: true, mode: 'create' }); 
+  // ─── Helper: trigger refetch setelah mutasi ──────────────────
+  const refetch = () => setTick((t) => t + 1);
+
+  // ─── Handlers ────────────────────────────────────────────────────
+  const openCreate = () => {
+    setForm(EMPTY_FORM);
+    setModal({ open: true, mode: "create" });
   };
-  
-  const openEdit = (p) => {
-    setForm({ nama_proyek: p.nama_proyek, lokasi: p.lokasi, deskripsi: p.deskripsi || '', status: p.status });
-    setModal({ open: true, mode: 'edit', data: p });
+
+ const openEdit = (p) => {
+    setForm({
+      nama_proyek: p.name,          // UBAH INI
+      lokasi: p.lokasi || "",       
+      deskripsi: p.description || "", // UBAH INI
+      status: p.status,
+    });
+    setModal({ open: true, mode: "edit", data: p });
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
-      if (modal.mode === 'create') {
+      if (modal.mode === "create") {
         await projectsAPI.create(form);
-        toast('Proyek berhasil dibuat', 'success');
+        toast("Proyek berhasil dibuat", "success");
       } else {
         await projectsAPI.update(modal.data.id, form);
-        toast('Proyek berhasil diperbarui', 'success');
+        toast("Proyek berhasil diperbarui", "success");
       }
       setModal({ open: false });
-      load();
+      refetch();
     } catch (err) {
-      toast(extractError(err), 'error');
+      toast(extractError(err), "error");
     } finally {
       setSaving(false);
     }
@@ -87,11 +131,11 @@ const load = async () => {
     setSaving(true);
     try {
       await projectsAPI.delete(confirm.id);
-      toast('Proyek berhasil dihapus', 'success');
+      toast("Proyek berhasil dihapus", "success");
       setConfirm({ open: false });
-      load();
+      refetch();
     } catch (err) {
-      toast(extractError(err), 'error');
+      toast(extractError(err), "error");
     } finally {
       setSaving(false);
     }
@@ -101,47 +145,91 @@ const load = async () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Proyek</h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{projects.length} proyek tersedia</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+            Proyek
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+            {projects.length} proyek tersedia
+          </p>
         </div>
-        {isRole('super_admin', 'admin') && (
-          <button className="btn-primary whitespace-nowrap" onClick={openCreate}>
-            <Plus className="w-4 h-4 mr-1" />Tambah Proyek
+        {isRole("super_admin", "admin") && (
+          <button
+            className="btn-primary whitespace-nowrap"
+            onClick={openCreate}
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            Tambah Proyek
           </button>
         )}
       </div>
 
-      <SearchInput value={search} onChange={setSearch} placeholder="Cari nama proyek atau lokasi..." />
+      <SearchInput
+        value={search}
+        onChange={setSearch}
+        placeholder="Cari nama proyek atau lokasi..."
+      />
 
       {loading ? (
         <PageLoader />
       ) : filtered.length === 0 ? (
-        <EmptyState icon={FolderKanban} title="Belum ada proyek" description="Mulai tambahkan portofolio proyek real estate Anda"
-          action={isRole('super_admin', 'admin') && <button className="btn-primary mt-2" onClick={openCreate}><Plus className="w-4 h-4 mr-1" />Tambah Proyek</button>} />
+        <EmptyState
+          icon={FolderKanban}
+          title="Belum ada proyek"
+          description="Mulai tambahkan portofolio proyek real estate Anda"
+          action={
+            isRole("super_admin", "admin") && (
+              <button className="btn-primary mt-2" onClick={openCreate}>
+                <Plus className="w-4 h-4 mr-1" />
+                Tambah Proyek
+              </button>
+            )
+          }
+        />
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-          {filtered.map(p => (
-            <div key={p.id} className="card-hover p-6 group flex flex-col justify-between h-full">
+          {filtered.map((p) => (
+            <div
+              key={p.id}
+              className="card-hover p-6 group flex flex-col justify-between h-full"
+            >
               <div>
                 <div className="flex items-start justify-between mb-4">
-                  <span className={`badge ${getStatusColor(p.status)}`}>{getStatusLabel(p.status)}</span>
-                  {isRole('super_admin', 'admin') && (
+                  <span className={`badge ${getStatusColor(p.status)}`}>
+                    {getStatusLabel(p.status)}
+                  </span>
+                  {isRole("super_admin", "admin") && (
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => openEdit(p)} className="btn-ghost !p-1.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"><Pencil className="w-4 h-4" /></button>
-                      <button onClick={() => setConfirm({ open: true, id: p.id })} className="btn-ghost !p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400"><Trash2 className="w-4 h-4" /></button>
+                      <button
+                        onClick={() => openEdit(p)}
+                        className="btn-ghost !p-1.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setConfirm({ open: true, id: p.id })}
+                        className="btn-ghost !p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   )}
                 </div>
-                <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-2 leading-tight">{p.nama_proyek}</h3>
-                {p.deskripsi && <p className="text-slate-600 dark:text-slate-400 text-sm mb-4 line-clamp-2 leading-relaxed">{p.deskripsi}</p>}
+                <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-2 leading-tight">
+                  {p.nama_proyek}
+                </h3>
+                {p.deskripsi && (
+                  <p className="text-slate-600 dark:text-slate-400 text-sm mb-4 line-clamp-2 leading-relaxed">
+                    {p.deskripsi}
+                  </p>
+                )}
               </div>
-              
+
               <div className="space-y-2 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
                 <div className="flex items-start gap-2.5 text-sm text-slate-600 dark:text-slate-400 font-medium">
                   <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-400" />
                   <span className="line-clamp-1">{p.lokasi}</span>
                 </div>
-               
+
                 <div className="flex items-start gap-2.5 text-sm text-slate-500 dark:text-slate-500">
                   <Calendar className="w-4 h-4 mt-0.5 flex-shrink-0" />
                   <span>Dibuat {formatDate(p.created_at)}</span>
@@ -153,40 +241,87 @@ const load = async () => {
       )}
 
       {/* Create/Edit modal */}
-      <Modal open={modal.open} onClose={() => setModal({ open: false })} title={modal.mode === 'create' ? 'Tambah Proyek' : 'Edit Proyek'}>
+      <Modal
+        open={modal.open}
+        onClose={() => setModal({ open: false })}
+        title={modal.mode === "create" ? "Tambah Proyek" : "Edit Proyek"}
+      >
         <form onSubmit={handleSave} className="space-y-4">
           <div className="space-y-1.5">
             <label className="label">Nama Proyek</label>
-            <input className="input" required value={form.nama_proyek} onChange={e => setForm(f => ({ ...f, nama_proyek: e.target.value }))} placeholder="Contoh: Grand Central 2026" />
+            <input
+              className="input"
+              required
+              value={form.nama_proyek}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, nama_proyek: e.target.value }))
+              }
+              placeholder="Contoh: Grand Central 2026"
+            />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="label">Lokasi</label>
-              <input className="input" required value={form.lokasi} onChange={e => setForm(f => ({ ...f, lokasi: e.target.value }))} placeholder="Contoh: Jakarta Timur" />
+              <input
+                className="input"
+                required
+                value={form.lokasi}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, lokasi: e.target.value }))
+                }
+                placeholder="Contoh: Jakarta Timur"
+              />
             </div>
-          
           </div>
           <div className="space-y-1.5">
             <label className="label">Deskripsi</label>
-            <textarea className="input resize-none h-24" value={form.deskripsi} onChange={e => setForm(f => ({ ...f, deskripsi: e.target.value }))} placeholder="Jelaskan detail singkat proyek ini..." />
+            <textarea
+              className="input resize-none h-24"
+              value={form.deskripsi}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, deskripsi: e.target.value }))
+              }
+              placeholder="Jelaskan detail singkat proyek ini..."
+            />
           </div>
           <div className="space-y-1.5">
             <label className="label">Status Proyek</label>
-            <select className="input" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
+            <select
+              className="input"
+              value={form.status}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, status: e.target.value }))
+              }
+            >
               <option value="active">Sedang Berjalan (Active)</option>
               <option value="completed">Telah Selesai (Completed)</option>
               <option value="on_hold">Ditunda (On Hold)</option>
             </select>
           </div>
           <div className="flex gap-3 justify-end pt-4 mt-2 border-t border-slate-100 dark:border-slate-800">
-            <button type="button" className="btn-secondary" onClick={() => setModal({ open: false })} disabled={saving}>Batal</button>
-            <button type="submit" className="btn-primary" disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan Data'}</button>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => setModal({ open: false })}
+              disabled={saving}
+            >
+              Batal
+            </button>
+            <button type="submit" className="btn-primary" disabled={saving}>
+              {saving ? "Menyimpan..." : "Simpan Data"}
+            </button>
           </div>
         </form>
       </Modal>
 
-      <Confirm open={confirm.open} onClose={() => setConfirm({ open: false })} onConfirm={handleDelete}
-        title="Hapus Proyek" description="Apakah Anda yakin ingin menghapus proyek ini? Semua cluster, unit, dan progres di dalamnya akan ikut terhapus." loading={saving} />
+      <Confirm
+        open={confirm.open}
+        onClose={() => setConfirm({ open: false })}
+        onConfirm={handleDelete}
+        title="Hapus Proyek"
+        description="Apakah Anda yakin ingin menghapus proyek ini? Semua cluster, unit, dan progres di dalamnya akan ikut terhapus."
+        loading={saving}
+      />
     </div>
   );
 }

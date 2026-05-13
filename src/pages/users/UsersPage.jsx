@@ -3,7 +3,7 @@ import { usersAPI, companiesAPI } from '../../api/services';
 import { PageLoader, EmptyState, SearchInput, Modal, Confirm, Pagination, Avatar, Select } from '../../components/ui';
 import { useToast } from '../../hooks/useToast';
 import { getStatusColor, getStatusLabel, formatDate, extractError } from '../../utils/helpers';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
 import { Users, Plus, Pencil, Trash2, Eye, EyeOff } from 'lucide-react';
 
 const EMPTY_FORM = {

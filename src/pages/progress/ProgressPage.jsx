@@ -3,7 +3,7 @@ import { progressAPI, assignmentsAPI } from '../../api/services';
 import { PageLoader, EmptyState, Modal, ProgressBar, SearchInput } from '../../components/ui';
 import { useToast } from '../../hooks/useToast';
 import { formatDate, formatCurrency, extractError } from '../../utils/helpers';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
 import { TrendingUp, Plus, Pencil, Calendar, Receipt, Hammer, User, CheckCircle } from 'lucide-react';
 
 const EMPTY_BUILD_FORM = { tahap: '', progress_percentage: 0, tanggal_update: '', catatan: '' };
