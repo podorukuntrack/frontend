@@ -362,7 +362,7 @@ export default function UnitsPage() {
         <form onSubmit={handleAdd} className="space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="label">Project <span className="text-rose-500">*</span></label>
+              <label className="label">Project Fikri<span className="text-rose-500">*</span></label>
               <select 
                 className="input" 
                 value={addForm.project_id} 
