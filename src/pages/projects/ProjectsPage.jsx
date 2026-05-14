@@ -117,7 +117,7 @@ const load = async () => {
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{projects.length} proyek tersedia</p>
         </div>
         {isRole('super_admin', 'admin') && (
-          <button className="btn-primary whitespace-nowrap" onClick={openCreate}>
+          <button className="btn-podorukun" onClick={openCreate}>
             <Plus className="w-4 h-4 mr-1" />Tambah Proyek
           </button>
         )}
@@ -208,7 +208,7 @@ const load = async () => {
           </div>
           <div className="flex gap-3 justify-end pt-4 mt-2 border-t border-slate-100 dark:border-slate-800">
             <button type="button" className="btn-secondary" onClick={() => setModal({ open: false })} disabled={saving}>Batal</button>
-            <button type="submit" className="btn-primary" disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan Data'}</button>
+            <button type="submit" className="btn-podorukun" disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan Data'}</button>
           </div>
         </form>
       </Modal>

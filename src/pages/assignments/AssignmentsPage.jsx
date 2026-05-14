@@ -124,7 +124,7 @@ export default function AssignmentsPage() {
       }
     };
 
-    if (isRole("super_admin", "admin")) {
+    if (isRole("super_admin", "admin", )) {
       fetchMaster();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

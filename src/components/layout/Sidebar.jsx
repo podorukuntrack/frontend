@@ -216,7 +216,7 @@ export default function Sidebar() {
       </aside>
 
       {/* DESKTOP SIDEBAR */}
-      <aside className="sticky top-0 hidden h-screen w-[290px] shrink-0 overflow-hidden bg-white lg:flex lg:flex-col">
+      <aside className="podorukun-sidebar-shadow sticky top-0 hidden h-screen w-[290px] shrink-0 overflow-hidden bg-white lg:flex lg:flex-col">
         {renderSidebarContent()}
       </aside>
     </>
