@@ -76,7 +76,7 @@ export const documentationAPI = {
       ...config,
       headers: {
         ...config.headers,
-        'Content-Type': undefined // Biarkan browser yang mengisi beserta string boundary-nya
+        'Content-Type': 'multipart/form-data'
       }
     });
   },
