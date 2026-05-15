@@ -46,9 +46,12 @@ export default function UnitDetailPanel({ unit, cluster, project }) {
       const currentProg = (progRes.data?.data || []).filter(p => String(p.unit_id) === String(unit.id));
       setProgressData(currentProg);
 
-      // Fetch handover
-      const hoRes = await handoversAPI.list();
-      const currentHo = (hoRes.data?.data || []).find(h => String(h.unit_id) === String(unit.id));
+      // Fetch handover (filter by unitId)
+      const hoRes = await handoversAPI.list({ unitId: unit.id });
+      const allHo = hoRes.data?.data || [];
+      // Cari handover yang selesai dulu, kalau tidak ada ambil yang aktif
+      const completedHo = allHo.find(h => h.status === 'selesai' || h.status === 'completed');
+      const currentHo = completedHo ?? allHo[0];
       if (currentHo) setHandover(currentHo);
 
     } catch (error) {
@@ -76,7 +79,7 @@ export default function UnitDetailPanel({ unit, cluster, project }) {
   const currentProgressPercent = currentUnit.progress_percentage || 0;
   const isProgressComplete = currentProgressPercent >= 100;
 
-  const isHandoverComplete = handover?.status === 'completed';
+  const isHandoverComplete = handover?.status === 'selesai' || handover?.status === 'completed';
 
   const tabs = [
     (!hasAssignment && { id: 'assignment', label: 'Penugasan (Assignment)', icon: UserCheck, disabled: false }),
