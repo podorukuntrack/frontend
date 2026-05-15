@@ -9,13 +9,18 @@ import {
   UserCheck, XCircle, RotateCcw, ArrowRight
 } from 'lucide-react';
 
-// Helper: baca field yang bisa camelCase atau snake_case
-const getScheduledDate = (h) => h.scheduled_date ?? h.scheduledDate;
-const getProposedDate  = (h) => h.proposed_date  ?? h.proposedDate;
-const getActualDate    = (h) => h.actual_date     ?? h.actualDate;
-const fmtDateTime = (iso) => iso
-  ? `${formatDate(iso)} — ${new Date(iso).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`
-  : '—';
+// Helper: baca field tanggal — support camelCase & snake_case
+const getScheduledDate = (h) => h.scheduled_date ?? h.scheduledDate ?? null;
+const getProposedDate  = (h) => h.proposed_date  ?? h.proposedDate  ?? null;
+const getActualDate    = (h) => h.actual_date     ?? h.actualDate    ?? null;
+
+// Format tanggal+waktu dengan safe parsing
+const fmtDateTime = (val) => {
+  if (!val) return '—';
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+};
 
 // Status badge config
 const STATUS_CONFIG = {
