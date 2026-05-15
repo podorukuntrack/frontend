@@ -9,6 +9,14 @@ import {
   UserCheck, XCircle, RotateCcw, ArrowRight
 } from 'lucide-react';
 
+// Helper: baca field yang bisa camelCase atau snake_case
+const getScheduledDate = (h) => h.scheduled_date ?? h.scheduledDate;
+const getProposedDate  = (h) => h.proposed_date  ?? h.proposedDate;
+const getActualDate    = (h) => h.actual_date     ?? h.actualDate;
+const fmtDateTime = (iso) => iso
+  ? `${formatDate(iso)} — ${new Date(iso).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`
+  : '—';
+
 // Status badge config
 const STATUS_CONFIG = {
   menunggu_respon_customer: { label: 'Menunggu Respon Customer', color: 'bg-amber-100 text-amber-700 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800' },
@@ -105,7 +113,7 @@ export default function HandoverTab({ unit, onHandover }) {
     setSaving(true);
     try {
       await handoversAPI.update(h.id, {
-        scheduledDate: h.proposedDate,
+        scheduledDate: getProposedDate(h),
         status: 'dijadwalkan',
         proposedDate: null,
       });
@@ -172,7 +180,7 @@ export default function HandoverTab({ unit, onHandover }) {
   };
 
   const openEdit = (h) => {
-    setForm({ scheduled_date: toDateTimeLocal(h.scheduledDate), notes: h.notes || '' });
+    setForm({ scheduled_date: toDateTimeLocal(getScheduledDate(h)), notes: h.notes || '' });
     setModal({ open: true, mode: 'edit', data: h });
   };
 
@@ -258,15 +266,15 @@ export default function HandoverTab({ unit, onHandover }) {
                     <Clock className="w-4 h-4 text-slate-400 shrink-0" />
                     Jadwal:{' '}
                     <span className="font-semibold text-slate-700 dark:text-slate-300">
-                      {formatDate(h.scheduledDate)} — {new Date(h.scheduledDate).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                      {fmtDateTime(getScheduledDate(h))}
                     </span>
                   </p>
-                  {h.actualDate && (
+                  {getActualDate(h) && (
                     <p className="text-slate-500 flex items-center gap-2">
                       <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
                       Aktual Selesai:{' '}
                       <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                        {formatDate(h.actualDate)}
+                        {formatDate(getActualDate(h))}
                       </span>
                     </p>
                   )}
@@ -297,7 +305,7 @@ export default function HandoverTab({ unit, onHandover }) {
                         <p className="text-sm text-rose-700/90 dark:text-rose-400/80 mt-1">
                           Usulan baru:{' '}
                           <span className="font-bold bg-white dark:bg-slate-700 px-2 py-0.5 rounded ml-1 border border-rose-100 dark:border-slate-600">
-                            {h.proposedDate ? `${formatDate(h.proposedDate)} — ${new Date(h.proposedDate).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}` : '-'}
+                            {fmtDateTime(getProposedDate(h))}
                           </span>
                         </p>
                       </div>
@@ -441,7 +449,7 @@ export default function HandoverTab({ unit, onHandover }) {
           <p className="text-sm text-slate-600 dark:text-slate-400">
             Apakah serah terima pada{' '}
             <span className="font-semibold text-slate-800 dark:text-slate-200">
-              {resultModal.handover ? `${formatDate(resultModal.handover.scheduledDate)} — ${new Date(resultModal.handover.scheduledDate).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}` : '—'}
+              {resultModal.handover ? fmtDateTime(getScheduledDate(resultModal.handover)) : '—'}
             </span>{' '}
             berjalan?
           </p>
