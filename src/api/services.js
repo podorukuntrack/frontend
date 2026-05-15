@@ -71,13 +71,15 @@ export const progressAPI = {
 // DOCUMENTATION
 export const documentationAPI = {
   list: (params) => api.get('/documentations', { params }),
-  upload: (formData, config = {}) => api.post('/documentations', formData, {
-    ...config,
-    headers: {
-      ...config.headers,
-      'Content-Type': 'multipart/form-data'
-    }
-  }),
+  upload: (formData, config = {}) => {
+    return api.post('/documentations', formData, {
+      ...config,
+      headers: {
+        ...config.headers,
+        'Content-Type': undefined // Biarkan browser yang mengisi beserta string boundary-nya
+      }
+    });
+  },
   update: (id, data) => api.patch(`/documentations/${id}`, data),
   delete: (id) => api.delete(`/documentations/${id}`),
 };
