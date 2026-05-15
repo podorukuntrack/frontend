@@ -22,9 +22,8 @@ export default function HandoverTab({ unit, onHandover }) {
   const loadData = async () => {
     setLoading(true);
     try {
-      const res = await handoversAPI.list();
-      const data = (res.data?.data || []).filter(h => String(h.unitId) === String(unit.id));
-      setHandovers(data);
+      const res = await handoversAPI.list({ unitId: unit.id });
+      setHandovers(res.data?.data || []);
     } catch (err) {
       toast(extractError(err), 'error');
     } finally {

@@ -93,7 +93,10 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
         ]);
 
         const filteredFisik = (rProg.data?.data || [])
-          .filter((p) => String(p.unit_id || p.unitId) === String(unit.id))
+          .filter((p) => {
+            const pid = p.unit_id ?? p.unitId;
+            return pid && String(pid) === String(unit.id);
+          })
           .sort(
             (x, y) =>
               new Date(y.tanggal_update || y.tanggalUpdate) -
