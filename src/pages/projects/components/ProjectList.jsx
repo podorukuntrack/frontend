@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { companiesAPI, projectsAPI } from '../../../api/services';
-import { PageLoader, EmptyState, SearchInput, Modal, Confirm } from '../../../components/ui';
+import { PageLoader, EmptyState, SearchInput, Modal, Confirm, CardSkeleton } from '../../../components/ui';
 import { useToast } from '../../../hooks/useToast';
 import { getStatusColor, getStatusLabel, formatDate, extractError } from '../../../utils/helpers';
 import { useAuth } from '../../../context/AuthContext';
@@ -8,7 +9,8 @@ import { FolderKanban, Plus, Pencil, Trash2, MapPin, Calendar, ArrowRight } from
 
 const EMPTY_FORM = { nama_proyek: '', lokasi: '', deskripsi: '', status: 'active' };
 
-export default function ProjectList({ onSelectProject }) {
+export default function ProjectList() {
+  const navigate = useNavigate();
   const { isRole, user } = useAuth();
   const { toast } = useToast();
   const [projects, setProjects] = useState([]);
@@ -116,14 +118,16 @@ export default function ProjectList({ onSelectProject }) {
       <SearchInput value={search} onChange={setSearch} placeholder="Cari nama proyek atau lokasi..." />
 
       {loading ? (
-        <PageLoader />
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+          <CardSkeleton /><CardSkeleton /><CardSkeleton />
+        </div>
       ) : filtered.length === 0 ? (
         <EmptyState icon={FolderKanban} title="Belum ada proyek" description="Mulai tambahkan portofolio proyek real estate Anda"
           action={isRole('super_admin', 'admin') && <button className="btn-primary mt-2" onClick={openCreate}><Plus className="w-4 h-4 mr-1" />Tambah Proyek</button>} />
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {filtered.map(p => (
-            <div key={p.id} onClick={() => onSelectProject(p)} className="card-hover p-6 group flex flex-col justify-between h-full cursor-pointer relative overflow-hidden">
+            <div key={p.id} onClick={() => navigate(`/projects/${p.id}/clusters`)} className="card-hover p-6 group flex flex-col justify-between h-full cursor-pointer relative overflow-hidden">
               <div className="absolute -right-6 -bottom-6 text-slate-50 dark:text-slate-800/50 group-hover:text-indigo-50 dark:group-hover:text-indigo-500/10 transition-colors pointer-events-none">
                  <FolderKanban className="w-32 h-32" />
               </div>

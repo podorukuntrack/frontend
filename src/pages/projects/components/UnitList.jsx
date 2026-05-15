@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { unitsAPI, assignmentsAPI } from "../../../api/services"; 
 import { PageLoader, EmptyState, SearchInput, Modal, ProgressBar, Select } from "../../../components/ui";
 import { useToast } from "../../../hooks/useToast";
@@ -14,7 +15,8 @@ const initialAddForm = {
   nomor_units: [""], 
 };
 
-export default function UnitList({ cluster, project, onSelectUnit, onBack }) {
+export default function UnitList({ cluster, project }) {
+  const navigate = useNavigate();
   const { isRole } = useAuth();
   const { toast } = useToast();
 
@@ -159,7 +161,7 @@ export default function UnitList({ cluster, project, onSelectUnit, onBack }) {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4">
-        <button onClick={onBack} className="btn-ghost w-fit text-slate-500 hover:text-slate-900 dark:hover:text-white -ml-2">
+        <button onClick={() => navigate(`/projects/${project.id}/clusters`)} className="btn-ghost w-fit text-slate-500 hover:text-slate-900 dark:hover:text-white -ml-2">
           <ArrowLeft className="w-4 h-4 mr-1" /> Kembali ke Daftar Cluster
         </button>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -207,7 +209,7 @@ export default function UnitList({ cluster, project, onSelectUnit, onBack }) {
                   const asg = assignments.find(a => (String(a.unit_id) === String(u.id) || String(a.unit?.id) === String(u.id)) && a.status_kepemilikan === 'active');
                   
                   return (
-                  <tr key={u.id} onClick={() => onSelectUnit(u)} className="hover:bg-slate-50 dark:hover:bg-slate-800/25 transition-colors group">
+                  <tr key={u.id} onClick={() => navigate(`/projects/${project.id}/clusters/${cluster.id}/units/${u.id}`)} className="hover:bg-slate-50 dark:hover:bg-slate-800/25 transition-colors group">
                     <td className="px-6 py-4">
                       <span className="font-mono font-bold text-slate-900 dark:text-white px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700">{u.nomor_unit}</span>
                     </td>

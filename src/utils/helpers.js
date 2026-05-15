@@ -40,10 +40,44 @@ export const getProgressColor = (pct) => {
 };
 
 export const extractError = (err) => {
-  return err?.response?.data?.error?.message
-    || err?.response?.data?.message
-    || err?.message
-    || 'Terjadi kesalahan';
+  const status = err?.response?.status;
+  const rawMessage = err?.response?.data?.error?.message 
+    || err?.response?.data?.message 
+    || err?.message 
+    || 'Terjadi kesalahan sistem yang tidak diketahui';
+
+  let title = 'Gagal Memproses Data';
+  let description = rawMessage;
+
+  // Translasi pesan teknis menjadi pesan berorientasi user (User-Friendly)
+  if (status === 400) {
+    title = 'Data Tidak Valid';
+    if (description.includes('must match format')) {
+      description = 'Pastikan format pengisian data sudah benar (misal: format email atau angka).';
+    } else if (description.includes('required')) {
+      description = 'Mohon lengkapi semua kolom yang wajib diisi pada formulir.';
+    } else if (description.includes('JSON')) {
+      description = 'Format pengiriman data tidak sesuai.';
+    }
+  } else if (status === 401) {
+    title = 'Akses Ditolak';
+    description = 'Sesi Anda telah berakhir atau Anda belum login. Silakan muat ulang halaman atau login kembali.';
+  } else if (status === 403) {
+    title = 'Akses Dibatasi';
+    description = 'Anda tidak memiliki hak akses atau otorisasi untuk melakukan tindakan ini.';
+  } else if (status === 404) {
+    title = 'Data Tidak Ditemukan';
+    description = 'Data yang Anda cari atau coba proses tidak dapat ditemukan di sistem.';
+  } else if (status >= 500) {
+    title = 'Kesalahan Server';
+    description = 'Mohon maaf, terjadi gangguan pada server kami. Tim teknis sedang menangani kendala ini.';
+  } else if (err?.code === 'ERR_NETWORK') {
+    title = 'Koneksi Terputus';
+    description = 'Gagal terhubung ke server. Periksa koneksi internet Anda dan coba lagi.';
+  }
+
+  // Return sebagai object untuk digunakan di komponen Toast baru
+  return { title, description };
 };
 
 /**

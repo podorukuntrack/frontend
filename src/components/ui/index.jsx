@@ -22,6 +22,74 @@ export function PageLoader() {
 }
 
 // ==========================================
+// 1.5 SKELETON LOADERS
+// ==========================================
+export function Skeleton({ className = '' }) {
+  return <div className={`animate-pulse bg-slate-200 dark:bg-slate-800 rounded-xl ${className}`} />;
+}
+
+export function CardSkeleton() {
+  return (
+    <div className="card p-6 flex flex-col justify-between">
+      <div className="flex items-start justify-between mb-4">
+        <Skeleton className="w-12 h-12" />
+      </div>
+      <div>
+        <Skeleton className="h-8 w-24 mb-2" />
+        <Skeleton className="h-4 w-32" />
+      </div>
+      <Skeleton className="h-3 w-40 mt-4" />
+    </div>
+  );
+}
+
+export function TableSkeleton({ rows = 5 }) {
+  return (
+    <div className="w-full bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 overflow-hidden">
+      <div className="flex justify-between items-center mb-6">
+        <Skeleton className="h-6 w-48" />
+        <Skeleton className="h-10 w-32" />
+      </div>
+      <div className="flex gap-4 mb-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+        <Skeleton className="h-5 w-1/4" />
+        <Skeleton className="h-5 w-1/4" />
+        <Skeleton className="h-5 w-1/4" />
+        <Skeleton className="h-5 w-1/4" />
+      </div>
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="flex gap-4 mb-5">
+          <Skeleton className="h-4 w-1/4" />
+          <Skeleton className="h-4 w-1/4" />
+          <Skeleton className="h-4 w-1/4" />
+          <Skeleton className="h-4 w-1/4" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function DashboardSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="mb-6">
+        <Skeleton className="h-8 w-64 mb-2" />
+        <Skeleton className="h-4 w-96 max-w-full" />
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        <CardSkeleton />
+        <CardSkeleton />
+        <CardSkeleton />
+        <CardSkeleton />
+      </div>
+      <div className="grid lg:grid-cols-2 gap-4 md:gap-6">
+        <Skeleton className="h-80 w-full rounded-2xl" />
+        <Skeleton className="h-80 w-full rounded-2xl" />
+      </div>
+    </div>
+  );
+}
+
+// ==========================================
 // 2. EMPTY STATE
 // ==========================================
 export function EmptyState({ icon: Icon, title, description, action }) {
@@ -50,7 +118,7 @@ export function ToastContainer() {
       const { msg, type } = e.detail;
       const id = Date.now();
       setToasts(prev => [...prev, { id, msg, type }]);
-      setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
+      setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 5000);
     };
 
     window.addEventListener('show-toast', handleToast);
@@ -59,22 +127,40 @@ export function ToastContainer() {
 
   const icons = { success: CheckCircle, error: AlertTriangle, info: Info };
   
-  // Style disesuaikan untuk Light/Dark mode dengan warna pastel yang soft
   const styles = { 
-    success: 'text-emerald-700 bg-emerald-50 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20', 
-    error: 'text-rose-700 bg-rose-50 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20', 
-    info: 'text-indigo-700 bg-indigo-50 border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20' 
+    success: 'border-emerald-200 dark:border-emerald-800/60', 
+    error: 'border-rose-200 dark:border-rose-800/60', 
+    info: 'border-indigo-200 dark:border-indigo-800/60' 
+  };
+
+  const iconStyles = {
+    success: { bg: 'bg-emerald-100 dark:bg-emerald-500/20', icon: 'text-emerald-600 dark:text-emerald-400' },
+    error: { bg: 'bg-rose-100 dark:bg-rose-500/20', icon: 'text-rose-600 dark:text-rose-400' },
+    info: { bg: 'bg-indigo-100 dark:bg-indigo-500/20', icon: 'text-indigo-600 dark:text-indigo-400' }
   };
 
   return (
-    <div className="fixed bottom-6 right-6 flex flex-col gap-3 z-[100] pointer-events-none">
+    <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 flex flex-col items-center sm:items-end gap-3 z-[100] pointer-events-none">
       {toasts.map(t => {
         const Icon = icons[t.type] || Info;
+        const style = styles[t.type] || styles.info;
+        const iconStyle = iconStyles[t.type] || iconStyles.info;
+        
+        // Ekstraksi Title dan Description
+        const isObj = typeof t.msg === 'object' && t.msg !== null;
+        const title = isObj ? t.msg.title : (t.type === 'error' ? 'Kesalahan' : t.type === 'success' ? 'Berhasil' : 'Informasi');
+        const desc = isObj ? t.msg.description : t.msg;
+
         return (
-          <div key={t.id} className={`pointer-events-auto flex items-center gap-3 px-4 py-3.5 rounded-xl border shadow-lg shadow-slate-200/50 dark:shadow-none animate-fadeIn min-w-[300px] max-w-sm ${styles[t.type] || styles.info}`}>
-            <Icon className="w-5 h-5 flex-shrink-0" />
-            <span className="flex-1 text-sm font-medium">{t.msg}</span>
-            <button onClick={() => setToasts(p => p.filter(x => x.id !== t.id))} className="opacity-50 hover:opacity-100 transition-opacity">
+          <div key={t.id} className={`pointer-events-auto flex items-start gap-4 p-4 rounded-2xl border shadow-2xl shadow-slate-200/50 dark:shadow-none animate-fadeIn w-full sm:w-[360px] bg-white dark:bg-slate-900 ${style}`}>
+            <div className={`mt-0.5 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${iconStyle.bg}`}>
+              <Icon className={`w-5 h-5 ${iconStyle.icon}`} strokeWidth={2.5} />
+            </div>
+            <div className="flex-1 space-y-1 mt-0.5 min-w-0">
+              <h4 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight truncate">{title}</h4>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 leading-relaxed break-words">{desc}</p>
+            </div>
+            <button onClick={() => setToasts(p => p.filter(x => x.id !== t.id))} className="flex-shrink-0 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 p-1.5 rounded-lg transition-colors mt-[-4px] mr-[-4px]">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -104,19 +190,26 @@ export function Modal({ open, onClose, title, children, size = 'md' }) {
   const sizes = { sm: 'max-w-md', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl' };
   
   const modalContent = (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6">
       <div 
         className="absolute inset-0 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm transition-opacity" 
         onClick={onClose} 
       />
-      <div className={`relative w-full ${sizes[size]} bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl animate-fadeIn overflow-hidden`}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
-          <h2 className="font-semibold text-slate-900 dark:text-slate-100">{title}</h2>
-          <button onClick={onClose} className="btn-ghost p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-            <X className="w-5 h-5" />
+      <div className={`relative w-full ${sizes[size]} max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-3rem)] flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl animate-fadeIn overflow-hidden`}>
+        {title && (
+          <div className="flex-shrink-0 flex items-center justify-between px-5 sm:px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 z-10">
+            <h2 className="font-bold text-slate-900 dark:text-slate-100 pr-4">{title}</h2>
+            <button onClick={onClose} className="btn-ghost p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex-shrink-0">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        )}
+        {!title && (
+          <button onClick={onClose} className="absolute top-4 right-4 z-20 btn-ghost p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+              <X className="w-5 h-5" />
           </button>
-        </div>
-        <div className="p-6">{children}</div>
+        )}
+        <div className={`overflow-y-auto ${title ? "p-5 sm:p-6" : "p-5 sm:p-6 pt-10"}`}>{children}</div>
       </div>
     </div>
   );
@@ -125,12 +218,20 @@ export function Modal({ open, onClose, title, children, size = 'md' }) {
 }
 
 export function Confirm({ open, onClose, onConfirm, title, description, confirmLabel = 'Hapus', loading }) {
+  const isDestructive = confirmLabel.toLowerCase().includes('hapus') || confirmLabel.toLowerCase().includes('keluar') || confirmLabel.toLowerCase().includes('batal');
+  
   return (
-    <Modal open={open} onClose={onClose} title={title} size="sm">
-      <p className="text-slate-600 dark:text-slate-400 text-sm mb-6">{description}</p>
-      <div className="flex gap-3 justify-end">
-        <button className="btn-secondary" onClick={onClose} disabled={loading}>Batal</button>
-        <button className="btn-danger" onClick={onConfirm} disabled={loading}>
+    <Modal open={open} onClose={onClose} size="sm">
+      <div className="flex flex-col items-center text-center mt-2 mb-6 sm:mb-8">
+        <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-5 border-4 ${isDestructive ? 'bg-rose-100 border-rose-50 dark:bg-rose-500/20 dark:border-rose-500/10' : 'bg-amber-100 border-amber-50 dark:bg-amber-500/20 dark:border-amber-500/10'}`}>
+          <AlertTriangle className={`w-8 h-8 ${isDestructive ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400'}`} strokeWidth={2.5} />
+        </div>
+        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{title}</h3>
+        <p className="text-slate-500 dark:text-slate-400 text-sm max-w-[280px] mx-auto leading-relaxed">{description}</p>
+      </div>
+      <div className="flex flex-col sm:flex-row gap-3 w-full">
+        <button className="btn-secondary w-full sm:flex-1 justify-center !py-2.5 font-semibold order-2 sm:order-1" onClick={onClose} disabled={loading}>Batal</button>
+        <button className={`${isDestructive ? 'btn-danger' : 'btn-primary'} w-full sm:flex-1 justify-center !py-2.5 font-semibold order-1 sm:order-2`} onClick={onConfirm} disabled={loading}>
           {loading && <Spinner size="sm" className="!text-current mr-2" />}
           {confirmLabel}
         </button>
@@ -147,28 +248,30 @@ export function Pagination({ page, total, limit, onChange }) {
   if (pages <= 1) return null;
   
   return (
-    <div className="flex items-center justify-between pt-5 border-t border-slate-100 dark:border-slate-800 mt-5">
-      <p className="text-slate-500 dark:text-slate-400 text-sm">
-        Menampilkan <span className="font-medium text-slate-900 dark:text-slate-200">{((page - 1) * limit) + 1}</span> hingga <span className="font-medium text-slate-900 dark:text-slate-200">{Math.min(page * limit, total)}</span> dari <span className="font-medium text-slate-900 dark:text-slate-200">{total}</span> data
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-5 border-t border-slate-100 dark:border-slate-800 mt-5">
+      <p className="text-slate-500 dark:text-slate-400 text-sm text-center sm:text-left">
+        Menampilkan <span className="font-medium text-slate-900 dark:text-slate-200">{((page - 1) * limit) + 1}</span> hingga <span className="font-medium text-slate-900 dark:text-slate-200">{Math.min(page * limit, total)}</span> dari <span className="font-medium text-slate-900 dark:text-slate-200">{total}</span>
       </p>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1.5 flex-wrap justify-center">
         <button disabled={page === 1} onClick={() => onChange(page - 1)} className="btn-secondary !px-3 !py-1.5 text-xs disabled:opacity-40">Prev</button>
-        {Array.from({ length: Math.min(5, pages) }, (_, i) => {
-          const p = Math.max(1, Math.min(pages - 4, page - 2)) + i;
-          return (
-            <button 
-              key={p} 
-              onClick={() => onChange(p)} 
-              className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors flex items-center justify-center ${
-                p === page 
-                  ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400' 
-                  : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
-              }`}
-            >
-              {p}
-            </button>
-          );
-        })}
+        <div className="hidden sm:flex items-center gap-1">
+          {Array.from({ length: Math.min(5, pages) }, (_, i) => {
+            const p = Math.max(1, Math.min(pages - 4, page - 2)) + i;
+            return (
+              <button 
+                key={p} 
+                onClick={() => onChange(p)} 
+                className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors flex items-center justify-center ${
+                  p === page 
+                    ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400' 
+                    : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
+                }`}
+              >
+                {p}
+              </button>
+            );
+          })}
+        </div>
         <button disabled={page === pages} onClick={() => onChange(page + 1)} className="btn-secondary !px-3 !py-1.5 text-xs disabled:opacity-40">Next</button>
       </div>
     </div>

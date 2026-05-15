@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, UserCheck, CalendarDays, BarChart3, Key, ShieldCheck } from 'lucide-react';
 import { unitsAPI, assignmentsAPI, timelinesAPI, progressAPI, handoversAPI, retentionsAPI } from '../../../api/services';
 import { PageLoader } from '../../../components/ui';
@@ -10,8 +11,14 @@ import ProgressTab from '../tabs/ProgressTab';
 import HandoverTab from '../tabs/HandoverTab';
 import RetentionTab from '../tabs/RetentionTab';
 
-export default function UnitDetailPanel({ unit, cluster, project, onBack }) {
-  const [activeTab, setActiveTab] = useState('assignment');
+export default function UnitDetailPanel({ unit, cluster, project }) {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'assignment';
+  
+  const setActiveTab = (tabId) => {
+    setSearchParams({ tab: tabId }, { replace: true });
+  };
   const [loading, setLoading] = useState(false);
   
   // State untuk melacak data di setiap tab
@@ -85,7 +92,7 @@ export default function UnitDetailPanel({ unit, cluster, project, onBack }) {
     <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col min-h-[80vh] overflow-hidden">
       {/* HEADER PANEL */}
       <div className="p-6 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
-        <button onClick={onBack} className="btn-ghost w-fit text-slate-500 hover:text-slate-900 dark:hover:text-white -ml-2 mb-4">
+        <button onClick={() => navigate(`/projects/${project.id}/clusters/${cluster.id}/units`)} className="btn-ghost w-fit text-slate-500 hover:text-slate-900 dark:hover:text-white -ml-2 mb-4">
           <ArrowLeft className="w-4 h-4 mr-1" /> Kembali ke Daftar Unit
         </button>
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

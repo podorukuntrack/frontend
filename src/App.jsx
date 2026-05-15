@@ -7,11 +7,6 @@ import AppLayout from './components/layout/AppLayout';
 import LoginPage from './pages/auth/LoginPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
 import ProjectsPage from './pages/projects/ProjectsPage';
-import ClustersPage from './pages/clusters/ClustersPage';
-import UnitsPage from './pages/units/UnitsPage';
-import AssignmentsPage from './pages/assignments/AssignmentsPage';
-import ProgressPage from './pages/progress/ProgressPage';
-import DocumentationPage from './pages/documentation/DocumentationPage';
 import UsersPage from './pages/users/UsersPage';
 import CompaniesPage from './pages/companies/CompaniesPage';
 
@@ -51,12 +46,7 @@ function AppRoutes() {
       {/* Rute Terproteksi (Admin & Super Admin) */}
       <Route path="/" element={<PrivateRoute roles={['super_admin','admin']}><AppLayout><DashboardPage /></AppLayout></PrivateRoute>} />
       <Route path="/companies" element={<PrivateRoute roles={['super_admin']}><AppLayout><CompaniesPage /></AppLayout></PrivateRoute>} />
-      <Route path="/projects" element={<PrivateRoute roles={['super_admin','admin']}><AppLayout><ProjectsPage /></AppLayout></PrivateRoute>} />
-      <Route path="/clusters" element={<PrivateRoute roles={['super_admin','admin']}><AppLayout><ClustersPage /></AppLayout></PrivateRoute>} />
-      <Route path="/units" element={<PrivateRoute roles={['super_admin','admin']}><AppLayout><UnitsPage /></AppLayout></PrivateRoute>} />
-      <Route path="/assignments" element={<PrivateRoute roles={['super_admin','admin']}><AppLayout><AssignmentsPage /></AppLayout></PrivateRoute>} />
-      <Route path="/progress" element={<PrivateRoute roles={['super_admin','admin']}><AppLayout><ProgressPage /></AppLayout></PrivateRoute>} />
-      <Route path="/documentation" element={<PrivateRoute roles={['super_admin','admin']}><AppLayout><DocumentationPage /></AppLayout></PrivateRoute>} />
+      <Route path="/projects/*" element={<PrivateRoute roles={['super_admin','admin']}><AppLayout><ProjectsPage /></AppLayout></PrivateRoute>} />
       <Route path="/users" element={<PrivateRoute roles={['super_admin','admin']}><AppLayout><UsersPage /></AppLayout></PrivateRoute>} />
 
       {/* Rute Error */}

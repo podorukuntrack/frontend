@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { clustersAPI } from "../../../api/services";
 import {
   PageLoader,
@@ -7,6 +8,7 @@ import {
   Modal,
   Confirm,
   Pagination,
+  CardSkeleton
 } from "../../../components/ui";
 import { useToast } from "../../../hooks/useToast";
 import { extractError, formatDate } from "../../../utils/helpers";
@@ -15,7 +17,8 @@ import { Layers, Plus, Pencil, Trash2, Home, ArrowRight, ArrowLeft } from "lucid
 
 const LIMIT = 12;
 
-export default function ClusterList({ project, onSelectCluster, onBack }) {
+export default function ClusterList({ project }) {
+  const navigate = useNavigate();
   const { isRole } = useAuth();
   const { toast } = useToast();
   
@@ -113,7 +116,7 @@ export default function ClusterList({ project, onSelectCluster, onBack }) {
     <div className="space-y-6">
       {/* HEADER */}
       <div className="flex flex-col gap-4">
-        <button onClick={onBack} className="btn-ghost w-fit text-slate-500 hover:text-slate-900 dark:hover:text-white -ml-2">
+        <button onClick={() => navigate('/projects')} className="btn-ghost w-fit text-slate-500 hover:text-slate-900 dark:hover:text-white -ml-2">
           <ArrowLeft className="w-4 h-4 mr-1" /> Kembali ke Daftar Proyek
         </button>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -141,7 +144,9 @@ export default function ClusterList({ project, onSelectCluster, onBack }) {
       </div>
 
       {loading ? (
-        <PageLoader />
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+          <CardSkeleton /><CardSkeleton /><CardSkeleton /><CardSkeleton />
+        </div>
       ) : clusters.length === 0 ? (
         <EmptyState
           icon={Layers}
@@ -153,7 +158,7 @@ export default function ClusterList({ project, onSelectCluster, onBack }) {
         <>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
             {clusters.map((c) => (
-              <div key={c.id} onClick={() => onSelectCluster(c)} className="card-hover p-6 group flex flex-col justify-between h-full border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl cursor-pointer">
+              <div key={c.id} onClick={() => navigate(`/projects/${project.id}/clusters/${c.id}/units`)} className="card-hover p-6 group flex flex-col justify-between h-full border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl cursor-pointer">
                 <div>
                   <div className="flex items-start justify-between mb-4">
                     <span className="inline-flex px-2.5 py-1 rounded-md text-[10px] uppercase tracking-wider font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20">

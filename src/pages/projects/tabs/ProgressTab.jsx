@@ -205,33 +205,51 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
         toast("Data progress diperbarui!", "success");
       }
 
-      // Upload dokumentasi jika ada file yang dipilih
-      if (docFiles.length > 0 && savedProgressId) {
-        for (const file of docFiles) {
-          const fd = new FormData();
-          fd.append("file", file);
-          fd.append("unitId", unit.id);
-          fd.append("progressId", savedProgressId);
-          // Gunakan nilai valid enum doc_type: foto | video | dokumen | foto_360
-          let jenis = "dokumen";
-          if (file.type.startsWith("video/")) jenis = "video";
-          else if (file.type.startsWith("image/")) jenis = "foto";
-          fd.append("jenis", jenis);
-          try {
-            await documentationAPI.upload(fd);
-          } catch (docErr) {
-            toast(`Gagal upload ${file.name}: ${extractError(docErr)}`, "error");
-          }
-        }
-        toast(`${docFiles.length} media berhasil diunggah`, "success");
-      }
+      // Keep a copy of the docs to upload and the target IDs
+      const docsToUpload = [...docFiles];
+      const targetId = savedProgressId;
+      const targetUnitId = unit.id;
 
-      // Timeline status auto-updates are now handled completely by the backend.
-
+      // Close modal immediately
       setBuildModal({ open: false, mode: "view", editId: null, originalPct: 0 });
       setDocFiles([]);
       setRefreshKey((prev) => prev + 1);
       if (onUpdate) onUpdate();
+
+      // Upload dokumentasi di background jika ada file yang dipilih
+      if (docsToUpload.length > 0 && targetId) {
+        toast(`Memulai unggahan ${docsToUpload.length} dokumen di latar belakang...`, "info");
+        
+        // Let it run asynchronously
+        (async () => {
+          let successCount = 0;
+          for (let i = 0; i < docsToUpload.length; i++) {
+            const file = docsToUpload[i];
+            const fd = new FormData();
+            fd.append("file", file);
+            fd.append("unitId", targetUnitId);
+            fd.append("progressId", targetId);
+            
+            let jenis = "dokumen";
+            if (file.type.startsWith("video/")) jenis = "video";
+            else if (file.type.startsWith("image/")) jenis = "foto";
+            fd.append("jenis", jenis);
+            
+            try {
+              toast(`Mengunggah file ${i + 1} dari ${docsToUpload.length}...`, "info");
+              await documentationAPI.upload(fd);
+              successCount++;
+            } catch (docErr) {
+              toast(`Gagal upload ${file.name}: ${extractError(docErr)}`, "error");
+            }
+          }
+          if (successCount > 0) {
+            toast(`${successCount} dokumen berhasil diunggah`, "success");
+            setRefreshKey((prev) => prev + 1);
+          }
+        })();
+      }
+
     } catch (err) {
       toast(extractError(err), "error");
     } finally {
@@ -570,8 +588,9 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
           setDocFiles([]);
         }}
         title={`Fisik: Unit ${unit.nomor_unit}`}
+        size="xl"
       >
-        <form onSubmit={handleSaveBuild} className="space-y-4">
+        <form onSubmit={handleSaveBuild} className="flex flex-col gap-4">
           <div className="bg-indigo-50 dark:bg-indigo-900/20 text-indigo-800 dark:text-indigo-300 p-3 rounded-lg text-sm border border-indigo-200 dark:border-indigo-800/50">
             {buildModal.mode === "edit" ? (
               <>
@@ -593,187 +612,194 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
             )}
           </div>
 
-          <div className="space-y-1.5">
-            <label className="label">Nama Tahap Pengerjaan</label>
-            <select
-              className="input"
-              required
-              value={buildForm.tahap}
-              onChange={(e) => {
-                const newTahap = e.target.value;
-                setBuildForm((f) => ({ ...f, tahap: newTahap, progress_percentage: 0 }));
-              }}
-            >
-              <option value="">-- Pilih Timeline --</option>
-              {timelines.map((t) => (
-                <option key={t.id} value={t.taskName}>
-                  {t.taskName}
-                </option>
-              ))}
-            </select>
-            {timelines.length === 0 && (
-              <p className="text-xs text-amber-600 mt-1">
-                ⚠️ Buat Timeline dulu di tab sebelah sebelum mengisi progress.
-              </p>
-            )}
-          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Left Column: Inputs */}
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="label">Nama Tahap Pengerjaan</label>
+                <select
+                  className="input"
+                  required
+                  value={buildForm.tahap}
+                  onChange={(e) => {
+                    const newTahap = e.target.value;
+                    setBuildForm((f) => ({ ...f, tahap: newTahap, progress_percentage: 0 }));
+                  }}
+                >
+                  <option value="">-- Pilih Timeline --</option>
+                  {timelines.map((t) => (
+                    <option key={t.id} value={t.taskName}>
+                      {t.taskName}
+                    </option>
+                  ))}
+                </select>
+                {timelines.length === 0 && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    ⚠️ Buat Timeline dulu di tab sebelah sebelum mengisi progress.
+                  </p>
+                )}
+              </div>
 
-          <div className="space-y-1.5">
-            <label className="label">
-              Persentase Tahap Ini{" "}
-              <span className="font-bold text-indigo-600 dark:text-indigo-400">
-                +{buildForm.progress_percentage}%
-              </span>
-            </label>
-            <input
-              type="range"
-              min="0"
-              max={maxSisa}
-              step="1"
-              className="w-full accent-indigo-600"
-              value={buildForm.progress_percentage}
-              onChange={(e) =>
-                setBuildForm((f) => ({
-                  ...f,
-                  progress_percentage: Number(e.target.value),
-                }))
-              }
-            />
-            <div className="flex justify-between text-xs text-slate-400">
-              <span>0%</span>
-              <span>{maxSisa}%</span>
+              <div className="space-y-1.5">
+                <label className="label">
+                  Persentase Tahap Ini{" "}
+                  <span className="font-bold text-indigo-600 dark:text-indigo-400">
+                    +{buildForm.progress_percentage}%
+                  </span>
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max={maxSisa}
+                  step="1"
+                  className="w-full accent-indigo-600"
+                  value={buildForm.progress_percentage}
+                  onChange={(e) =>
+                    setBuildForm((f) => ({
+                      ...f,
+                      progress_percentage: Number(e.target.value),
+                    }))
+                  }
+                />
+                <div className="flex justify-between text-xs text-slate-400">
+                  <span>0%</span>
+                  <span>{maxSisa}%</span>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="label">Tanggal Laporan</label>
+                <input
+                  type="date"
+                  required
+                  className="input"
+                  value={buildForm.tanggal_update}
+                  onChange={(e) =>
+                    setBuildForm((f) => ({ ...f, tanggal_update: e.target.value }))
+                  }
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="label">Catatan Lapangan</label>
+                <textarea
+                  className="input min-h-[80px]"
+                  value={buildForm.catatan}
+                  onChange={(e) =>
+                    setBuildForm((f) => ({ ...f, catatan: e.target.value }))
+                  }
+                  placeholder="Opsional"
+                />
+              </div>
             </div>
-          </div>
 
-          <div className="space-y-1.5">
-            <label className="label">Tanggal Laporan</label>
-            <input
-              type="date"
-              required
-              className="input"
-              value={buildForm.tanggal_update}
-              onChange={(e) =>
-                setBuildForm((f) => ({ ...f, tanggal_update: e.target.value }))
-              }
-            />
-          </div>
+            {/* Right Column: UPLOAD & KELOLA DOKUMENTASI */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="label flex items-center gap-2">
+                  <FileImage className="w-4 h-4 text-indigo-500" />
+                  Foto / Video Lapangan{" "}
+                  <span className="text-slate-400 font-normal text-xs">(opsional, bisa multiple)</span>
+                </label>
 
-          <div className="space-y-1.5">
-            <label className="label">Catatan Lapangan</label>
-            <textarea
-              className="input min-h-[80px]"
-              value={buildForm.catatan}
-              onChange={(e) =>
-                setBuildForm((f) => ({ ...f, catatan: e.target.value }))
-              }
-              placeholder="Opsional"
-            />
-          </div>
+                {/* Existing docs in edit mode */}
+                {buildModal.mode === "edit" && (() => {
+                  const existingDocs = docsMap[buildModal.editId] || [];
+                  if (existingDocs.length === 0) return (
+                    <p className="text-xs text-slate-400 italic">Belum ada foto/video terlampir.</p>
+                  );
+                  return (
+                    <div className="grid grid-cols-4 gap-2 mb-2">
+                      {existingDocs.map((d) => {
+                        const url = d.url || d.fileUrl;
+                        const isVideo = d.jenis === 'video' || url?.match(/\.(mp4|webm|mov|avi)$/i);
+                        const isImage = !isVideo && url?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+                        return (
+                          <div key={d.id} className="relative group/doc">
+                            <button
+                              type="button"
+                              onClick={() => setLightbox({ url, type: isVideo ? 'video' : isImage ? 'image' : 'file', name: d.nama_file || d.namaFile })}
+                              className="block w-full aspect-square rounded-lg overflow-hidden border border-slate-200 dark:border-slate-600 hover:ring-2 hover:ring-indigo-400 transition-all"
+                            >
+                              {isImage ? (
+                                <img src={url} alt={d.nama_file} className="w-full h-full object-cover" />
+                              ) : isVideo ? (
+                                <div className="w-full h-full bg-slate-800 flex flex-col items-center justify-center gap-1">
+                                  <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                  <span className="text-[10px] text-slate-300">VIDEO</span>
+                                </div>
+                              ) : (
+                                <div className="w-full h-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+                                  <FileImage className="w-6 h-6 text-slate-400" />
+                                </div>
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteDoc(d.id)}
+                              className="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full opacity-0 group-hover/doc:opacity-100 transition-opacity flex items-center justify-center"
+                              title="Hapus"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
 
-          {/* UPLOAD & KELOLA DOKUMENTASI */}
-          <div className="space-y-2">
-            <label className="label flex items-center gap-2">
-              <FileImage className="w-4 h-4 text-indigo-500" />
-              Foto / Video Lapangan{" "}
-              <span className="text-slate-400 font-normal text-xs">(opsional, bisa multiple)</span>
-            </label>
-
-            {/* Existing docs in edit mode */}
-            {buildModal.mode === "edit" && (() => {
-              const existingDocs = docsMap[buildModal.editId] || [];
-              if (existingDocs.length === 0) return (
-                <p className="text-xs text-slate-400 italic">Belum ada foto/video terlampir.</p>
-              );
-              return (
-                <div className="grid grid-cols-4 gap-2 mb-2">
-                  {existingDocs.map((d) => {
-                    const url = d.url || d.fileUrl;
-                    const isVideo = d.jenis === 'video' || url?.match(/\.(mp4|webm|mov|avi)$/i);
-                    const isImage = !isVideo && url?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
-                    return (
-                      <div key={d.id} className="relative group/doc">
+                <div
+                  className="border-2 border-dashed border-slate-200 dark:border-slate-600 rounded-xl p-4 text-center hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors cursor-pointer"
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const dropped = Array.from(e.dataTransfer.files);
+                    setDocFiles((prev) => [...prev, ...dropped]);
+                  }}
+                >
+                  <ImagePlus className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                  <p className="text-sm text-slate-500">Klik atau drag & drop foto/video di sini</p>
+                  <p className="text-xs text-slate-400 mt-0.5">JPG, PNG, MP4, MOV, PDF...</p>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept="image/*,video/*,application/pdf"
+                  className="hidden"
+                  onChange={(e) => {
+                    const selected = Array.from(e.target.files);
+                    setDocFiles((prev) => [...prev, ...selected]);
+                    e.target.value = "";
+                  }}
+                />
+                {docFiles.length > 0 && (
+                  <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                    {docFiles.map((file, idx) => (
+                      <div key={idx} className="flex items-center justify-between bg-indigo-50 dark:bg-indigo-900/20 px-3 py-2 rounded-lg border border-indigo-100 dark:border-indigo-800">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FileImage className="w-4 h-4 text-indigo-500 shrink-0" />
+                          <span className="text-xs text-slate-700 dark:text-slate-300 truncate">{file.name}</span>
+                          <span className="text-xs text-slate-400 shrink-0">({(file.size / 1024).toFixed(0)} KB)</span>
+                        </div>
                         <button
                           type="button"
-                          onClick={() => setLightbox({ url, type: isVideo ? 'video' : isImage ? 'image' : 'file', name: d.nama_file || d.namaFile })}
-                          className="block w-full aspect-square rounded-lg overflow-hidden border border-slate-200 dark:border-slate-600 hover:ring-2 hover:ring-indigo-400 transition-all"
+                          className="ml-2 text-slate-400 hover:text-rose-500 transition-colors shrink-0"
+                          onClick={() => setDocFiles((prev) => prev.filter((_, i) => i !== idx))}
                         >
-                          {isImage ? (
-                            <img src={url} alt={d.nama_file} className="w-full h-full object-cover" />
-                          ) : isVideo ? (
-                            <div className="w-full h-full bg-slate-800 flex flex-col items-center justify-center gap-1">
-                              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                              <span className="text-[10px] text-slate-300">VIDEO</span>
-                            </div>
-                          ) : (
-                            <div className="w-full h-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
-                              <FileImage className="w-6 h-6 text-slate-400" />
-                            </div>
-                          )}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteDoc(d.id)}
-                          className="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full opacity-0 group-hover/doc:opacity-100 transition-opacity flex items-center justify-center"
-                          title="Hapus"
-                        >
-                          <X className="w-3 h-3" />
+                          <X className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                    );
-                  })}
-                </div>
-              );
-            })()}
-
-            <div
-              className="border-2 border-dashed border-slate-200 dark:border-slate-600 rounded-xl p-4 text-center hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors cursor-pointer"
-              onClick={() => fileInputRef.current?.click()}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault();
-                const dropped = Array.from(e.dataTransfer.files);
-                setDocFiles((prev) => [...prev, ...dropped]);
-              }}
-            >
-              <ImagePlus className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-              <p className="text-sm text-slate-500">Klik atau drag & drop foto/video di sini</p>
-              <p className="text-xs text-slate-400 mt-0.5">JPG, PNG, MP4, MOV, PDF...</p>
-            </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept="image/*,video/*,application/pdf"
-              className="hidden"
-              onChange={(e) => {
-                const selected = Array.from(e.target.files);
-                setDocFiles((prev) => [...prev, ...selected]);
-                e.target.value = "";
-              }}
-            />
-            {docFiles.length > 0 && (
-              <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-                {docFiles.map((file, idx) => (
-                  <div key={idx} className="flex items-center justify-between bg-indigo-50 dark:bg-indigo-900/20 px-3 py-2 rounded-lg border border-indigo-100 dark:border-indigo-800">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <FileImage className="w-4 h-4 text-indigo-500 shrink-0" />
-                      <span className="text-xs text-slate-700 dark:text-slate-300 truncate">{file.name}</span>
-                      <span className="text-xs text-slate-400 shrink-0">({(file.size / 1024).toFixed(0)} KB)</span>
-                    </div>
-                    <button
-                      type="button"
-                      className="ml-2 text-slate-400 hover:text-rose-500 transition-colors shrink-0"
-                      onClick={() => setDocFiles((prev) => prev.filter((_, i) => i !== idx))}
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
-            )}
+            </div>
           </div>
 
-          <div className="flex justify-end pt-3">
+          <div className="flex justify-end pt-3 mt-2 border-t border-slate-100 dark:border-slate-800">
             <button type="submit" className="btn-primary" disabled={saving}>
               {saving
                 ? "Menyimpan..."
