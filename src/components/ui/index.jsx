@@ -115,10 +115,20 @@ export function ToastContainer() {
 
   useEffect(() => {
     const handleToast = (e) => {
-      const { msg, type } = e.detail;
-      const id = Date.now();
-      setToasts(prev => [...prev, { id, msg, type }]);
-      setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 5000);
+      const { id, msg, type, progress } = e.detail;
+      
+      setToasts(prev => {
+        const existing = prev.find(t => t.id === id);
+        if (existing) {
+          return prev.map(t => t.id === id ? { ...t, msg, type, progress } : t);
+        }
+        return [...prev, { id, msg, type, progress }];
+      });
+
+      // Jika tidak ada progress bar yang berjalan, atau operasi selesai, mulai timer auto-close
+      if (progress === undefined) {
+        setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 5000);
+      }
     };
 
     window.addEventListener('show-toast', handleToast);
@@ -159,6 +169,11 @@ export function ToastContainer() {
             <div className="flex-1 space-y-1 mt-0.5 min-w-0">
               <h4 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight truncate">{title}</h4>
               <p className="text-xs font-medium text-slate-500 dark:text-slate-400 leading-relaxed break-words">{desc}</p>
+              {t.progress !== undefined && (
+                <div className="mt-2.5 mb-1 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                  <div className={`h-full transition-all duration-300 rounded-full ${t.progress >= 100 ? 'bg-emerald-500' : 'bg-indigo-500'}`} style={{ width: `${Math.min(t.progress, 100)}%` }} />
+                </div>
+              )}
             </div>
             <button onClick={() => setToasts(p => p.filter(x => x.id !== t.id))} className="flex-shrink-0 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 p-1.5 rounded-lg transition-colors mt-[-4px] mr-[-4px]">
               <X className="w-4 h-4" />

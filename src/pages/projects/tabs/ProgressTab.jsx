@@ -218,7 +218,9 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
 
       // Upload dokumentasi di background jika ada file yang dipilih
       if (docsToUpload.length > 0 && targetId) {
-        toast(`Memulai unggahan ${docsToUpload.length} dokumen di latar belakang...`, "info");
+        // Buat ID toast unik untuk proses upload ini
+        const toastId = `upload-${Date.now()}`;
+        toast({ title: "Mengunggah Dokumen", description: `Memulai unggahan ${docsToUpload.length} file...` }, "info", { id: toastId, progress: 0 });
         
         // Let it run asynchronously
         (async () => {
@@ -236,16 +238,29 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
             fd.append("jenis", jenis);
             
             try {
-              toast(`Mengunggah file ${i + 1} dari ${docsToUpload.length}...`, "info");
-              await documentationAPI.upload(fd);
+              await documentationAPI.upload(fd, {
+                onUploadProgress: (progressEvent) => {
+                  const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                  // Hitung persentase total berdasarkan file ke-berapa
+                  const totalPercent = Math.round(((i * 100) + percentCompleted) / docsToUpload.length);
+                  toast(
+                    { title: "Mengunggah Dokumen", description: `File ${i + 1} dari ${docsToUpload.length}: ${file.name}` }, 
+                    "info", 
+                    { id: toastId, progress: totalPercent }
+                  );
+                }
+              });
               successCount++;
             } catch (docErr) {
-              toast(`Gagal upload ${file.name}: ${extractError(docErr)}`, "error");
+              const errInfo = extractError(docErr);
+              toast(`Gagal upload ${file.name}: ${errInfo.description || errInfo}`, "error");
             }
           }
           if (successCount > 0) {
-            toast(`${successCount} dokumen berhasil diunggah`, "success");
+            toast({ title: "Upload Selesai", description: `${successCount} dokumen berhasil diunggah` }, "success", { id: toastId }); // tanpa parameter progress, toast akan tertutup otomatis setelah 5 detik
             setRefreshKey((prev) => prev + 1);
+          } else {
+            toast({ title: "Upload Gagal", description: "Semua unggahan gagal diproses" }, "error", { id: toastId });
           }
         })();
       }
