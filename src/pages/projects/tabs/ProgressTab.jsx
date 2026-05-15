@@ -103,7 +103,11 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
               new Date(x.tanggal_update || x.tanggalUpdate),
           );
 
-        const unitTimelines = rTime.data?.data || [];
+        // Filter timelines by unit as safety net (backend now also filters by unitId)
+        const unitTimelines = (rTime.data?.data || []).filter((t) => {
+          const tid = t.unit_id ?? t.unitId;
+          return tid && String(tid) === String(unit.id);
+        });
 
         // Fetch docs for this unit and map by progress_id
         let dMap = {};
