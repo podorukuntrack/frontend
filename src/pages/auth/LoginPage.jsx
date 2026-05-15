@@ -28,55 +28,21 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex transition-colors duration-200">
-      {/* Left panel - Branding Area */}
-      <div className="hidden lg:flex flex-col justify-between w-[45%] bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 p-12">
-        
-        {/* Logo */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-sm shadow-indigo-500/25">
-            <Building2 className="w-5 h-5 text-white" />
-          </div>
-          <span className="font-sans font-bold text-2xl text-slate-900 dark:text-white tracking-tight">PropTrack</span>
-        </div>
-
-        {/* Hero Copy */}
-        <div className="max-w-md">
-          <blockquote className="text-3xl font-sans font-bold text-slate-900 dark:text-slate-100 leading-tight mb-5 tracking-tight">
-            "Kelola properti Anda dengan mudah dan transparan."
-          </blockquote>
-          <p className="text-slate-600 dark:text-slate-400 text-base leading-relaxed">
-            Platform manajemen proyek real estate terintegrasi dengan tracking real-time. Membantu Anda mengawasi setiap tahap pembangunan hingga serah terima.
-          </p>
-        </div>
-
-        {/* Stats - Bento Grid Style */}
-        <div className="grid grid-cols-2 gap-4">
-          {[
-            { label: 'Proyek Aktif', val: '5+' },
-            { label: 'Unit Dikelola', val: '500+' },
-            { label: 'Customer', val: '200+' },
-            { label: 'Uptime', val: '99.9%' },
-          ].map(s => (
-            <div key={s.label} className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-5 border border-slate-100 dark:border-slate-700/50">
-              <div className="text-3xl font-bold text-indigo-600 dark:text-indigo-400 mb-1 tracking-tight">{s.val}</div>
-              <div className="text-slate-500 dark:text-slate-400 text-sm font-medium">{s.label}</div>
-            </div>
-          ))}
-        </div>
-      </div>
+    <div className="min-h-screen bg-[url('assets/podorukun-bg.jpg')] bg-cover bg-no-repeat dark:bg-slate-950 flex transition-colors duration-200">
+    
 
       {/* Right panel - Form Area */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-12">
+      <div className="w-screen h-screen flex items-center justify-center bg-black/70">
+      <div className="flex items-center justify-center p-6 sm:p-12 card shadow-[0px_0px_35px_-9px_#c91824]">
         <div className="w-full max-w-sm">
           
           {/* Mobile Logo */}
           <div className="mb-8">
-            <div className="flex items-center gap-3 lg:hidden mb-8">
-              <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-sm shadow-indigo-500/25">
-                <Building2 className="w-5 h-5 text-white" />
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm">
+                <img src="src/assets/podorukun-logo.png" alt="" className="w-10 h-10" />
               </div>
-              <span className="font-sans font-bold text-2xl text-slate-900 dark:text-white tracking-tight">PropTrack</span>
+              <span className="font-sans font-bold text-2xl text-slate-900 dark:text-white tracking-tight">Podorukun Track</span>
             </div>
             
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2 tracking-tight">Masuk ke akun</h1>
@@ -129,7 +95,7 @@ export default function LoginPage() {
               </div>
             </div>
             
-            <button type="submit" disabled={loading} className="btn-primary w-full justify-center py-2.5 mt-2">
+            <button type="submit" disabled={loading} className="btn-podorukun w-full justify-center py-2.5 mt-2">
               {loading && <Spinner size="sm" className="!text-white/70" />}
               {loading ? 'Sedang masuk...' : 'Masuk sekarang'}
             </button>
@@ -137,6 +103,7 @@ export default function LoginPage() {
 
          
         </div>
+      </div>
       </div>
     </div>
   );
