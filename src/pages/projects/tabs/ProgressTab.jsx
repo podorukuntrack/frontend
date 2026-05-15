@@ -228,7 +228,6 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
           for (let i = 0; i < docsToUpload.length; i++) {
             const file = docsToUpload[i];
             const fd = new FormData();
-            fd.append("file", file);
             fd.append("unitId", targetUnitId);
             fd.append("progressId", targetId);
             
@@ -236,6 +235,9 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
             if (file.type.startsWith("video/")) jenis = "video";
             else if (file.type.startsWith("image/")) jenis = "foto";
             fd.append("jenis", jenis);
+            
+            // PENTING: File harus di-append paling terakhir agar fastify-multipart bisa membaca text fields (unitId, dll) lebih dulu!
+            fd.append("file", file);
             
             try {
               await documentationAPI.upload(fd, {

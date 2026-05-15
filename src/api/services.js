@@ -71,7 +71,13 @@ export const progressAPI = {
 // DOCUMENTATION
 export const documentationAPI = {
   list: (params) => api.get('/documentations', { params }),
-  upload: (formData, config = {}) => api.post('/documentations', formData, config),
+  upload: (formData, config = {}) => api.post('/documentations', formData, {
+    ...config,
+    headers: {
+      ...config.headers,
+      'Content-Type': 'multipart/form-data'
+    }
+  }),
   update: (id, data) => api.patch(`/documentations/${id}`, data),
   delete: (id) => api.delete(`/documentations/${id}`),
 };
