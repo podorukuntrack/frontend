@@ -1,10 +1,15 @@
 import axios from 'axios';
 
-const BASE_URL = 'http://localhost:3000/api/v1';
+const DEV_URL = "http://localhost:3000/api/v1";
+const PROD_URL = "https://api.podorukuntrack.com/api/v1";
+
+// pilih sesuai kondisi
+const BASE_URL =
+  window.location.hostname === "localhost" ? DEV_URL : PROD_URL;
 
 const api = axios.create({
   baseURL: BASE_URL,
-  headers: { 'Content-Type': 'application/json' },
+  headers: { "Content-Type": "application/json" },
 });
 
 const getStoredValue = (key) => {
