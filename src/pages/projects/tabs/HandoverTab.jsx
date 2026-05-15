@@ -83,39 +83,7 @@ export default function HandoverTab({ unit, onHandover }) {
   };
 
   // --- Actions ---
-  const handleSimulateCustomer = async (h) => {
-    // Simulasi customer mengajukan jadwal H+2
-    const d = new Date(h.scheduledDate);
-    d.setDate(d.getDate() + 2);
-    try {
-      setSaving(true);
-      await handoversAPI.update(h.id, {
-        status: 'menunggu_konfirmasi_admin',
-        proposedDate: d.toISOString()
-      });
-      toast('Simulasi: Customer mengajukan perubahan jadwal', 'info');
-      loadData();
-    } catch (err) {
-      toast(extractError(err), 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
 
-  const handleSimulateCustomerAcc = async (h) => {
-    try {
-      setSaving(true);
-      await handoversAPI.update(h.id, {
-        status: 'dijadwalkan',
-      });
-      toast('Simulasi: Customer menyetujui jadwal', 'success');
-      loadData();
-    } catch (err) {
-      toast(extractError(err), 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const handleApproveProposal = async (h) => {
     try {
@@ -257,10 +225,6 @@ export default function HandoverTab({ unit, onHandover }) {
                           <p className="text-sm font-semibold text-amber-800 dark:text-amber-400">Menunggu Respon Customer</p>
                           <p className="text-xs text-amber-700/80 mt-0.5">Notifikasi telah dikirim ke mobile app customer.</p>
                         </div>
-                      </div>
-                      <div className="flex gap-2 text-xs">
-                        <button onClick={() => handleSimulateCustomer(h)} className="px-3 py-1.5 bg-white border border-slate-300 rounded hover:bg-slate-50 text-slate-600 transition-colors">Simulasi: Tolak & Ajukan Tgl</button>
-                        <button onClick={() => handleSimulateCustomerAcc(h)} className="px-3 py-1.5 bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors">Simulasi: ACC Customer</button>
                       </div>
                     </div>
                   )}

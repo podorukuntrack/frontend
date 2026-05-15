@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const DEV_URL = "http://localhost:3000/api/v1";
+const DEV_URL = "http://localhost:3001/api/v1";
 const PROD_URL = "https://api.podorukuntrack.com/api/v1";
 
 // pilih sesuai kondisi
