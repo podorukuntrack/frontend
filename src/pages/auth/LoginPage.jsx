@@ -42,7 +42,7 @@ export default function LoginPage() {
       if (status === 401 || status === 400) {
         setError({
           title: 'Login Gagal',
-          description: raw || 'Email atau password yang Anda masukkan tidak sesuai.',
+          description: 'Email atau password yang Anda masukkan tidak sesuai.',
         });
       } else if (err?.code === 'ERR_NETWORK' || err?.code === 'ERR_CONNECTION_REFUSED') {
         setError({
@@ -52,7 +52,7 @@ export default function LoginPage() {
       } else {
         setError({
           title: 'Terjadi Kesalahan',
-          description: raw || 'Silakan coba lagi beberapa saat.',
+          description: 'Silakan coba lagi beberapa saat.',
         });
       }
     } finally {
