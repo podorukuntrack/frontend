@@ -33,6 +33,13 @@ api.interceptors.response.use(
   (res) => res,
   async (err) => {
     const original = err.config;
+
+    // ✅ Tambahkan ini — skip interceptor untuk semua endpoint auth
+    const isAuthEndpoint = original?.url?.includes('/auth/');
+    if (isAuthEndpoint) {
+      return Promise.reject(err);
+    }
+
     if (err.response?.status === 401 && !original._retry) {
       original._retry = true;
       const refreshToken = getStoredValue('refreshToken');
