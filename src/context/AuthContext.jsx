@@ -30,6 +30,10 @@ export function AuthProvider({ children }) {
   const [loading] = useState(false);
 
   const persistSession = (payload) => {
+    if (!payload) {
+      throw new Error('Invalid login response: payload kosong');
+    }
+
     const accessToken = payload.accessToken ?? payload.access_token;
     const refreshToken = payload.refreshToken ?? payload.refresh_token;
     const normalizedUser = {

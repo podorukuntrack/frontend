@@ -26,12 +26,16 @@ export default function LoginPage() {
   // ── Login ─────────────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
+    e.stopPropagation(); // tambahkan ini
+
     setLoading(true);
     setError(null);
     try {
       const user = await login(form.email, form.password);
       navigate(user.role === 'customer' ? '/units' : '/');
     } catch (err) {
+      console.error('Login error:', err); // tambah ini untuk debug
+
       const status = err?.response?.status;
       const raw = err?.response?.data?.message || err?.message || '';
 
@@ -218,20 +222,18 @@ export default function LoginPage() {
             {forgotResult ? (
               /* Result State */
               <div>
-                <div className={`rounded-xl border px-4 py-3 flex items-start gap-2 ${
-                  forgotResult.success
-                    ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-500/20 dark:bg-emerald-500/10'
-                    : 'border-rose-200 bg-rose-50 dark:border-rose-500/20 dark:bg-rose-500/10'
-                }`}>
+                <div className={`rounded-xl border px-4 py-3 flex items-start gap-2 ${forgotResult.success
+                  ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-500/20 dark:bg-emerald-500/10'
+                  : 'border-rose-200 bg-rose-50 dark:border-rose-500/20 dark:bg-rose-500/10'
+                  }`}>
                   {forgotResult.success
                     ? <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
                     : <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 mt-0.5 shrink-0" />
                   }
-                  <p className={`text-sm ${
-                    forgotResult.success
-                      ? 'text-emerald-700 dark:text-emerald-300'
-                      : 'text-rose-700 dark:text-rose-300'
-                  }`}>
+                  <p className={`text-sm ${forgotResult.success
+                    ? 'text-emerald-700 dark:text-emerald-300'
+                    : 'text-rose-700 dark:text-rose-300'
+                    }`}>
                     {forgotResult.message}
                   </p>
                 </div>
