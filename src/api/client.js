@@ -1,11 +1,7 @@
 import axios from 'axios';
 
-const DEV_URL = "http://localhost:3001/api/v1";
-const PROD_URL = "https://api.podorukuntrack.com/api/v1";
-
-// pilih sesuai kondisi
-const BASE_URL =
-  window.location.hostname === "localhost" ? DEV_URL : PROD_URL;
+// Gunakan VITE_API_URL dari .env.development atau .env.production
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api/v1";
 
 const api = axios.create({
   baseURL: BASE_URL,
