@@ -196,7 +196,7 @@ export default function Sidebar() {
         id="mobile-sidebar"
         role="navigation"
         aria-label="Menu navigasi"
-        className={`fixed right-0 top-0 z-50 h-full w-[290px] transform overflow-hidden bg-white shadow-2xl shadow-slate-950/10 transition-transform duration-300 ease-in-out lg:hidden ${
+        className={`fixed right-0 top-0 z-500 h-full w-[290px] transform overflow-hidden bg-white shadow-2xl shadow-slate-950/10 transition-transform duration-300 ease-in-out lg:hidden ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >
