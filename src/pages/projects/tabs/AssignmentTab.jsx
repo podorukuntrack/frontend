@@ -31,7 +31,7 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
     try {
       const [asgRes, usersRes] = await Promise.all([
         assignmentsAPI.list({ limit: 100 }),
-        usersAPI.list({})
+        usersAPI.list({ role: 'customer', all_customers: 'true', limit: 1000 })
       ]);
 
       const currentAsg = (asgRes.data?.data || []).find(a => String(a.unit_id) === String(unit.id));
