@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { retentionsAPI } from '../../../api/services';
 import { PageLoader, Modal, Confirm } from '../../../components/ui';
 import { useToast } from '../../../hooks/useToast';
-import { extractError, formatDate, formatCurrency } from '../../../utils/helpers';
+import { extractError, formatDate } from '../../../utils/helpers';
 import { useAuth } from '../../../context/AuthContext';
 import {
   ShieldCheck, Plus, Pencil, Trash2, Clock, CheckCircle,
@@ -33,7 +33,7 @@ export default function RetentionTab({ unit }) {
 
   const [modal, setModal] = useState({ open: false, mode: 'create', data: null });
   const [confirm, setConfirm] = useState({ open: false, id: null });
-  const [form, setForm] = useState({ amount: '', due_date: '', notes: '', status: 'active' });
+  const [form, setForm] = useState({ due_date: '', notes: '', status: 'active' });
 
   const loadData = async () => {
     setLoading(true);
@@ -63,7 +63,6 @@ export default function RetentionTab({ unit }) {
     try {
       const payload = {
         unitId: unit.id,
-        amount: parseFloat(form.amount) || 0,
         dueDate: new Date(form.due_date).toISOString(),
         status: form.status,
         notes: form.notes || null,
@@ -112,14 +111,13 @@ export default function RetentionTab({ unit }) {
   };
 
   const openCreate = () => {
-    setForm({ amount: '', due_date: '', notes: '', status: 'active' });
+    setForm({ due_date: '', notes: '', status: 'active' });
     setModal({ open: true, mode: 'create', data: null });
   };
 
   const openEdit = (r) => {
     const dueDate = r.due_date ?? r.dueDate;
     setForm({
-      amount: r.amount || '',
       due_date: dueDate ? dueDate.split('T')[0] : '',
       notes: r.notes || '',
       status: r.status || 'active',
@@ -237,15 +235,7 @@ export default function RetentionTab({ unit }) {
                     </div>
                   </div>
 
-                  {/* Amount */}
-                  {r.amount > 0 && (
-                    <div className="mb-4 px-3 py-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-100 dark:border-indigo-800 flex justify-between items-center">
-                      <span className="text-xs font-medium text-indigo-700 dark:text-indigo-400">Nilai Retensi Ditahan</span>
-                      <span className="text-sm font-bold text-indigo-800 dark:text-indigo-300">
-                        {formatCurrency(Number(r.amount))}
-                      </span>
-                    </div>
-                  )}
+
 
                   {/* Notes */}
                   {r.notes && (
@@ -291,7 +281,7 @@ export default function RetentionTab({ unit }) {
                   {/* Released banner */}
                   {r.status === 'released' && (
                     <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 text-sm font-semibold">
-                      <CheckCircle className="w-4 h-4" /> Masa garansi telah selesai dan dana retensi sudah dicairkan.
+                      <CheckCircle className="w-4 h-4" /> Masa garansi telah selesai.
                     </div>
                   )}
                 </div>
@@ -328,18 +318,7 @@ export default function RetentionTab({ unit }) {
               </select>
             </div>
           </div>
-          <div className="space-y-1.5">
-            <label className="label">Nilai Retensi (Opsional)</label>
-            <input
-              type="number"
-              className="input"
-              value={form.amount}
-              onChange={e => setForm({ ...form, amount: e.target.value })}
-              placeholder="0"
-              min="0"
-            />
-            <p className="text-xs text-slate-500">Nilai dana yang ditahan sebagai jaminan garansi.</p>
-          </div>
+
           <div className="space-y-1.5">
             <label className="label">Catatan (Opsional)</label>
             <textarea
