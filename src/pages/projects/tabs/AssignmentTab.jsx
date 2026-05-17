@@ -1,21 +1,28 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { assignmentsAPI, usersAPI } from '../../../api/services';
-import { PageLoader, Select } from '../../../components/ui';
+import { PageLoader, Spinner } from '../../../components/ui';
 import { useToast } from '../../../hooks/useToast';
 import { extractError, formatCurrency, formatDate } from '../../../utils/helpers';
 import { useAuth } from '../../../context/AuthContext';
-import { UserCheck, Pencil, Trash2 } from 'lucide-react';
+import { UserCheck, Pencil, Trash2, Search, Check, ChevronDown, User } from 'lucide-react';
 
 export default function AssignmentTab({ unit, project, onAssigned }) {
   const { isRole } = useAuth();
   const { toast } = useToast();
   
   const [assignment, setAssignment] = useState(null);
-  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   
+  // Search state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const dropdownRef = useRef(null);
+
   const [form, setForm] = useState({
     user_id: '',
     tanggal_pembelian: new Date().toISOString().split("T")[0],
@@ -29,19 +36,16 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [asgRes, usersRes] = await Promise.all([
-        assignmentsAPI.list({ limit: 100 }),
-        usersAPI.list({ role: 'customer', all_customers: 'true', limit: 1000 })
-      ]);
-
+      // Only fetch assignments, extremely fast!
+      const asgRes = await assignmentsAPI.list({ limit: 100 });
       const currentAsg = (asgRes.data?.data || []).find(a => String(a.unit_id) === String(unit.id));
       if (currentAsg) {
         setAssignment(currentAsg);
+        if (currentAsg.user) {
+          setSelectedUser(currentAsg.user);
+          setForm(f => ({ ...f, user_id: currentAsg.user.id }));
+        }
       }
-
-      const customersOnly = (usersRes.data?.data || []).filter(u => u.role === "customer");
-      setUsers(customersOnly);
-
     } catch (err) {
       toast(extractError(err), 'error');
     } finally {
@@ -54,6 +58,58 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unit.id]);
 
+  // Click outside to close dropdown
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Debounced search customer logic
+  useEffect(() => {
+    if (!isOpen) return;
+
+    if (!searchTerm.trim()) {
+      // Fetch default 5 suggestions
+      const fetchSuggestions = async () => {
+        setSearching(true);
+        try {
+          const res = await usersAPI.list({ role: 'customer', all_customers: 'true', limit: 5 });
+          setSearchResults(res.data?.data || []);
+        } catch (err) {
+          console.error(err);
+        } finally {
+          setSearching(false);
+        }
+      };
+      fetchSuggestions();
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await usersAPI.list({ 
+          role: 'customer', 
+          all_customers: 'true', 
+          search: searchTerm, 
+          limit: 8 
+        });
+        setSearchResults(res.data?.data || []);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm, isOpen]);
+
   const startEdit = () => {
     setForm({
       user_id: assignment.user?.id || assignment.user_id,
@@ -64,11 +120,18 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
       keterangan_kpr: assignment.pembayaran?.keterangan_kpr || "",
       status_kepemilikan: assignment.status_kepemilikan || 'active'
     });
+    if (assignment.user) {
+      setSelectedUser(assignment.user);
+    }
     setIsEditing(true);
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
+    if (!form.user_id) {
+      toast('Pilih customer terlebih dahulu', 'error');
+      return;
+    }
     setSaving(true);
     try {
       const payload = {
@@ -176,15 +239,90 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
          <form onSubmit={handleSave} className="space-y-6">
             <div className="space-y-4">
               <div>
-                <label className="label">Pilih Customer</label>
-                <Select
-                  value={form.user_id}
-                  onChange={(v) => setForm((f) => ({ ...f, user_id: v }))}
-                  options={users.map((u) => ({
-                    value: u.id,
-                    label: `${u.nama} (${u.email})`,
-                  }))}
-                />
+                <label className="label text-slate-700 dark:text-slate-300 font-semibold mb-1.5">Pilih Customer / Pembeli</label>
+                <div className="relative" ref={dropdownRef}>
+                  {/* Trigger Box */}
+                  <div 
+                    onClick={() => setIsOpen(!isOpen)}
+                    className="flex items-center justify-between input cursor-pointer border border-slate-200 hover:border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-xl px-4 py-2.5 transition-all shadow-sm"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <User className="w-5 h-5 text-slate-400 flex-shrink-0" />
+                      {selectedUser ? (
+                        <span className="font-semibold text-slate-900 dark:text-white truncate">
+                          {selectedUser.nama} <span className="text-xs font-normal text-slate-500">({selectedUser.email})</span>
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">Cari nama atau email customer...</span>
+                      )}
+                    </div>
+                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                  </div>
+
+                  {/* Float Dropdown */}
+                  {isOpen && (
+                    <div className="absolute left-0 right-0 mt-2 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden p-2 animate-fadeIn max-h-[320px] flex flex-col">
+                      {/* Search Input Box */}
+                      <div className="relative mb-2">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input 
+                          type="text"
+                          className="input w-full pl-9 py-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl"
+                          placeholder="Ketik nama atau email..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          autoFocus
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        {searching && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                            <Spinner size="sm" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Results Scroll Container */}
+                      <div className="overflow-y-auto flex-1 space-y-1 custom-scrollbar">
+                        {searchResults.length === 0 ? (
+                          <div className="text-center py-6 text-sm text-slate-500 dark:text-slate-400 font-medium">
+                            {searching ? 'Mencari...' : 'Customer tidak ditemukan'}
+                          </div>
+                        ) : (
+                          <>
+                            <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-2.5 py-1">
+                              {searchTerm.trim() ? 'Hasil Pencarian' : 'Rekomendasi / Customer Terbaru'}
+                            </div>
+                            {searchResults.map((u) => {
+                              const isSelected = form.user_id === u.id;
+                              return (
+                                <div
+                                  key={u.id}
+                                  onClick={() => {
+                                    setSelectedUser(u);
+                                    setForm(f => ({ ...f, user_id: u.id }));
+                                    setIsOpen(false);
+                                    setSearchTerm('');
+                                  }}
+                                  className={`flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-colors text-sm ${
+                                    isSelected 
+                                      ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold' 
+                                      : 'hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300'
+                                  }`}
+                                >
+                                  <div className="min-w-0 pr-4">
+                                    <div className="truncate font-semibold">{u.nama}</div>
+                                    <div className="text-xs text-slate-500 dark:text-slate-400 truncate">{u.email}</div>
+                                  </div>
+                                  {isSelected && <Check className="w-4 h-4 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />}
+                                </div>
+                              );
+                            })}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
