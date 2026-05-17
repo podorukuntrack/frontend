@@ -105,8 +105,8 @@ export default function UnitList({ cluster, project }) {
         cluster_id: cluster.id,
         nomor_unit: nomor.trim(),
         tipe_rumah: addForm.tipe_rumah,
-        luas_tanah: parseFloat(addForm.luas_tanah) || 0,
-        luas_bangunan: parseFloat(addForm.luas_bangunan) || 0,
+        luas_tanah: parseFloat(addForm.luas_tanah) || null,
+        luas_bangunan: parseFloat(addForm.luas_bangunan) || null,
       }));
 
       await unitsAPI.bulkCreate(payloads);
@@ -139,8 +139,8 @@ export default function UnitList({ cluster, project }) {
       await unitsAPI.update(editModal.data.id, {
         nomor_unit: editForm.nomor_unit,
         tipe_rumah: editForm.tipe_rumah,
-        luas_tanah: parseFloat(editForm.luas_tanah) || 0,
-        luas_bangunan: parseFloat(editForm.luas_bangunan) || 0,
+        luas_tanah: parseFloat(editForm.luas_tanah) || null,
+        luas_bangunan: parseFloat(editForm.luas_bangunan) || null,
       });
       toast("Spesifikasi unit berhasil diperbarui", "success");
       setEditModal({ open: false, data: null });
