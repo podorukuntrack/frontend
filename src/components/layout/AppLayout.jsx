@@ -29,7 +29,7 @@ export default function AppLayout({ children }) {
       <main className="flex-1 overflow-y-auto relative">
 
         {/* TOPBAR */}
-        <div className="sticky top-0 z-30 h-[72px] bg-[#B51318] shadow-sm flex items-center px-6 md:px-8">
+        <div className="sticky top-0 z-30 h-[72px] bg-[#87070c] shadow-sm flex items-center px-6 md:px-8">
           <h1 className="text-white text-xl font-semibold tracking-tight">
             {currentTitle}
           </h1>
