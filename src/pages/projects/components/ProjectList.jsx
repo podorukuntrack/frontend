@@ -185,12 +185,12 @@ export default function ProjectList() {
                   e.currentTarget.style.borderColor = '';
                 }}
               >
-                <div className="absolute -right-6 -bottom-6 transition-all duration-300 pointer-events-none w-36 h-36 flex items-center justify-center opacity-[0.08] group-hover:opacity-[0.14] dark:opacity-[0.05] dark:group-hover:opacity-[0.08]">
+                <div className="absolute -right-6 -bottom-6 transition-all duration-300 pointer-events-none w-36 h-36 flex items-center justify-center opacity-[0.08] group-hover:opacity-[0.16] dark:opacity-[0.12] dark:group-hover:opacity-[0.20]">
                   {p.logo_url ? (
                     <img 
                       src={p.logo_url} 
                       alt="" 
-                      className="w-full h-full object-contain filter grayscale brightness-50 dark:brightness-100 contrast-125 rotate-12 scale-110" 
+                      className="w-full h-full object-contain filter grayscale brightness-75 dark:brightness-125 contrast-125 rotate-12 scale-110" 
                     />
                   ) : (
                     <FolderKanban className="w-32 h-32" style={{ color: theme }} />
@@ -200,11 +200,13 @@ export default function ProjectList() {
                   <div className="flex items-start justify-between mb-4">
                     {/* PREMIUM LOGO CONTAINER */}
                     {p.logo_url ? (
-                      <img 
-                        src={p.logo_url} 
-                        alt={`${p.nama_proyek} Logo`} 
-                        className="w-12 h-12 object-contain rounded-xl p-0.5 transition-transform duration-300 group-hover:scale-110"
-                      />
+                      <div className="w-12 h-12 rounded-xl bg-white dark:bg-white p-1 border border-slate-200/80 dark:border-slate-100 shadow-sm flex items-center justify-center transition-transform duration-300 group-hover:scale-110 shrink-0 overflow-hidden">
+                        <img 
+                          src={p.logo_url} 
+                          alt={`${p.nama_proyek} Logo`} 
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
                     ) : (
                       <div className="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20 shadow-sm transition-transform duration-300 group-hover:scale-110">
                         <FolderKanban className="w-6 h-6" style={{ color: theme }} />

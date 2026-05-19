@@ -95,17 +95,6 @@ export default function HandoverTab({ unit, onHandover }) {
     if (!form.scheduled_date) { toast('Tanggal jadwal wajib diisi', 'error'); return; }
     setSaving(true);
     try {
-      let uploadedUrl = null;
-      if (editPhoto) {
-        const fd = new FormData();
-        fd.append("unitId", unit.id);
-        fd.append("jenis", "handover");
-        fd.append("file", editPhoto);
-        
-        const uploadRes = await documentationAPI.upload(fd);
-        uploadedUrl = uploadRes.data?.data?.url;
-      }
-
       const payload = {
         unitId: unit.id,
         scheduledDate: new Date(form.scheduled_date).toISOString(),
@@ -115,12 +104,6 @@ export default function HandoverTab({ unit, onHandover }) {
         proposedDate: null,
       };
 
-      if (uploadedUrl) {
-        payload.imageUrl = uploadedUrl;
-      } else if (modal.mode === 'edit' && modal.data) {
-        payload.imageUrl = modal.data.imageUrl ?? modal.data.image_url ?? null;
-      }
-
       if (modal.mode === 'create') {
         await handoversAPI.create(payload);
         toast('Jadwal serah terima berhasil dibuat', 'success');
@@ -129,8 +112,6 @@ export default function HandoverTab({ unit, onHandover }) {
         toast('Jadwal berhasil diperbarui', 'success');
       }
       setModal({ open: false, mode: 'create', data: null });
-      setEditPhoto(null);
-      setEditPreview(null);
       loadData();
       if (onHandover) onHandover();
     } catch (err) {
@@ -511,39 +492,6 @@ export default function HandoverTab({ unit, onHandover }) {
               onChange={e => setForm({ ...form, notes: e.target.value })}
               placeholder="Instruksi, lokasi, atau informasi tambahan..."
             />
-          </div>
-          <div className="space-y-1.5">
-            <label className="label">Foto Serah Terima (Opsional)</label>
-            <div className="flex items-center gap-3">
-              <label className="flex items-center gap-2 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-xl cursor-pointer border border-slate-200 dark:border-slate-600 text-sm font-semibold text-slate-700 dark:text-slate-200 transition-colors">
-                <Camera className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                Pilih Foto
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={e => {
-                    const file = e.target.files[0];
-                    if (file) {
-                      setEditPhoto(file);
-                      setEditPreview(URL.createObjectURL(file));
-                    }
-                  }}
-                />
-              </label>
-              {editPreview && (
-                <div className="relative w-12 h-12 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden group">
-                  <img src={editPreview} alt="Preview" className="w-full h-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => { setEditPhoto(null); setEditPreview(null); }}
-                    className="absolute inset-0 bg-black/60 text-white font-bold flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    Hapus
-                  </button>
-                </div>
-              )}
-            </div>
           </div>
           <div className="flex justify-end pt-2 gap-2">
             <button type="button" onClick={() => setModal({ open: false, mode: 'create', data: null })} className="btn-secondary">Batal</button>

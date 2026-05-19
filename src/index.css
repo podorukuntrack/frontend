@@ -9,7 +9,7 @@
   /* Default: Light Mode (Clean Corporate) */
   body { 
     font-family: 'Montserrat', sans-serif;
-    @apply bg-slate-50 text-slate-900 antialiased transition-colors duration-200; 
+    @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased transition-colors duration-200; 
   }
   
   /* Scrollbar Modern & Halus */
@@ -85,6 +85,7 @@
   .badge-yellow { @apply badge bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400; }
   .badge-blue { @apply badge bg-indigo-100 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400; }
   .badge-red { @apply badge bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400; }
+  .badge-gray { @apply badge bg-slate-100 text-slate-700 dark:bg-slate-500/10 dark:text-slate-400; }
 
   /* Sidebar Links (Modern Active State) */
   .sidebar-link { @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer; }
