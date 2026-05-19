@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.10",
@@ -19,6 +20,7 @@
     "recharts": "^3.8.1"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.37.2",
     "@eslint/js": "^10.0.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
@@ -30,6 +32,7 @@
     "globals": "^17.5.0",
     "postcss": "^8.5.14",
     "tailwindcss": "^3.4.19",
-    "vite": "^8.0.10"
+    "vite": "^8.0.10",
+    "wrangler": "^4.93.0"
   }
 }
