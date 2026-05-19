@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { authAPI } from '../api/services';
 
 const AuthContext = createContext(null);
@@ -27,7 +27,31 @@ const getInitialUser = () => {
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(getInitialUser);
-  const [loading] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchMe = async () => {
+      const token = localStorage.getItem('accessToken');
+      if (!token) return;
+
+      try {
+        const { data } = await authAPI.getMe();
+        if (data?.success && data?.data) {
+          const freshUser = {
+            ...data.data,
+            nama: data.data.nama ?? data.data.name,
+            name: data.data.name ?? data.data.nama,
+          };
+          localStorage.setItem('user', JSON.stringify(freshUser));
+          setUser(freshUser);
+        }
+      } catch (err) {
+        console.error('Failed to sync user profile:', err);
+      }
+    };
+
+    fetchMe();
+  }, []);
 
   const persistSession = (payload) => {
     if (!payload) {
