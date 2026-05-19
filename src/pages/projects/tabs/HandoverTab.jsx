@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { handoversAPI } from '../../../api/services';
+import { handoversAPI, documentationAPI } from '../../../api/services';
 import { PageLoader, Modal, Confirm } from '../../../components/ui';
 import { useToast } from '../../../hooks/useToast';
 import { extractError, formatDate } from '../../../utils/helpers';
 import { useAuth } from '../../../context/AuthContext';
 import {
   Key, Plus, Pencil, Trash2, CheckCircle, Clock, AlertTriangle,
-  UserCheck, XCircle, RotateCcw, ArrowRight
+  UserCheck, XCircle, RotateCcw, ArrowRight, Camera, Image, ExternalLink
 } from 'lucide-react';
 
 // Helper: baca field tanggal — support camelCase & snake_case
@@ -53,6 +53,12 @@ export default function HandoverTab({ unit, onHandover }) {
   // Confirm: hapus
   const [confirm, setConfirm] = useState({ open: false, id: null });
 
+  // Photo uploads
+  const [handoverPhoto, setHandoverPhoto] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [editPhoto, setEditPhoto] = useState(null);
+  const [editPreview, setEditPreview] = useState(null);
+
   // Cek apakah sudah ada handover yang selesai
   const hasCompleted = handovers.some(h => h.status === 'selesai' || h.status === 'completed');
   // Handover aktif (belum selesai/gagal) — hanya boleh 1
@@ -88,14 +94,32 @@ export default function HandoverTab({ unit, onHandover }) {
     if (!form.scheduled_date) { toast('Tanggal jadwal wajib diisi', 'error'); return; }
     setSaving(true);
     try {
+      let uploadedUrl = null;
+      if (editPhoto) {
+        const fd = new FormData();
+        fd.append("unitId", unit.id);
+        fd.append("jenis", "foto");
+        fd.append("file", editPhoto);
+        
+        const uploadRes = await documentationAPI.upload(fd);
+        uploadedUrl = uploadRes.data?.data?.url;
+      }
+
       const payload = {
         unitId: unit.id,
         scheduledDate: new Date(form.scheduled_date).toISOString(),
         notes: form.notes || null,
         // Reset status ke menunggu_respon_customer saat create / edit jadwal
-        status: 'menunggu_respon_customer',
+        status: modal.mode === 'create' ? 'menunggu_respon_customer' : modal.data.status,
         proposedDate: null,
       };
+
+      if (uploadedUrl) {
+        payload.imageUrl = uploadedUrl;
+      } else if (modal.mode === 'edit' && modal.data) {
+        payload.imageUrl = modal.data.imageUrl ?? modal.data.image_url ?? null;
+      }
+
       if (modal.mode === 'create') {
         await handoversAPI.create(payload);
         toast('Jadwal serah terima berhasil dibuat', 'success');
@@ -104,6 +128,8 @@ export default function HandoverTab({ unit, onHandover }) {
         toast('Jadwal berhasil diperbarui', 'success');
       }
       setModal({ open: false, mode: 'create', data: null });
+      setEditPhoto(null);
+      setEditPreview(null);
       loadData();
       if (onHandover) onHandover();
     } catch (err) {
@@ -136,11 +162,23 @@ export default function HandoverTab({ unit, onHandover }) {
     const h = resultModal.handover;
     setSaving(true);
     try {
+      let uploadedUrl = null;
+      if (success && handoverPhoto) {
+        const fd = new FormData();
+        fd.append("unitId", unit.id);
+        fd.append("jenis", "foto");
+        fd.append("file", handoverPhoto);
+        
+        const uploadRes = await documentationAPI.upload(fd);
+        uploadedUrl = uploadRes.data?.data?.url;
+      }
+
       if (success) {
         await handoversAPI.update(h.id, {
           status: 'selesai',
           actualDate: new Date().toISOString(),
           notes: resultNotes || h.notes || null,
+          imageUrl: uploadedUrl || h.imageUrl || h.image_url || null,
         });
         toast('Serah terima ditandai selesai. Lanjutkan ke tab Retensi!', 'success');
       } else {
@@ -152,6 +190,8 @@ export default function HandoverTab({ unit, onHandover }) {
       }
       setResultModal({ open: false, handover: null });
       setResultNotes('');
+      setHandoverPhoto(null);
+      setPhotoPreview(null);
       loadData();
       if (onHandover) onHandover();
     } catch (err) {
@@ -186,6 +226,8 @@ export default function HandoverTab({ unit, onHandover }) {
 
   const openEdit = (h) => {
     setForm({ scheduled_date: toDateTimeLocal(getScheduledDate(h)), notes: h.notes || '' });
+    setEditPhoto(null);
+    setEditPreview(h.image_url ?? h.imageUrl ?? null);
     setModal({ open: true, mode: 'edit', data: h });
   };
 
@@ -398,6 +440,32 @@ export default function HandoverTab({ unit, onHandover }) {
                     {h.notes}
                   </div>
                 )}
+
+                {/* Foto Bukti Serah Terima */}
+                {(h.image_url ?? h.imageUrl) && (
+                  <div className="mt-3">
+                    <span className="font-semibold text-xs uppercase tracking-wide text-slate-400 block mb-1.5">Foto Bukti Serah Terima</span>
+                    <div className="relative group overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 max-w-sm">
+                      <img
+                        src={h.image_url ?? h.imageUrl}
+                        alt="Bukti Serah Terima"
+                        className="w-full h-44 object-cover transition-all duration-300 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <a
+                          href={h.image_url ?? h.imageUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-white text-slate-800 px-3.5 py-1.5 rounded-lg font-semibold text-xs shadow-md hover:bg-slate-50 transition-colors flex items-center gap-1.5"
+                        >
+                          <Image className="w-3.5 h-3.5" />
+                          Lihat Foto Penuh
+                          <ExternalLink className="w-3 h-3 opacity-60" />
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -435,6 +503,39 @@ export default function HandoverTab({ unit, onHandover }) {
               placeholder="Instruksi, lokasi, atau informasi tambahan..."
             />
           </div>
+          <div className="space-y-1.5">
+            <label className="label">Foto Serah Terima (Opsional)</label>
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-xl cursor-pointer border border-slate-200 dark:border-slate-600 text-sm font-semibold text-slate-700 dark:text-slate-200 transition-colors">
+                <Camera className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                Pilih Foto
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={e => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      setEditPhoto(file);
+                      setEditPreview(URL.createObjectURL(file));
+                    }
+                  }}
+                />
+              </label>
+              {editPreview && (
+                <div className="relative w-12 h-12 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden group">
+                  <img src={editPreview} alt="Preview" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => { setEditPhoto(null); setEditPreview(null); }}
+                    className="absolute inset-0 bg-black/60 text-white font-bold flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    Hapus
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
           <div className="flex justify-end pt-2 gap-2">
             <button type="button" onClick={() => setModal({ open: false, mode: 'create', data: null })} className="btn-secondary">Batal</button>
             <button type="submit" className="btn-primary" disabled={saving}>
@@ -447,7 +548,7 @@ export default function HandoverTab({ unit, onHandover }) {
       {/* ── Modal: Konfirmasi Hasil Serah Terima ────────────── */}
       <Modal
         open={resultModal.open}
-        onClose={() => { setResultModal({ open: false, handover: null }); setResultNotes(''); }}
+        onClose={() => { setResultModal({ open: false, handover: null }); setResultNotes(''); setHandoverPhoto(null); setPhotoPreview(null); }}
         title="Konfirmasi Hasil Serah Terima"
       >
         <div className="space-y-4">
@@ -466,6 +567,39 @@ export default function HandoverTab({ unit, onHandover }) {
               onChange={e => setResultNotes(e.target.value)}
               placeholder="Catatan hasil serah terima, kondisi unit, dsb..."
             />
+          </div>
+          <div className="space-y-1.5">
+            <label className="label">Foto Bukti Serah Terima (Opsional)</label>
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-xl cursor-pointer border border-slate-200 dark:border-slate-600 text-sm font-semibold text-slate-700 dark:text-slate-200 transition-colors">
+                <Camera className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                Pilih Foto
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={e => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      setHandoverPhoto(file);
+                      setPhotoPreview(URL.createObjectURL(file));
+                    }
+                  }}
+                />
+              </label>
+              {photoPreview && (
+                <div className="relative w-12 h-12 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden group">
+                  <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => { setHandoverPhoto(null); setPhotoPreview(null); }}
+                    className="absolute inset-0 bg-black/60 text-white font-bold flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    Hapus
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <button

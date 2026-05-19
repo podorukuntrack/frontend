@@ -6,7 +6,7 @@ import { extractError, formatDate } from '../../../utils/helpers';
 import { useAuth } from '../../../context/AuthContext';
 import {
   ShieldCheck, Plus, Pencil, Trash2, Clock, CheckCircle,
-  AlertTriangle, Calendar, XCircle
+  AlertTriangle, Calendar, XCircle, Compass, ExternalLink
 } from 'lucide-react';
 
 const STATUS_CONFIG = {
@@ -33,7 +33,7 @@ export default function RetentionTab({ unit }) {
 
   const [modal, setModal] = useState({ open: false, mode: 'create', data: null });
   const [confirm, setConfirm] = useState({ open: false, id: null });
-  const [form, setForm] = useState({ due_date: '', notes: '', status: 'active' });
+  const [form, setForm] = useState({ due_date: '', notes: '', status: 'active', linkFoto360: '' });
 
   const loadData = async () => {
     setLoading(true);
@@ -66,6 +66,7 @@ export default function RetentionTab({ unit }) {
         dueDate: new Date(form.due_date).toISOString(),
         status: form.status,
         notes: form.notes || null,
+        linkFoto360: form.linkFoto360 || null,
       };
       if (modal.mode === 'create') {
         await retentionsAPI.create(payload);
@@ -111,7 +112,7 @@ export default function RetentionTab({ unit }) {
   };
 
   const openCreate = () => {
-    setForm({ due_date: '', notes: '', status: 'active' });
+    setForm({ due_date: '', notes: '', status: 'active', linkFoto360: '' });
     setModal({ open: true, mode: 'create', data: null });
   };
 
@@ -121,6 +122,7 @@ export default function RetentionTab({ unit }) {
       due_date: dueDate ? dueDate.split('T')[0] : '',
       notes: r.notes || '',
       status: r.status || 'active',
+      linkFoto360: r.link_foto_360 ?? r.linkFoto360 ?? '',
     });
     setModal({ open: true, mode: 'edit', data: r });
   };
@@ -245,6 +247,23 @@ export default function RetentionTab({ unit }) {
                     </div>
                   )}
 
+                  {/* Link Foto 360 */}
+                  {(r.link_foto_360 ?? r.linkFoto360) && (
+                    <div className="mb-4">
+                      <span className="font-semibold block mb-1.5 text-xs uppercase tracking-wide text-slate-400">Foto 360 Unit</span>
+                      <a
+                        href={r.link_foto_360 ?? r.linkFoto360}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 rounded-xl border border-indigo-100 dark:border-indigo-800 text-sm font-semibold transition-all shadow-sm active:scale-95"
+                      >
+                        <Compass className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                        Buka Foto 360 Unit
+                        <ExternalLink className="w-3.5 h-3.5 opacity-60 ml-0.5" />
+                      </a>
+                    </div>
+                  )}
+
                   {/* Quick action buttons (admin only, non-released) */}
                   {isRole('super_admin', 'admin') && r.status !== 'released' && (
                     <div className="flex gap-2 flex-wrap">
@@ -328,6 +347,18 @@ export default function RetentionTab({ unit }) {
               placeholder="Catatan garansi, syarat, atau kondisi khusus..."
             />
           </div>
+
+          <div className="space-y-1.5">
+            <label className="label">Link Foto 360 (Opsional)</label>
+            <input
+              type="url"
+              className="input"
+              value={form.linkFoto360}
+              onChange={e => setForm({ ...form, linkFoto360: e.target.value })}
+              placeholder="https://example.com/360-photo-link"
+            />
+          </div>
+
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={() => setModal({ open: false })} className="btn-secondary">Batal</button>
             <button type="submit" className="btn-primary" disabled={saving}>

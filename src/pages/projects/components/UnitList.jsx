@@ -211,7 +211,20 @@ export default function UnitList({ cluster, project }) {
                   return (
                   <tr key={u.id} onClick={() => navigate(`/projects/${project.id}/clusters/${cluster.id}/units/${u.id}`)} className="hover:bg-slate-50 dark:hover:bg-slate-800/25 transition-colors group">
                     <td className="px-6 py-4">
-                      <span className="font-mono font-bold text-slate-900 dark:text-white px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700">{u.nomor_unit}</span>
+                      <div className="flex items-center gap-3">
+                        {u.image_url || u.imageUrl ? (
+                          <img
+                            src={u.image_url || u.imageUrl}
+                            alt={`Unit ${u.nomor_unit}`}
+                            className="w-10 h-10 object-cover rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-400">
+                            <Home className="w-5 h-5" />
+                          </div>
+                        )}
+                        <span className="font-mono font-bold text-slate-900 dark:text-white px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700">{u.nomor_unit}</span>
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       {asg ? (

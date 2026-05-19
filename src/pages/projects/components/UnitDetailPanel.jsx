@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, UserCheck, CalendarDays, BarChart3, Key, ShieldCheck } from 'lucide-react';
-import { unitsAPI, assignmentsAPI, timelinesAPI, progressAPI, handoversAPI, retentionsAPI } from '../../../api/services';
+import { ArrowLeft, UserCheck, CalendarDays, BarChart3, Key, ShieldCheck, Pencil, Home } from 'lucide-react';
+import { unitsAPI, assignmentsAPI, timelinesAPI, progressAPI, handoversAPI, retentionsAPI, documentationAPI } from '../../../api/services';
 import { PageLoader } from '../../../components/ui';
+import { useToast } from '../../../hooks/useToast';
+import { useAuth } from '../../../context/AuthContext';
+import { extractError } from '../../../utils/helpers';
 
 // Placeholder untuk setiap Tab Content
 import AssignmentTab from '../tabs/AssignmentTab';
@@ -13,6 +16,8 @@ import RetentionTab from '../tabs/RetentionTab';
 
 export default function UnitDetailPanel({ unit, cluster, project }) {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const { isRole } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'assignment';
   
@@ -26,6 +31,38 @@ export default function UnitDetailPanel({ unit, cluster, project }) {
   const [progressData, setProgressData] = useState([]);
   const [handover, setHandover] = useState(null);
   const [currentUnit, setCurrentUnit] = useState(unit);
+
+  const handleUnitPhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    if (file.size > 5 * 1024 * 1024) {
+      toast('Ukuran file maksimal 5MB', 'error');
+      return;
+    }
+
+    try {
+      const fd = new FormData();
+      fd.append('unitId', currentUnit.id);
+      fd.append('jenis', 'unit');
+      fd.append('file', file);
+
+      toast('Mengunggah foto unit...', 'info');
+      const uploadRes = await documentationAPI.upload(fd);
+      const url = uploadRes.data?.data?.url;
+
+      if (!url) throw new Error('Gagal mendapatkan URL foto unit');
+
+      await unitsAPI.update(currentUnit.id, {
+        image_url: url
+      });
+
+      toast('Foto unit berhasil diperbarui', 'success');
+      setCurrentUnit(prev => ({ ...prev, image_url: url, imageUrl: url }));
+    } catch (err) {
+      toast(extractError(err), 'error');
+    }
+  };
 
   const fetchUnitContext = async () => {
     setLoading(true);
@@ -98,8 +135,51 @@ export default function UnitDetailPanel({ unit, cluster, project }) {
         <button onClick={() => navigate(`/projects/${project.id}/clusters/${cluster.id}/units`)} className="btn-ghost w-fit text-slate-500 hover:text-slate-900 dark:hover:text-white -ml-2 mb-4">
           <ArrowLeft className="w-4 h-4 mr-1" /> Kembali ke Daftar Unit
         </button>
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-           <div>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+           <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
+              {/* STUNNING UNIT IMAGE CARD */}
+              <div className="flex-shrink-0 relative group rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm w-36 h-28 bg-slate-100 dark:bg-slate-800/50 flex items-center justify-center">
+                {currentUnit.image_url || currentUnit.imageUrl ? (
+                  <>
+                    <img
+                      src={currentUnit.image_url || currentUnit.imageUrl}
+                      alt={`Foto Unit ${currentUnit.nomor_unit}`}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                    {isRole('super_admin', 'admin') && (
+                      <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-[11px] font-semibold gap-1">
+                        <Pencil className="w-3.5 h-3.5" />
+                        Ubah Foto
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleUnitPhotoUpload}
+                        />
+                      </label>
+                    )}
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-slate-400 p-2 text-center">
+                    <Home className="w-6 h-6 mb-1 text-slate-300 dark:text-slate-700" />
+                    {isRole('super_admin', 'admin') ? (
+                      <label className="text-[11px] text-indigo-600 dark:text-indigo-400 font-bold hover:underline cursor-pointer">
+                        Unggah Foto
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleUnitPhotoUpload}
+                        />
+                      </label>
+                    ) : (
+                      <span className="text-[10px]">Belum ada foto</span>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="inline-flex px-2.5 py-1 rounded-md text-[10px] uppercase tracking-wider font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20">
                   {project.nama_proyek}
@@ -131,6 +211,7 @@ export default function UnitDetailPanel({ unit, cluster, project }) {
                    </span>
                 </div>
               )}
+              </div>
            </div>
            
            <div className="text-right">
