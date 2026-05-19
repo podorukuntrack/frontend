@@ -27,7 +27,7 @@ const settingsItems = [
 ];
 
 export default function Sidebar() {
-  const { logout, isRole } = useAuth();
+  const { user, logout, isRole } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
@@ -72,15 +72,19 @@ export default function Sidebar() {
     <div className="flex h-full flex-col bg-white dark:bg-slate-900 transition-colors duration-500">
       {/* HEADER */}
       <div className="flex items-start justify-between px-[34px] pb-9 pt-7">
-        <div>
-          <h1 className="text-[17px] font-semibold leading-6 text-[#c9151b] dark:text-red-400">
-            Podorukun Group
+        <div className="flex-1 min-w-0 pr-2">
+          <h1 className="text-[17px] font-semibold leading-6 truncate transition-colors" style={{ color: 'var(--color-primary, #c9151b)' }}>
+            {user?.company?.name || "Podorukun Group"}
           </h1>
-          <p className="mt-0.5 text-[15px] font-medium leading-5 text-[#c9151b] dark:text-red-300">
+          <p className="mt-0.5 text-[15px] font-medium leading-5 truncate opacity-90 transition-colors" style={{ color: 'var(--color-primary, #c9151b)' }}>
             Monitoring Sistem
           </p>
         </div>
-        <img src={logo} alt="Podorukun Logo" className="h-[36px] w-[36px] object-contain" />
+        <img 
+          src={user?.company?.logoUrl || logo} 
+          alt="Company Logo" 
+          className="h-[36px] w-[36px] object-contain shrink-0" 
+        />
       </div>
 
       {/* NAVIGATION */}
@@ -128,9 +132,11 @@ export default function Sidebar() {
     <>
       {/* MOBILE TOPBAR */}
       <header className="fixed left-0 right-0 top-0 z-[60] flex h-14 items-center justify-between border-b border-slate-200 bg-white dark:bg-slate-900 px-4 shadow-sm lg:hidden transition-colors duration-500">
-        <div className="flex items-center gap-2">
-          <img src={logo} alt="Podorukun Logo" className="h-7 w-7 object-contain" />
-          <span className="text-[15px] font-semibold text-[#c9151b] dark:text-red-400">Podorukun Group</span>
+        <div className="flex items-center gap-2 min-w-0">
+          <img src={user?.company?.logoUrl || logo} alt="Company Logo" className="h-7 w-7 object-contain shrink-0" />
+          <span className="text-[15px] font-semibold truncate transition-colors" style={{ color: 'var(--color-primary, #c9151b)' }}>
+            {user?.company?.name || "Podorukun Group"}
+          </span>
         </div>
         <button
           onClick={() => setOpen(!open)}

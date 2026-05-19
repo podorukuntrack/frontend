@@ -6,7 +6,7 @@ import { extractError, formatDate } from '../../../utils/helpers';
 import { useAuth } from '../../../context/AuthContext';
 import {
   Key, Plus, Pencil, Trash2, CheckCircle, Clock, AlertTriangle,
-  UserCheck, XCircle, RotateCcw, ArrowRight, Camera, Image, ExternalLink
+  UserCheck, XCircle, RotateCcw, ArrowRight, Camera, Image, ExternalLink, ArrowLeft
 } from 'lucide-react';
 
 // Helper: baca field tanggal — support camelCase & snake_case
@@ -49,6 +49,7 @@ export default function HandoverTab({ unit, onHandover }) {
   // Modal: konfirmasi hasil serah terima hari H
   const [resultModal, setResultModal] = useState({ open: false, handover: null });
   const [resultNotes, setResultNotes] = useState('');
+  const [handoverResult, setHandoverResult] = useState(''); // 'berhasil', 'gagal', or ''
 
   // Confirm: hapus
   const [confirm, setConfirm] = useState({ open: false, id: null });
@@ -98,7 +99,7 @@ export default function HandoverTab({ unit, onHandover }) {
       if (editPhoto) {
         const fd = new FormData();
         fd.append("unitId", unit.id);
-        fd.append("jenis", "foto");
+        fd.append("jenis", "handover");
         fd.append("file", editPhoto);
         
         const uploadRes = await documentationAPI.upload(fd);
@@ -158,22 +159,29 @@ export default function HandoverTab({ unit, onHandover }) {
   };
 
   // ── Tandai hasil serah terima (selesai / gagal) ───────────────
-  const handleConfirmResult = async (success) => {
+  const handleConfirmResult = async () => {
     const h = resultModal.handover;
+    const isSuccess = handoverResult === 'berhasil';
+
+    if (isSuccess && !handoverPhoto) {
+      toast('Foto bukti serah terima wajib diunggah', 'error');
+      return;
+    }
+
     setSaving(true);
     try {
       let uploadedUrl = null;
-      if (success && handoverPhoto) {
+      if (isSuccess && handoverPhoto) {
         const fd = new FormData();
         fd.append("unitId", unit.id);
-        fd.append("jenis", "foto");
+        fd.append("jenis", "handover");
         fd.append("file", handoverPhoto);
         
         const uploadRes = await documentationAPI.upload(fd);
         uploadedUrl = uploadRes.data?.data?.url;
       }
 
-      if (success) {
+      if (isSuccess) {
         await handoversAPI.update(h.id, {
           status: 'selesai',
           actualDate: new Date().toISOString(),
@@ -192,6 +200,7 @@ export default function HandoverTab({ unit, onHandover }) {
       setResultNotes('');
       setHandoverPhoto(null);
       setPhotoPreview(null);
+      setHandoverResult('');
       loadData();
       if (onHandover) onHandover();
     } catch (err) {
@@ -548,86 +557,209 @@ export default function HandoverTab({ unit, onHandover }) {
       {/* ── Modal: Konfirmasi Hasil Serah Terima ────────────── */}
       <Modal
         open={resultModal.open}
-        onClose={() => { setResultModal({ open: false, handover: null }); setResultNotes(''); setHandoverPhoto(null); setPhotoPreview(null); }}
+        onClose={() => { 
+          setResultModal({ open: false, handover: null }); 
+          setResultNotes(''); 
+          setHandoverPhoto(null); 
+          setPhotoPreview(null); 
+          setHandoverResult('');
+        }}
         title="Konfirmasi Hasil Serah Terima"
       >
-        <div className="space-y-4">
-          <p className="text-sm text-slate-600 dark:text-slate-400">
-            Apakah serah terima pada{' '}
-            <span className="font-semibold text-slate-800 dark:text-slate-200">
-              {resultModal.handover ? fmtDateTime(getScheduledDate(resultModal.handover)) : '—'}
-            </span>{' '}
-            berjalan?
-          </p>
-          <div className="space-y-1.5">
-            <label className="label">Catatan (Opsional)</label>
-            <textarea
-              className="input resize-none h-20"
-              value={resultNotes}
-              onChange={e => setResultNotes(e.target.value)}
-              placeholder="Catatan hasil serah terima, kondisi unit, dsb..."
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="label">Foto Bukti Serah Terima (Opsional)</label>
-            <div className="flex items-center gap-3">
-              <label className="flex items-center gap-2 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-xl cursor-pointer border border-slate-200 dark:border-slate-600 text-sm font-semibold text-slate-700 dark:text-slate-200 transition-colors">
-                <Camera className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                Pilih Foto
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={e => {
-                    const file = e.target.files[0];
-                    if (file) {
-                      setHandoverPhoto(file);
-                      setPhotoPreview(URL.createObjectURL(file));
-                    }
-                  }}
-                />
-              </label>
-              {photoPreview && (
-                <div className="relative w-12 h-12 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden group">
-                  <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => { setHandoverPhoto(null); setPhotoPreview(null); }}
-                    className="absolute inset-0 bg-black/60 text-white font-bold flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    Hapus
-                  </button>
+        {!handoverResult ? (
+          /* ── Langkah 1: Pilih Hasil Serah Terima ── */
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-slate-600 dark:text-slate-400 text-center">
+              Pilih hasil akhir pelaksanaan serah terima unit ini:
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <button
+                type="button"
+                onClick={() => setHandoverResult('berhasil')}
+                className="flex flex-col items-center justify-center p-5 rounded-2xl border-2 border-slate-200 dark:border-slate-800 hover:border-emerald-500 dark:hover:border-emerald-500 bg-slate-50 dark:bg-slate-900/50 hover:bg-emerald-50/30 dark:hover:bg-emerald-950/10 text-slate-800 dark:text-slate-100 transition-all group scale-100 active:scale-[0.98]"
+              >
+                <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-3 group-hover:scale-110 transition-transform">
+                  <CheckCircle className="w-6 h-6" />
                 </div>
-              )}
+                <span className="font-bold text-sm">Serah Terima Berhasil</span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 text-center mt-1">
+                  Unit sukses diserahkan & wajib unggah foto bukti
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setHandoverResult('gagal')}
+                className="flex flex-col items-center justify-center p-5 rounded-2xl border-2 border-slate-200 dark:border-slate-800 hover:border-rose-500 dark:hover:border-rose-500 bg-slate-50 dark:bg-slate-900/50 hover:bg-rose-50/30 dark:hover:bg-rose-950/10 text-slate-800 dark:text-slate-100 transition-all group scale-100 active:scale-[0.98]"
+              >
+                <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-500/10 flex items-center justify-center text-rose-600 dark:text-rose-400 mb-3 group-hover:scale-110 transition-transform">
+                  <XCircle className="w-6 h-6" />
+                </div>
+                <span className="font-bold text-sm">Gagal / Tidak Hadir</span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 text-center mt-1">
+                  Customer tidak datang / jadwal diatur ulang
+                </span>
+              </button>
+            </div>
+            
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-center">
+              <button
+                type="button"
+                onClick={() => setResultModal({ open: false, handover: null })}
+                className="text-xs text-slate-500 hover:text-slate-700 underline"
+              >
+                Batal
+              </button>
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3 pt-2">
-            <button
-              onClick={() => handleConfirmResult(true)}
-              disabled={saving}
-              className="btn-primary flex-1 bg-emerald-600 hover:bg-emerald-700 border-none justify-center"
-            >
-              <CheckCircle className="w-4 h-4 mr-2" />
-              {saving ? 'Menyimpan...' : 'Serah Terima Berjalan ✓'}
-            </button>
-            <button
-              onClick={() => handleConfirmResult(false)}
-              disabled={saving}
-              className="btn-danger flex-1 justify-center"
-            >
-              <XCircle className="w-4 h-4 mr-2" />
-              {saving ? 'Menyimpan...' : 'Gagal / Customer Tidak Hadir ✗'}
-            </button>
+        ) : handoverResult === 'berhasil' ? (
+          /* ── Langkah 2: Berhasil (Wajib Foto) ── */
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setHandoverResult('')}
+                className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+              <span className="font-bold text-sm text-slate-800 dark:text-slate-200">
+                Unggah Bukti Serah Terima
+              </span>
+            </div>
+
+            <div className="p-4 bg-emerald-50/50 dark:bg-emerald-950/10 rounded-xl border border-emerald-100 dark:border-emerald-900/50 text-emerald-800 dark:text-emerald-400 text-xs leading-relaxed">
+              <strong>Penting:</strong> Untuk menyelesaikan serah terima, Anda wajib mengunggah foto bukti serah terima (misal foto bersama customer) sebagai dokumentasi resmi.
+            </div>
+
+            <div className="space-y-2">
+              <label className="label font-bold text-slate-700 dark:text-slate-300">
+                Foto Bukti Serah Terima <span className="text-rose-500">*</span>
+              </label>
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-2 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/30 rounded-xl cursor-pointer border border-emerald-200 dark:border-emerald-800 text-sm font-semibold text-emerald-700 dark:text-emerald-300 transition-colors">
+                  <Camera className="w-4 h-4" />
+                  Pilih Foto Bukti
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={e => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        setHandoverPhoto(file);
+                        setPhotoPreview(URL.createObjectURL(file));
+                      }
+                    }}
+                    required
+                  />
+                </label>
+                {photoPreview && (
+                  <div className="relative w-12 h-12 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden group">
+                    <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => { setHandoverPhoto(null); setPhotoPreview(null); }}
+                      className="absolute inset-0 bg-black/60 text-white font-bold flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      Hapus
+                    </button>
+                  </div>
+                )}
+              </div>
+              {!handoverPhoto && (
+                <p className="text-[11px] font-semibold text-rose-500">
+                  * Foto bukti wajib dipilih sebelum melanjutkan
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="label">Catatan Serah Terima (Opsional)</label>
+              <textarea
+                className="input resize-none h-20"
+                value={resultNotes}
+                onChange={e => setResultNotes(e.target.value)}
+                placeholder="Catatan hasil serah terima, kondisi unit, dsb..."
+              />
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setHandoverResult('')}
+                className="btn-secondary flex-1 justify-center"
+              >
+                Kembali
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmResult}
+                disabled={saving || !handoverPhoto}
+                className={`btn-primary flex-1 justify-center border-none ${
+                  !handoverPhoto 
+                    ? 'bg-slate-300 dark:bg-slate-700 cursor-not-allowed text-slate-500 dark:text-slate-400' 
+                    : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                }`}
+              >
+                {saving ? 'Menyimpan...' : 'Konfirmasi Selesai ✓'}
+              </button>
+            </div>
           </div>
-          <div className="text-center">
-            <button
-              onClick={() => { setResultModal({ open: false, handover: null }); setResultNotes(''); }}
-              className="text-xs text-slate-500 hover:text-slate-700 underline"
-            >
-              Batal, kembali
-            </button>
+        ) : (
+          /* ── Langkah 2: Gagal (Tanpa Foto) ── */
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setHandoverResult('')}
+                className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+              <span className="font-bold text-sm text-slate-800 dark:text-slate-200">
+                Alasan Serah Terima Gagal
+              </span>
+            </div>
+
+            <div className="p-4 bg-rose-50/50 dark:bg-rose-950/10 rounded-xl border border-rose-100 dark:border-rose-900/50 text-rose-800 dark:text-rose-400 text-xs leading-relaxed">
+              <strong>Info:</strong> Foto bukti tidak diperlukan untuk serah terima yang gagal. Harap catat alasan atau detail kegagalan untuk evaluasi penjadwalan ulang.
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="label">Alasan / Catatan Kegagalan <span className="text-rose-500">*</span></label>
+              <textarea
+                className="input resize-none h-24"
+                required
+                value={resultNotes}
+                onChange={e => setResultNotes(e.target.value)}
+                placeholder="Ex: Customer berhalangan hadir / Ada komplain kritis dari customer..."
+              />
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setHandoverResult('')}
+                className="btn-secondary flex-1 justify-center"
+              >
+                Kembali
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmResult}
+                disabled={saving || !resultNotes.trim()}
+                className={`btn-danger flex-1 justify-center border-none ${
+                  !resultNotes.trim()
+                    ? 'bg-slate-300 dark:bg-slate-700 cursor-not-allowed text-slate-500 dark:text-slate-400' 
+                    : 'bg-rose-600 hover:bg-rose-700 text-white'
+                }`}
+              >
+                {saving ? 'Menyimpan...' : 'Konfirmasi Gagal ✗'}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </Modal>
 
       {/* ── Confirm: Hapus ──────────────────────────────────── */}

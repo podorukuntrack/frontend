@@ -26,12 +26,22 @@
     dark:bg-slate-900 dark:border-slate-800 dark:shadow-none transition-colors duration-200; 
   }
   .card-hover { 
-    @apply card hover:border-indigo-300 hover:shadow-md dark:hover:border-slate-700 transition-all duration-200; 
+    @apply card transition-all duration-200; 
+  }
+  .card-hover:hover {
+    border-color: var(--color-primary-border, rgba(181, 19, 24, 0.25));
+    box-shadow: 0 10px 15px -3px var(--color-primary-light, rgba(181, 19, 24, 0.08));
   }
 
   /* Buttons */
   .btn-primary { 
-    @apply bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2.5 rounded-xl transition-all duration-200 flex items-center gap-2 text-sm shadow-sm hover:shadow-indigo-500/25 disabled:opacity-50 disabled:cursor-not-allowed; 
+    background-color: var(--color-primary, #B51318);
+    color: white;
+    @apply font-medium px-4 py-2.5 rounded-xl transition-all duration-200 flex items-center gap-2 text-sm shadow-sm disabled:opacity-50 disabled:cursor-not-allowed; 
+  }
+  .btn-primary:hover:not(:disabled) {
+    background-color: var(--color-primary-hover, #9c0e12);
+    box-shadow: 0 4px 12px var(--color-primary-light, rgba(181, 19, 24, 0.2));
   }
   .btn-secondary { 
     @apply bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-medium px-4 py-2.5 rounded-xl transition-all duration-200 flex items-center gap-2 text-sm shadow-sm
@@ -58,9 +68,12 @@
 
   /* Form Elements */
   .input { 
-    @apply bg-white border border-slate-200 text-slate-900 placeholder-slate-400 rounded-xl px-3.5 py-2.5 text-sm w-full transition-all duration-200
-    focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500
-    dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:ring-indigo-500/20 dark:focus:border-indigo-500; 
+    @apply bg-white border border-slate-200 text-slate-900 placeholder-slate-400 rounded-xl px-3.5 py-2.5 text-sm w-full transition-all duration-200;
+  }
+  .input:focus {
+    outline: none;
+    box-shadow: 0 0 0 4px var(--color-primary-light, rgba(181, 19, 24, 0.1));
+    border-color: var(--color-primary, #B51318);
   }
   .label { 
     @apply text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1.5 block; 
@@ -75,7 +88,10 @@
 
   /* Sidebar Links (Modern Active State) */
   .sidebar-link { @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer; }
-  .sidebar-link-active { @apply bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400; }
+  .sidebar-link-active { 
+    background-color: var(--color-primary-light, rgba(79, 70, 229, 0.1));
+    color: var(--color-primary, #4f46e5);
+  }
   .sidebar-link-inactive { @apply text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800/50; }
 
   .podorukun-logo {
@@ -112,7 +128,7 @@
 
   .podorukun-sidebar-link:hover {
     background: #f7f7f7;
-    color: #B51318;
+    color: var(--color-primary, #B51318);
   }
 
   .podorukun-sidebar-link-active,
@@ -120,7 +136,7 @@
     min-height: 77px;
     border-radius: 24px;
     background: #f1f1f1;
-    color: #B51318;
+    color: var(--color-primary, #B51318);
     font-weight: 700;
   }
 
@@ -131,7 +147,7 @@
     flex-shrink: 0;
     align-items: center;
     justify-content: space-between;
-    background: #B51318;
+    background: var(--color-primary, #B51318);
     padding: 0 24px 0 34px;
     color: #ffffff;
     font-size: 15.5px;
@@ -141,7 +157,7 @@
   }
 
   .podorukun-logout:hover {
-    background: #b91118;
+    background: var(--color-primary-hover, #b91118);
   }
 
   .podorukun-logout-icon {
@@ -152,7 +168,7 @@
     justify-content: center;
     border-radius: 6px;
     background: #ffffff;
-    color: #B51318;
+    color: var(--color-primary, #B51318);
   }
 
   .podorukun-sidebar-shadow {

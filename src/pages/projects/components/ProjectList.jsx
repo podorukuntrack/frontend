@@ -185,8 +185,16 @@ export default function ProjectList() {
                   e.currentTarget.style.borderColor = '';
                 }}
               >
-                <div className="absolute -right-6 -bottom-6 text-slate-50 dark:text-slate-800/20 group-hover:text-indigo-50 dark:group-hover:text-indigo-500/5 transition-colors pointer-events-none">
-                   <FolderKanban className="w-32 h-32" />
+                <div className="absolute -right-6 -bottom-6 transition-all duration-300 pointer-events-none w-36 h-36 flex items-center justify-center opacity-[0.08] group-hover:opacity-[0.14] dark:opacity-[0.05] dark:group-hover:opacity-[0.08]">
+                  {p.logo_url ? (
+                    <img 
+                      src={p.logo_url} 
+                      alt="" 
+                      className="w-full h-full object-contain filter grayscale brightness-50 dark:brightness-100 contrast-125 rotate-12 scale-110" 
+                    />
+                  ) : (
+                    <FolderKanban className="w-32 h-32" style={{ color: theme }} />
+                  )}
                 </div>
                 <div className="relative z-10">
                   <div className="flex items-start justify-between mb-4">
@@ -195,10 +203,10 @@ export default function ProjectList() {
                       <img 
                         src={p.logo_url} 
                         alt={`${p.nama_proyek} Logo`} 
-                        className="w-12 h-12 object-contain rounded-xl bg-slate-50 dark:bg-slate-800 p-1.5 border border-slate-100 dark:border-slate-800/80 shadow-sm"
+                        className="w-12 h-12 object-contain rounded-xl p-0.5 transition-transform duration-300 group-hover:scale-110"
                       />
                     ) : (
-                      <div className="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20 shadow-sm">
+                      <div className="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20 shadow-sm transition-transform duration-300 group-hover:scale-110">
                         <FolderKanban className="w-6 h-6" style={{ color: theme }} />
                       </div>
                     )}
