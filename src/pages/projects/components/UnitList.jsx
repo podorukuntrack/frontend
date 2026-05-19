@@ -39,8 +39,8 @@ export default function UnitList({ cluster, project }) {
     const file = e.target.files[0];
     if (!file) return;
     
-    if (file.size > 5 * 1024 * 1024) {
-      toast('Ukuran file maksimal 5MB', 'error');
+    if (!file.type.startsWith('image/')) {
+      toast('Hanya file gambar yang diperbolehkan!', 'error');
       return;
     }
 
