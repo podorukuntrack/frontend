@@ -64,8 +64,8 @@ export default function ProjectList() {
 
     try {
       const fd = new FormData();
-      fd.append('file', file);
       fd.append('jenis', 'logo');
+      fd.append('file', file);
 
       toast('Mengunggah logo...', 'info');
       const uploadRes = await documentationAPI.upload(fd);
@@ -92,14 +92,14 @@ export default function ProjectList() {
   
   const openEdit = (p, e) => {
     e.stopPropagation();
-    setForm({ 
-      nama_proyek: p.nama_proyek, 
-      lokasi: p.lokasi, 
-      deskripsi: p.deskripsi || '', 
-      status: p.status,
+    setForm({
+      nama_proyek: p.nama_proyek || '',
+      lokasi: p.lokasi || '',
+      deskripsi: p.deskripsi || '',
+      status: p.status || 'active',
       logo_url: p.logo_url || '',
       theme_color: p.theme_color || '#4f46e5',
-      company_id: p.company_id || ''
+      company_id: p.company_id || p.company?.id || user?.companyId || '',
     });
     setModal({ open: true, mode: 'edit', data: p });
   };
@@ -110,12 +110,12 @@ export default function ProjectList() {
     try {
       if (modal.mode === 'create') {
         await projectsAPI.create(form);
-        toast('Proyek berhasil dibuat', 'success');
+        toast('Proyek baru berhasil dibuat', 'success');
       } else {
         await projectsAPI.update(modal.data.id, form);
-        toast('Proyek berhasil diperbarui', 'success');
+        toast('Detail proyek berhasil diperbarui', 'success');
       }
-      setModal({ open: false });
+      setModal({ open: false, mode: 'create', data: null });
       load();
     } catch (err) {
       toast(extractError(err), 'error');
@@ -129,7 +129,7 @@ export default function ProjectList() {
     try {
       await projectsAPI.delete(confirm.id);
       toast('Proyek berhasil dihapus', 'success');
-      setConfirm({ open: false });
+      setConfirm({ open: false, id: null });
       load();
     } catch (err) {
       toast(extractError(err), 'error');
@@ -138,49 +138,49 @@ export default function ProjectList() {
     }
   };
 
+  if (loading) return <PageLoader />;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Proyek</h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{projects.length} proyek tersedia</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Daftar Proyek</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Kelola portofolio dan status proyek properti Anda</p>
         </div>
         {isRole('super_admin', 'admin') && (
-          <button className="btn-podorukun" onClick={openCreate}>
-            <Plus className="w-4 h-4 mr-1" />Tambah Proyek
+          <button className="btn-primary whitespace-nowrap" onClick={openCreate}>
+            <Plus className="w-4 h-4 mr-1.5" /> Tambah Proyek
           </button>
         )}
       </div>
 
-      <SearchInput value={search} onChange={setSearch} placeholder="Cari nama proyek atau lokasi..." />
+      <div className="w-full max-w-md">
+        <SearchInput value={search} onChange={setSearch} placeholder="Cari nama proyek atau lokasi..." />
+      </div>
 
-      {loading ? (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-          <CardSkeleton /><CardSkeleton /><CardSkeleton />
-        </div>
-      ) : filtered.length === 0 ? (
-        <EmptyState icon={FolderKanban} title="Belum ada proyek" description="Mulai tambahkan portofolio proyek real estate Anda"
-          action={isRole('super_admin', 'admin') && <button className="btn-primary mt-2" onClick={openCreate}><Plus className="w-4 h-4 mr-1" />Tambah Proyek</button>} />
+      {filtered.length === 0 ? (
+        <EmptyState icon={FolderKanban} title="Proyek tidak ditemukan" description="Tidak ada proyek yang sesuai dengan kriteria pencarian Anda." />
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered.map(p => {
             const theme = p.theme_color || '#4f46e5';
             return (
               <div 
                 key={p.id} 
                 onClick={() => navigate(`/projects/${p.id}/clusters`)} 
-                className="card-hover p-6 group flex flex-col justify-between h-full cursor-pointer relative overflow-hidden transition-all duration-300 border-t-4 bg-white dark:bg-slate-900 rounded-xl"
+                className="card-hover p-6 group flex flex-col justify-between h-full cursor-pointer relative overflow-hidden transition-all duration-300 border-t-8 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/50 dark:border-slate-800"
                 style={{ 
                   borderTopColor: theme,
-                  boxShadow: `0 4px 20px -2px ${theme}10`,
+                  boxShadow: `0 10px 30px -10px ${theme}40`,
+                  background: `linear-gradient(180deg, ${theme}0e 0%, transparent 100%)`,
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = `0 12px 30px 0 ${theme}20`;
-                  e.currentTarget.style.transform = 'translateY(-4px)';
-                  e.currentTarget.style.borderColor = `${theme}30`;
+                  e.currentTarget.style.boxShadow = `0 20px 40px -8px ${theme}60`;
+                  e.currentTarget.style.transform = 'translateY(-6px)';
+                  e.currentTarget.style.borderColor = `${theme}40`;
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = `0 4px 20px -2px ${theme}10`;
+                  e.currentTarget.style.boxShadow = `0 10px 30px -10px ${theme}40`;
                   e.currentTarget.style.transform = 'translateY(0)';
                   e.currentTarget.style.borderColor = '';
                 }}

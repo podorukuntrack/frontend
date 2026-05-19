@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { unitsAPI, assignmentsAPI } from "../../../api/services"; 
+import { unitsAPI, assignmentsAPI, documentationAPI } from "../../../api/services"; 
 import { PageLoader, EmptyState, SearchInput, Modal, ProgressBar, Select } from "../../../components/ui";
 import { useToast } from "../../../hooks/useToast";
 import { getStatusColor, getStatusLabel, extractError } from "../../../utils/helpers";
@@ -13,6 +13,7 @@ const initialAddForm = {
   luas_bangunan: "",
   jumlah_unit: 1,
   nomor_units: [""], 
+  image_url: "",
 };
 
 export default function UnitList({ cluster, project }) {
@@ -31,8 +32,39 @@ export default function UnitList({ cluster, project }) {
   const [editModal, setEditModal] = useState({ open: false, data: null });
   const [addModal, setAddModal] = useState(false);
 
-  const [editForm, setEditForm] = useState({ nomor_unit: "", tipe_rumah: "", luas_tanah: "", luas_bangunan: "" });
+  const [editForm, setEditForm] = useState({ nomor_unit: "", tipe_rumah: "", luas_tanah: "", luas_bangunan: "", image_url: "" });
   const [addForm, setAddForm] = useState(initialAddForm);
+
+  const handleUnitPhotoUpload = async (e, mode) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    if (file.size > 5 * 1024 * 1024) {
+      toast('Ukuran file maksimal 5MB', 'error');
+      return;
+    }
+
+    try {
+      const fd = new FormData();
+      fd.append('jenis', 'unit');
+      fd.append('file', file);
+
+      toast('Mengunggah foto unit...', 'info');
+      const uploadRes = await documentationAPI.upload(fd);
+      const url = uploadRes.data?.data?.url;
+
+      if (!url) throw new Error('Gagal mendapatkan URL foto unit');
+
+      if (mode === 'add') {
+        setAddForm(f => ({ ...f, image_url: url }));
+      } else {
+        setEditForm(f => ({ ...f, image_url: url }));
+      }
+      toast('Foto unit berhasil diunggah', 'success');
+    } catch (err) {
+      toast(extractError(err), 'error');
+    }
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -107,6 +139,7 @@ export default function UnitList({ cluster, project }) {
         tipe_rumah: addForm.tipe_rumah,
         luas_tanah: parseFloat(addForm.luas_tanah) || null,
         luas_bangunan: parseFloat(addForm.luas_bangunan) || null,
+        image_url: addForm.image_url || null,
       }));
 
       await unitsAPI.bulkCreate(payloads);
@@ -128,6 +161,7 @@ export default function UnitList({ cluster, project }) {
       tipe_rumah: u.tipe_rumah || "",
       luas_tanah: u.luas_tanah || "",
       luas_bangunan: u.luas_bangunan || "",
+      image_url: u.image_url ?? u.imageUrl ?? "",
     });
     setEditModal({ open: true, data: u });
   };
@@ -141,6 +175,7 @@ export default function UnitList({ cluster, project }) {
         tipe_rumah: editForm.tipe_rumah,
         luas_tanah: parseFloat(editForm.luas_tanah) || null,
         luas_bangunan: parseFloat(editForm.luas_bangunan) || null,
+        image_url: editForm.image_url || null,
       });
       toast("Spesifikasi unit berhasil diperbarui", "success");
       setEditModal({ open: false, data: null });
@@ -291,6 +326,37 @@ export default function UnitList({ cluster, project }) {
             </div>
           </div>
 
+          <div className="space-y-1.5 pt-2">
+            <label className="label">Foto Unit (Opsional, Berlaku untuk semua unit baru)</label>
+            <div className="flex items-center gap-3">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleUnitPhotoUpload(e, 'add')}
+                className="hidden"
+                id="add-unit-photo-input"
+              />
+              <label
+                htmlFor="add-unit-photo-input"
+                className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-700 dark:text-slate-200 rounded-xl text-sm font-semibold transition-all shadow-sm"
+              >
+                Unggah Foto
+              </label>
+              {addForm.image_url && (
+                <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50">
+                  <img src={addForm.image_url} alt="Preview" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setAddForm(f => ({ ...f, image_url: '' }))}
+                    className="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 flex items-center justify-center text-white text-[10px] transition-opacity"
+                  >
+                    Hapus
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
             <div>
               <label className="label flex flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -349,6 +415,38 @@ export default function UnitList({ cluster, project }) {
               </div>
             </div>
           </div>
+
+          <div className="space-y-1.5 pt-2">
+            <label className="label">Foto Unit (Opsional)</label>
+            <div className="flex items-center gap-3">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleUnitPhotoUpload(e, 'edit')}
+                className="hidden"
+                id="edit-unit-photo-input"
+              />
+              <label
+                htmlFor="edit-unit-photo-input"
+                className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-700 dark:text-slate-200 rounded-xl text-sm font-semibold transition-all shadow-sm"
+              >
+                Unggah Foto
+              </label>
+              {editForm.image_url && (
+                <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50">
+                  <img src={editForm.image_url} alt="Preview" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setEditForm(f => ({ ...f, image_url: '' }))}
+                    className="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 flex items-center justify-center text-white text-[10px] transition-opacity"
+                  >
+                    Hapus
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="flex gap-3 justify-end pt-4 mt-2 border-t border-slate-100 dark:border-slate-800">
             <button type="button" className="btn-secondary" onClick={() => setEditModal({ open: false, data: null })}>Batal</button>
             <button type="submit" className="btn-primary" disabled={saving}>{saving ? "Menyimpan..." : "Simpan Perubahan"}</button>
