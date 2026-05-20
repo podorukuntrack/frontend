@@ -91,14 +91,6 @@ export default function DashboardPage() {
       bg: "bg-blue-50 dark:bg-blue-500/10",
       sub: `dari ${stats?.projects?.total ?? 0} total proyek`,
     },
-    {
-      label: "Keluhan Terbuka",
-      value: (stats?.support?.open_tickets ?? 0).toLocaleString(),
-      icon: AlertCircle,
-      color: (stats?.support?.open_tickets ?? 0) > 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-500 dark:text-slate-400",
-      bg: (stats?.support?.open_tickets ?? 0) > 0 ? "bg-rose-50 dark:bg-rose-500/10" : "bg-slate-50 dark:bg-slate-800/50",
-      sub: "Menunggu penanganan CS",
-    },
   ];
 
   const tooltipStyle = {
@@ -123,7 +115,7 @@ export default function DashboardPage() {
       </div>
 
       {/* BENTO STAT CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {statCards.map((s) => (
           <div key={s.label} className="card-hover p-6 flex flex-col justify-between border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/50 rounded-2xl relative overflow-hidden group">
             {/* Dekorasi Background */}
