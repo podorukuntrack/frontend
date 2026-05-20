@@ -128,7 +128,7 @@
   }
 
   .podorukun-sidebar-link:hover {
-    @apply bg-[#f7f7f7] dark:bg-slate-800/50;
+    @apply bg-[#f7f7f7] dark:bg-slate-800/50 dark:text-rose-400;
     color: var(--color-primary, #B51318);
   }
 
@@ -136,7 +136,7 @@
   .podorukun-sidebar-link-active:hover {
     min-height: 77px;
     border-radius: 24px;
-    @apply bg-[#f1f1f1] dark:bg-slate-800;
+    @apply bg-[#f1f1f1] dark:bg-slate-800/50 dark:text-rose-400;
     color: var(--color-primary, #B51318);
     font-weight: 700;
   }
