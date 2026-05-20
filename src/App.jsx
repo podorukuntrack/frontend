@@ -12,6 +12,7 @@ import AppLayout from "./components/layout/AppLayout";
 import { navigateRef } from "./api/client"; // ✅ tambah import ini
 
 import LoginPage from "./pages/auth/LoginPage";
+import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
 import DashboardPage from "./pages/dashboard/DashboardPage";
 import ProjectsPage from "./pages/projects/ProjectsPage";
 import UsersPage from "./pages/users/UsersPage";
@@ -97,6 +98,14 @@ function AppRoutes() {
         element={
           <PublicRoute>
             <LoginPage />
+          </PublicRoute>
+        }
+      />
+      <Route
+        path="/forgot-password"
+        element={
+          <PublicRoute>
+            <ForgotPasswordPage />
           </PublicRoute>
         }
       />
