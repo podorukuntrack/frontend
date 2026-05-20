@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   progressAPI,
   assignmentsAPI,
@@ -901,23 +902,24 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
       </Modal>
 
       {/* LIGHTBOX */}
-      {lightbox && (
+      {lightbox && createPortal(
         <div
-          className="fixed inset-0 z-[9999] bg-black/90 flex flex-col items-center justify-center p-4"
+          className="fixed inset-0 z-[99999] bg-black/95 flex flex-col items-center justify-center p-4 backdrop-blur-sm"
           onClick={() => setLightbox(null)}
         >
           <button
-            className="absolute top-4 right-4 text-white/80 hover:text-white"
+            className="absolute top-6 right-6 text-white/70 hover:text-white bg-white/10 hover:bg-rose-500 p-2 rounded-full transition-all"
             onClick={() => setLightbox(null)}
+            title="Tutup (Esc)"
           >
-            <X className="w-8 h-8" />
+            <X className="w-6 h-6" strokeWidth={2.5} />
           </button>
-          <p className="text-white/60 text-sm mb-4 max-w-lg text-center truncate">{lightbox.name}</p>
+          <p className="text-white/80 font-medium text-sm mb-4 max-w-lg text-center truncate">{lightbox.name}</p>
           {lightbox.type === 'image' ? (
             <img
               src={lightbox.url}
               alt={lightbox.name}
-              className="max-w-full max-h-[80vh] rounded-xl object-contain shadow-2xl"
+              className="max-w-full max-h-[85vh] rounded-xl object-contain shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             />
           ) : lightbox.type === 'video' ? (
@@ -925,7 +927,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
               src={lightbox.url}
               controls
               autoPlay
-              className="max-w-full max-h-[80vh] rounded-xl shadow-2xl"
+              className="max-w-full max-h-[85vh] rounded-xl shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             />
           ) : (
@@ -935,14 +937,15 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                 href={lightbox.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors"
+                className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors"
                 onClick={(e) => e.stopPropagation()}
               >
                 Buka File
               </a>
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -68,7 +68,7 @@
 
   /* Form Elements */
   .input { 
-    @apply bg-white border border-slate-200 text-slate-900 placeholder-slate-400 rounded-xl px-3.5 py-2.5 text-sm w-full transition-all duration-200;
+    @apply bg-white border border-slate-200 text-slate-900 placeholder-slate-400 rounded-xl px-3.5 py-2.5 text-sm w-full transition-all duration-200 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder-slate-500;
   }
   .input:focus {
     outline: none;
@@ -118,17 +118,17 @@
   }
 
   .podorukun-sidebar-section {
-    @apply px-[34px] text-[13px] font-bold uppercase leading-4 text-[#747474];
+    @apply px-[34px] text-[13px] font-bold uppercase leading-4 text-[#747474] dark:text-slate-400;
     letter-spacing: 0;
   }
 
   .podorukun-sidebar-link {
-    @apply flex min-h-[58px] w-full items-center gap-[27px] px-[34px] text-[15.5px] font-medium leading-5 text-[#6b6b6b] transition-colors duration-200;
+    @apply flex min-h-[58px] w-full items-center gap-[27px] px-[34px] text-[15.5px] font-medium leading-5 text-[#6b6b6b] dark:text-slate-400 transition-colors duration-200;
     letter-spacing: 0;
   }
 
   .podorukun-sidebar-link:hover {
-    background: #f7f7f7;
+    @apply bg-[#f7f7f7] dark:bg-slate-800/50;
     color: var(--color-primary, #B51318);
   }
 
@@ -136,7 +136,7 @@
   .podorukun-sidebar-link-active:hover {
     min-height: 77px;
     border-radius: 24px;
-    background: #f1f1f1;
+    @apply bg-[#f1f1f1] dark:bg-slate-800;
     color: var(--color-primary, #B51318);
     font-weight: 700;
   }
