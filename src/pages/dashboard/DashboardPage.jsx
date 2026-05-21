@@ -9,22 +9,15 @@ import {
   Cell,
   Tooltip,
   ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
 } from "recharts";
 import {
   Home,
   FolderKanban,
-  AlertCircle,
   Wallet,
 } from "lucide-react";
 import { useTheme } from "../../hooks/useTheme";
 
 const COLORS = ["#10b981", "#3b82f6", "#94a3b8"]; // Selesai, Dalam Pembangunan, Belum Mulai
-const BAR_COLORS = ["#3b82f6", "#10b981", "#f59e0b"]; // Aktif, Selesai, On Hold
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -55,14 +48,6 @@ export default function DashboardPage() {
         { name: "Selesai", value: stats.units.selesai },
         { name: "Dalam Pembangunan", value: stats.units.dalam_pembangunan },
         { name: "Belum Mulai", value: stats.units.belum_mulai },
-      ]
-    : [];
-
-  const projectData = stats
-    ? [
-        { name: "Aktif", value: stats.projects.active },
-        { name: "Selesai", value: stats.projects.completed },
-        { name: "On Hold", value: stats.projects.on_hold },
       ]
     : [];
 
@@ -144,30 +129,35 @@ export default function DashboardPage() {
       </div>
 
       {/* CHARTS */}
-      <div className="grid lg:grid-cols-2 gap-4 md:gap-6">
+      <div className="w-full">
         {/* Status Unit Pie */}
-        <div className="card p-6 flex flex-col border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/50 rounded-2xl">
-          <div className="mb-6">
-            <h3 className="font-bold text-slate-900 dark:text-white text-lg">
-              Distribusi Pembangunan Unit
-            </h3>
-            <p className="text-sm text-slate-500 mt-1">Total {stats?.units?.total ?? 0} unit terdaftar</p>
+        <div className="card p-6 md:p-8 flex flex-col border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/50 rounded-2xl">
+          <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+              <h3 className="font-bold text-slate-900 dark:text-white text-lg lg:text-xl">
+                Distribusi Pembangunan Unit
+              </h3>
+              <p className="text-sm text-slate-500 mt-1">
+                Visualisasi status seluruh unit dari total {stats?.units?.total ?? 0} unit yang terdaftar.
+              </p>
+            </div>
           </div>
           
-          <div className="h-64 flex-1 relative">
+          <div className="h-[300px] md:h-[400px] lg:h-[450px] flex-1 relative w-full">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={unitData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={75}
-                  outerRadius={105}
+                  innerRadius="55%"
+                  outerRadius="80%"
                   dataKey="value"
-                  paddingAngle={5}
+                  paddingAngle={4}
+                  stroke="none"
                 >
                   {unitData.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i]} stroke="none" />
+                    <Cell key={i} fill={COLORS[i]} />
                   ))}
                 </Pie>
                 <Tooltip contentStyle={tooltipStyle} itemStyle={{ color: "inherit" }} />
@@ -175,42 +165,23 @@ export default function DashboardPage() {
             </ResponsiveContainer>
             {/* Center Label */}
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-4xl font-bold text-slate-900 dark:text-white tracking-tight">{stats?.units?.selesai ?? 0}</span>
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-1">Selesai</span>
+              <span className="text-5xl lg:text-6xl font-black text-slate-900 dark:text-white tracking-tighter">
+                {stats?.units?.selesai ?? 0}
+              </span>
+              <span className="text-xs md:text-sm font-bold text-emerald-500 uppercase tracking-widest mt-1 md:mt-2">
+                Unit Selesai
+              </span>
             </div>
           </div>
-          <div className="flex flex-wrap justify-center gap-5 mt-6 pt-5 border-t border-slate-50 dark:border-slate-800/50">
+          <div className="flex flex-wrap justify-center gap-6 md:gap-10 mt-8 pt-6 border-t border-slate-50 dark:border-slate-800/50">
             {unitData.map((d, i) => (
-              <div key={d.name} className="flex items-center gap-2.5 text-xs font-medium text-slate-600 dark:text-slate-400">
-                <div className="w-3.5 h-3.5 rounded-full shadow-sm" style={{ background: COLORS[i] }} />
-                <span>{d.name}: <strong className="text-slate-900 dark:text-slate-200">{d.value}</strong></span>
+              <div key={d.name} className="flex items-center gap-3 text-sm md:text-base font-medium text-slate-600 dark:text-slate-400">
+                <div className="w-4 h-4 rounded-full shadow-sm" style={{ background: COLORS[i] }} />
+                <span>
+                  {d.name}: <strong className="text-slate-900 dark:text-slate-200 ml-1 text-lg">{d.value}</strong>
+                </span>
               </div>
             ))}
-          </div>
-        </div>
-
-        {/* Status Proyek Bar */}
-        <div className="card p-6 flex flex-col border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/50 rounded-2xl">
-          <div className="mb-6">
-            <h3 className="font-bold text-slate-900 dark:text-white text-lg">
-              Status Proyek
-            </h3>
-            <p className="text-sm text-slate-500 mt-1">Total {stats?.projects?.total ?? 0} proyek</p>
-          </div>
-          <div className="h-64 flex-1">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={projectData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === "dark" ? "#1e293b" : "#f1f5f9"} />
-                <XAxis dataKey="name" tick={{ fill: theme === "dark" ? "#94a3b8" : "#64748b", fontSize: 12, fontWeight: 500 }} axisLine={false} tickLine={false} dy={10} />
-                <YAxis tick={{ fill: theme === "dark" ? "#94a3b8" : "#64748b", fontSize: 12, fontWeight: 500 }} axisLine={false} tickLine={false} dx={-10} />
-                <Tooltip cursor={{ fill: theme === "dark" ? "#1e293b" : "#f8fafc", opacity: 0.8 }} contentStyle={tooltipStyle} itemStyle={{ color: "inherit" }} />
-                <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={60}>
-                  {projectData.map((_, i) => (
-                    <Cell key={i} fill={BAR_COLORS[i]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
           </div>
         </div>
       </div>
