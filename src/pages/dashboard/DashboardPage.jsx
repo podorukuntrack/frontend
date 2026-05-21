@@ -141,45 +141,49 @@ export default function DashboardPage() {
             </div>
           </div>
           
-          <div className="h-[260px] md:h-[320px] relative w-full flex-shrink-0">
-            <ResponsiveContainer width="99%" height="100%">
-              <PieChart>
-                <Pie
-                  data={unitData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={90}
-                  outerRadius={125}
-                  dataKey="value"
-                  paddingAngle={4}
-                  stroke="none"
-                >
-                  {unitData.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i]} />
-                  ))}
-                </Pie>
-                <Tooltip contentStyle={tooltipStyle} itemStyle={{ color: "inherit" }} />
-              </PieChart>
-            </ResponsiveContainer>
-            {/* Center Label */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-5xl lg:text-6xl font-black text-slate-900 dark:text-white tracking-tighter">
-                {stats?.units?.selesai ?? 0}
-              </span>
-              <span className="text-xs md:text-sm font-bold text-emerald-500 uppercase tracking-widest mt-1 md:mt-2">
-                Unit Selesai
-              </span>
-            </div>
-          </div>
-          <div className="flex flex-wrap justify-center gap-6 md:gap-10 mt-8 pt-6 border-t border-slate-50 dark:border-slate-800/50">
-            {unitData.map((d, i) => (
-              <div key={d.name} className="flex items-center gap-3 text-sm md:text-base font-medium text-slate-600 dark:text-slate-400">
-                <div className="w-4 h-4 rounded-full shadow-sm" style={{ background: COLORS[i] }} />
-                <span>
-                  {d.name}: <strong className="text-slate-900 dark:text-slate-200 ml-1 text-lg">{d.value}</strong>
+          <div className="flex flex-col md:flex-row items-center w-full gap-8 lg:gap-12 mt-2">
+            <div className="h-[260px] md:h-[320px] relative w-full md:w-2/3 lg:w-3/4 flex-shrink-0">
+              <ResponsiveContainer width="99%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={unitData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={90}
+                    outerRadius={125}
+                    dataKey="value"
+                    paddingAngle={4}
+                    stroke="none"
+                  >
+                    {unitData.map((_, i) => (
+                      <Cell key={i} fill={COLORS[i]} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={tooltipStyle} itemStyle={{ color: "inherit" }} />
+                </PieChart>
+              </ResponsiveContainer>
+              {/* Center Label */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <span className="text-5xl lg:text-6xl font-black text-slate-900 dark:text-white tracking-tighter">
+                  {stats?.units?.selesai ?? 0}
+                </span>
+                <span className="text-xs md:text-sm font-bold text-emerald-500 uppercase tracking-widest mt-1 md:mt-2">
+                  Unit Selesai
                 </span>
               </div>
-            ))}
+            </div>
+            
+            <div className="flex flex-row md:flex-col flex-wrap justify-center md:justify-start w-full md:w-1/3 lg:w-1/4 gap-6 md:gap-8 pt-6 md:pt-0 border-t md:border-t-0 md:border-l border-slate-100 dark:border-slate-800/50 md:pl-8 lg:pl-12">
+              {unitData.map((d, i) => (
+                <div key={d.name} className="flex items-start md:items-center gap-3 font-medium">
+                  <div className="w-4 h-4 md:w-5 md:h-5 rounded-full shadow-sm mt-1 md:mt-0 flex-shrink-0" style={{ background: COLORS[i] }} />
+                  <div className="flex flex-col">
+                    <span className="text-sm md:text-base text-slate-600 dark:text-slate-400">{d.name}</span>
+                    <strong className="text-slate-900 dark:text-white text-xl md:text-2xl lg:text-3xl leading-none mt-1">{d.value}</strong>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
