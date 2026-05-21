@@ -141,8 +141,8 @@ export default function DashboardPage() {
             </div>
           </div>
           
-          <div className="flex flex-col md:flex-row items-center w-full gap-8 lg:gap-12 mt-2">
-            <div className="h-[260px] md:h-[320px] relative w-full md:w-2/3 lg:w-3/4 flex-shrink-0">
+          <div className="flex flex-col md:flex-row items-center w-full gap-4 md:gap-8 mt-2">
+            <div className="h-[260px] md:h-[320px] relative w-full md:w-3/5 lg:w-2/3 flex-shrink-0">
               <ResponsiveContainer width="99%" height="100%">
                 <PieChart>
                   <Pie
@@ -173,13 +173,13 @@ export default function DashboardPage() {
               </div>
             </div>
             
-            <div className="flex flex-row md:flex-col flex-wrap justify-center md:justify-start w-full md:w-1/3 lg:w-1/4 gap-6 md:gap-8 pt-6 md:pt-0 border-t md:border-t-0 md:border-l border-slate-100 dark:border-slate-800/50 md:pl-8 lg:pl-12">
+            <div className="flex flex-row md:flex-col flex-wrap justify-center md:justify-start w-full md:w-2/5 lg:w-1/3 gap-5 md:gap-6 pt-6 md:pt-0 border-t md:border-t-0 md:border-l border-slate-100 dark:border-slate-800/50 md:pl-6 lg:pl-10">
               {unitData.map((d, i) => (
-                <div key={d.name} className="flex items-start md:items-center gap-3 font-medium">
-                  <div className="w-4 h-4 md:w-5 md:h-5 rounded-full shadow-sm mt-1 md:mt-0 flex-shrink-0" style={{ background: COLORS[i] }} />
+                <div key={d.name} className="flex items-center gap-3 font-medium">
+                  <div className="w-4 h-4 rounded-full shadow-sm flex-shrink-0" style={{ background: COLORS[i] }} />
                   <div className="flex flex-row items-center gap-1.5 whitespace-nowrap">
-                    <span className="text-sm md:text-base text-slate-600 dark:text-slate-400">{d.name}:</span>
-                    <strong className="text-slate-900 dark:text-white text-lg md:text-xl font-bold">{d.value}</strong>
+                    <span className="text-sm lg:text-base text-slate-600 dark:text-slate-400">{d.name}:</span>
+                    <strong className="text-slate-900 dark:text-white text-lg lg:text-xl font-bold">{d.value}</strong>
                   </div>
                 </div>
               ))}
