@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { dashboardAPI } from "../../api/services";
 import { DashboardSkeleton } from "../../components/ui";
 import { extractError, formatCurrency } from "../../utils/helpers";
-import { useAuth } from "../../context/AuthContext";
 import {
   PieChart,
   Pie,
@@ -20,7 +19,6 @@ import { useTheme } from "../../hooks/useTheme";
 const COLORS = ["#10b981", "#3b82f6", "#94a3b8"]; // Selesai, Dalam Pembangunan, Belum Mulai
 
 export default function DashboardPage() {
-  const { user } = useAuth();
   const { theme } = useTheme();
 
   const [stats, setStats] = useState(null);
@@ -150,8 +148,8 @@ export default function DashboardPage() {
                   data={unitData}
                   cx="50%"
                   cy="50%"
-                  innerRadius="55%"
-                  outerRadius="80%"
+                  innerRadius={100}
+                  outerRadius={140}
                   dataKey="value"
                   paddingAngle={4}
                   stroke="none"
