@@ -177,9 +177,9 @@ export default function DashboardPage() {
               {unitData.map((d, i) => (
                 <div key={d.name} className="flex items-start md:items-center gap-3 font-medium">
                   <div className="w-4 h-4 md:w-5 md:h-5 rounded-full shadow-sm mt-1 md:mt-0 flex-shrink-0" style={{ background: COLORS[i] }} />
-                  <div className="flex flex-col">
-                    <span className="text-sm md:text-base text-slate-600 dark:text-slate-400">{d.name}</span>
-                    <strong className="text-slate-900 dark:text-white text-xl md:text-2xl lg:text-3xl leading-none mt-1">{d.value}</strong>
+                  <div className="flex flex-row items-baseline gap-2">
+                    <span className="text-sm md:text-base text-slate-600 dark:text-slate-400">{d.name}:</span>
+                    <strong className="text-slate-900 dark:text-white text-lg md:text-xl font-bold">{d.value}</strong>
                   </div>
                 </div>
               ))}
