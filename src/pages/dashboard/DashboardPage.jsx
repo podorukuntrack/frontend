@@ -141,8 +141,8 @@ export default function DashboardPage() {
             </div>
           </div>
           
-          <div className="h-[300px] md:h-[400px] lg:h-[450px] flex-1 relative w-full">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-[300px] md:h-[400px] lg:h-[450px] relative w-full min-h-[300px]">
+            <ResponsiveContainer width="100%" height="100%" minHeight={300} minWidth={100}>
               <PieChart>
                 <Pie
                   data={unitData}
