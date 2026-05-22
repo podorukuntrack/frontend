@@ -509,7 +509,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
             <span
               className={`font-bold text-lg ${sisaTagihan <= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}
             >
-              {payPct}%
+              {parseFloat(payPct.toFixed(2))}%
             </span>
           </div>
           <ProgressBar
