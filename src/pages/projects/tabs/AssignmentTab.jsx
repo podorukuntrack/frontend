@@ -36,8 +36,8 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
   const loadData = async () => {
     setLoading(true);
     try {
-      // Only fetch assignments, extremely fast!
-      const asgRes = await assignmentsAPI.list({ limit: 100 });
+      // Only fetch assignments, use large limit to find it
+      const asgRes = await assignmentsAPI.list({ limit: 5000 });
       const currentAsg = (asgRes.data?.data || []).find(a => String(a.unit_id) === String(unit.id));
       if (currentAsg) {
         setAssignment(currentAsg);
@@ -132,6 +132,13 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
       toast('Pilih customer terlebih dahulu', 'error');
       return;
     }
+
+    if (assignment) {
+      if (!window.confirm("Apakah Anda yakin ingin menyimpan perubahan data penugasan ini?")) {
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       const payload = {
@@ -251,7 +258,14 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
            {assignment ? 'Edit Penugasan' : 'Buat Penugasan Baru'}
         </h3>
         {assignment && (
-           <button onClick={() => setIsEditing(false)} className="btn-ghost text-slate-500 text-sm">Batal Edit</button>
+           <div className="flex gap-2">
+             {isRole('super_admin', 'admin') && (
+               <button type="button" onClick={handleDelete} className="btn-secondary !bg-rose-50 !text-rose-600 hover:!bg-rose-100 border-none text-sm px-3 py-1.5 h-auto" disabled={saving}>
+                 <Trash2 className="w-4 h-4 mr-1" /> Batalkan Penugasan
+               </button>
+             )}
+             <button type="button" onClick={() => setIsEditing(false)} className="btn-ghost text-slate-500 text-sm">Batal Edit</button>
+           </div>
         )}
       </div>
 
