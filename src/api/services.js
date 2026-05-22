@@ -50,6 +50,7 @@ export const unitsAPI = {
   get: (id) => api.get(`/units/${id}`),
   update: (id, data) => api.patch(`/units/${id}`, data),
   bulkCreate: (data) => api.post('/units/bulk', data),
+  delete: (id) => api.delete(`/units/${id}`),
 };
 
 // ASSIGNMENTS
