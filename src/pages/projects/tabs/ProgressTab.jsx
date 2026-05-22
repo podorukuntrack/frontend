@@ -901,15 +901,15 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
           <div className="space-y-1.5">
             <label className="label">Jumlah Nominal Transfer/Cash (Rp)</label>
             <input
-              type="number"
+              type="text"
               required
               className="input"
               placeholder="0"
-              max={sisaTagihan}
-              value={payForm.jumlah_bayar}
-              onChange={(e) =>
-                setPayForm((f) => ({ ...f, jumlah_bayar: e.target.value }))
-              }
+              value={!payForm.jumlah_bayar ? '' : payForm.jumlah_bayar.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
+              onChange={(e) => {
+                const rawValue = e.target.value.replace(/[^0-9]/g, '');
+                setPayForm((f) => ({ ...f, jumlah_bayar: rawValue ? Number(rawValue) : '' }));
+              }}
             />
           </div>
 

@@ -388,7 +388,17 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
                   </div>
                   <div>
                     <label className="label">Harga Total (Net)</label>
-                    <input type="number" className="input" required value={form.harga_total} onChange={e => setForm({...form, harga_total: e.target.value})} placeholder="0" />
+                    <input 
+                      type="text" 
+                      className="input" 
+                      required 
+                      value={form.harga_total === 0 ? '' : form.harga_total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")} 
+                      onChange={e => {
+                        const rawValue = e.target.value.replace(/[^0-9]/g, '');
+                        setForm({...form, harga_total: rawValue ? Number(rawValue) : 0});
+                      }} 
+                      placeholder="0" 
+                    />
                   </div>
                   {form.tipe_pembayaran !== 'cash_lunas' && (
                     <div>
