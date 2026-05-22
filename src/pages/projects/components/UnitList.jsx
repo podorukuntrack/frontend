@@ -5,7 +5,7 @@ import { PageLoader, EmptyState, SearchInput, Modal, ProgressBar, Select } from 
 import { useToast } from "../../../hooks/useToast";
 import { getStatusColor, getStatusLabel, extractError } from "../../../utils/helpers";
 import { useAuth } from "../../../context/AuthContext";
-import { Home, Pencil, Plus, ArrowLeft, Eye } from "lucide-react";
+import { Home, Pencil, Plus, ArrowLeft, Eye, Trash2 } from "lucide-react";
 
 const initialAddForm = {
   tipe_rumah: "",
@@ -30,6 +30,7 @@ export default function UnitList({ cluster, project }) {
   const [saving, setSaving] = useState(false);
 
   const [editModal, setEditModal] = useState({ open: false, data: null });
+  const [deleteModal, setDeleteModal] = useState({ open: false, data: null });
   const [addModal, setAddModal] = useState(false);
 
   const [editForm, setEditForm] = useState({ nomor_unit: "", tipe_rumah: "", luas_tanah: "", luas_bangunan: "", image_url: "" });
@@ -187,6 +188,25 @@ export default function UnitList({ cluster, project }) {
     }
   };
 
+  const confirmDelete = (u, e) => {
+    e.stopPropagation();
+    setDeleteModal({ open: true, data: u });
+  };
+
+  const handleDelete = async () => {
+    setSaving(true);
+    try {
+      await unitsAPI.delete(deleteModal.data.id);
+      toast("Unit berhasil dihapus", "success");
+      setDeleteModal({ open: false, data: null });
+      load();
+    } catch (err) {
+      toast(extractError(err), "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const statusOptions = [
     { value: "belum_mulai", label: "Belum Mulai" },
     { value: "dalam_pembangunan", label: "Dalam Pembangunan" },
@@ -289,9 +309,14 @@ export default function UnitList({ cluster, project }) {
                           <Eye className="w-4 h-4" />
                        </button>
                       {isRole("super_admin", "admin") && (
-                        <button onClick={(e) => openEdit(u, e)} className="btn-ghost !p-2 inline-flex">
-                          <Pencil className="w-4 h-4 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400" />
-                        </button>
+                        <>
+                          <button onClick={(e) => openEdit(u, e)} className="btn-ghost !p-2 inline-flex" title="Edit Unit">
+                            <Pencil className="w-4 h-4 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400" />
+                          </button>
+                          <button onClick={(e) => confirmDelete(u, e)} className="btn-ghost !p-2 inline-flex" title="Hapus Unit">
+                            <Trash2 className="w-4 h-4 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400" />
+                          </button>
+                        </>
                       )}
                     </td>
                   </tr>
@@ -452,6 +477,19 @@ export default function UnitList({ cluster, project }) {
             <button type="submit" className="btn-primary" disabled={saving}>{saving ? "Menyimpan..." : "Simpan Perubahan"}</button>
           </div>
         </form>
+      </Modal>
+
+      {/* Modal Hapus Unit */}
+      <Modal open={deleteModal.open} onClose={() => setDeleteModal({ open: false, data: null })} title="Hapus Unit" size="sm">
+        <div className="space-y-4">
+          <p className="text-slate-600 dark:text-slate-300 text-sm">
+            Apakah Anda yakin ingin menghapus unit <strong>{deleteModal.data?.nomor_unit}</strong>? Tindakan ini tidak dapat dibatalkan.
+          </p>
+          <div className="flex gap-3 justify-end pt-4 mt-2 border-t border-slate-100 dark:border-slate-800">
+            <button type="button" className="btn-secondary" onClick={() => setDeleteModal({ open: false, data: null })}>Batal</button>
+            <button type="button" className="btn-primary !bg-rose-600 hover:!bg-rose-700" onClick={handleDelete} disabled={saving}>{saving ? "Menghapus..." : "Ya, Hapus Unit"}</button>
+          </div>
+        </div>
       </Modal>
     </div>
   );
