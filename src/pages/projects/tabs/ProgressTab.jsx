@@ -317,6 +317,10 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
   };
 
   const handleDeletePayment = async (paymentId) => {
+    if (paymentId === "lunas-auto") {
+      window.alert("Pembayaran Cash Lunas otomatis terhapus jika Penugasannya dibatalkan. Silakan langsung ke Tab Assignment untuk Membatalkan Penugasan.");
+      return;
+    }
     if (!window.confirm("Apakah Anda yakin ingin menghapus riwayat pembayaran ini? Saldo total dibayar akan disesuaikan kembali.")) return;
     try {
       await assignmentsAPI.deletePayment(assignment.id, paymentId);
@@ -600,7 +604,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                       <p className="font-bold text-slate-900 dark:text-white text-base">
                         {formatCurrency(p.jumlah_bayar)}
                       </p>
-                      {isRole("admin", "super_admin") && !isCashLunas && p.id !== "lunas-auto" && (
+                      {isRole("admin", "super_admin") && (
                          <button
                            onClick={() => handleDeletePayment(p.id)}
                            className="p-1 rounded-md text-slate-400 hover:text-rose-600 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 opacity-0 group-hover:opacity-100 transition-opacity"

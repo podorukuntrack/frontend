@@ -105,12 +105,6 @@ export default function UnitDetailPanel({ unit, cluster, project }) {
 
   // Logic untuk mengunci tab
   const hasAssignment = !!assignment;
-
-  useEffect(() => {
-    if (hasAssignment && activeTab === 'assignment') {
-      setActiveTab('timeline');
-    }
-  }, [hasAssignment, activeTab]);
   
   // Progress 100% logic
   const currentProgressPercent = currentUnit.progress_percentage || 0;
@@ -119,7 +113,7 @@ export default function UnitDetailPanel({ unit, cluster, project }) {
   const isHandoverComplete = handover?.status === 'selesai' || handover?.status === 'completed';
 
   const tabs = [
-    (!hasAssignment && { id: 'assignment', label: 'Penugasan (Assignment)', icon: UserCheck, disabled: false }),
+    { id: 'assignment', label: 'Penugasan (Assignment)', icon: UserCheck, disabled: false },
     { id: 'timeline', label: 'Timelines', icon: CalendarDays, disabled: !hasAssignment },
     { id: 'progress', label: 'Progress & Docs', icon: BarChart3, disabled: !hasAssignment },
     { id: 'handover', label: 'Serah Terima', icon: Key, disabled: !isProgressComplete },
