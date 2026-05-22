@@ -38,7 +38,7 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
     try {
       // Only fetch assignments, use large limit to find it
       const asgRes = await assignmentsAPI.list({ limit: 5000 });
-      const currentAsg = (asgRes.data?.data || []).find(a => String(a.unit_id) === String(unit.id));
+      const currentAsg = (asgRes.data?.data || []).find(a => String(a.unit?.id) === String(unit.id) || String(a.unit_id) === String(unit.id));
       if (currentAsg) {
         setAssignment(currentAsg);
         if (currentAsg.user) {
