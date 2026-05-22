@@ -91,7 +91,6 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/*" element={<NavigateSetter />} /> {/* ✅ tambahkan ini */}
       {/* Rute Publik */}
       <Route
         path="/login"
@@ -164,6 +163,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <NavigateSetter />
         <AppRoutes />
         <ToastContainer />
       </AuthProvider>
