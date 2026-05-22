@@ -131,6 +131,20 @@ export default function UnitList({ cluster, project }) {
     e.preventDefault();
     if (addForm.jumlah_unit > sisaKuota) return toast(`Gagal! Sisa kuota hanya ${sisaKuota} unit`, "error"); 
     if (addForm.nomor_units.some((n) => !n.trim())) return toast("Semua nomor unit wajib diisi", "error");
+    if (!addForm.tipe_rumah.trim()) return toast("Tipe rumah wajib diisi", "error");
+    if (!addForm.luas_bangunan) return toast("Luas bangunan wajib diisi", "error");
+    if (!addForm.luas_tanah) return toast("Luas tanah wajib diisi", "error");
+
+    const duplicates = addForm.nomor_units.filter((n, i) => addForm.nomor_units.indexOf(n) !== i);
+    if (duplicates.length > 0) {
+      return toast(`Nomor unit duplikat terdeteksi: ${duplicates.join(", ")}`, "error");
+    }
+
+    const existingNomor = units.map(u => u.nomor_unit.toLowerCase());
+    const conflicting = addForm.nomor_units.filter(n => existingNomor.includes(n.trim().toLowerCase()));
+    if (conflicting.length > 0) {
+      return toast(`Nomor unit sudah terdaftar di cluster ini: ${conflicting.join(", ")}`, "error");
+    }
 
     setSaving(true);
     try {
@@ -330,22 +344,22 @@ export default function UnitList({ cluster, project }) {
       {/* Modal Tambah Unit */}
       <Modal open={addModal} onClose={() => setAddModal(false)} title="Tambah Unit Baru" size="md">
         <form onSubmit={handleAdd} className="space-y-5">
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
             <div className="space-y-1.5">
               <label className="label">Tipe Rumah</label>
-              <input type="text" className="input" value={addForm.tipe_rumah} onChange={(e) => setAddForm({ ...addForm, tipe_rumah: e.target.value })} placeholder="Ex: Tipe 45" />
+              <input type="text" className="input" required value={addForm.tipe_rumah} onChange={(e) => setAddForm({ ...addForm, tipe_rumah: e.target.value })} placeholder="Ex: Tipe 45" />
             </div>
             <div className="space-y-1.5">
               <label className="label">Luas Bangunan</label>
               <div className="relative">
-                <input type="number" className="input pr-8" value={addForm.luas_bangunan} onChange={(e) => setAddForm({ ...addForm, luas_bangunan: e.target.value })} placeholder="0" />
+                <input type="number" className="input pr-8" required min="1" value={addForm.luas_bangunan} onChange={(e) => setAddForm({ ...addForm, luas_bangunan: e.target.value })} placeholder="0" />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-medium">m²</span>
               </div>
             </div>
             <div className="space-y-1.5">
               <label className="label">Luas Tanah</label>
               <div className="relative">
-                <input type="number" className="input pr-8" value={addForm.luas_tanah} onChange={(e) => setAddForm({ ...addForm, luas_tanah: e.target.value })} placeholder="0" />
+                <input type="number" className="input pr-8" required min="1" value={addForm.luas_tanah} onChange={(e) => setAddForm({ ...addForm, luas_tanah: e.target.value })} placeholder="0" />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-medium">m²</span>
               </div>
             </div>
@@ -408,7 +422,13 @@ export default function UnitList({ cluster, project }) {
 
           <div className="flex gap-3 justify-end pt-2">
             <button type="button" className="btn-secondary" onClick={() => setAddModal(false)}>Batal</button>
-            <button type="submit" className="btn-primary" disabled={saving || sisaKuota === 0}>{saving ? "Menyimpan..." : "Buat Unit"}</button>
+            <button 
+              type="submit" 
+              className="btn-primary" 
+              disabled={saving || sisaKuota === 0 || !addForm.tipe_rumah.trim() || !addForm.luas_bangunan || !addForm.luas_tanah || addForm.nomor_units.some((n) => !n.trim())}
+            >
+              {saving ? "Menyimpan..." : "Buat Unit"}
+            </button>
           </div>
         </form>
       </Modal>

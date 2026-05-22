@@ -282,6 +282,18 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
     }
   };
 
+  const handleDeleteProgress = async (progressId) => {
+    if (!window.confirm("Apakah Anda yakin ingin menghapus progress fisik ini?")) return;
+    try {
+      await progressAPI.delete(progressId);
+      toast("Progress berhasil dihapus", "success");
+      setRefreshKey((prev) => prev + 1);
+      if (onUpdate) onUpdate();
+    } catch (err) {
+      toast(extractError(err), "error");
+    }
+  };
+
   // --- Handler Delete Dokumentasi ---
   const handleDeleteDoc = async (docId) => {
     try {
@@ -299,6 +311,18 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
         }
       });
       setDocsMap(dMap);
+    } catch (err) {
+      toast(extractError(err), "error");
+    }
+  };
+
+  const handleDeletePayment = async (paymentId) => {
+    if (!window.confirm("Apakah Anda yakin ingin menghapus riwayat pembayaran ini? Saldo total dibayar akan disesuaikan kembali.")) return;
+    try {
+      await assignmentsAPI.deletePayment(assignment.id, paymentId);
+      toast("Pembayaran berhasil dihapus", "success");
+      setRefreshKey((prev) => prev + 1);
+      if (onUpdate) onUpdate();
     } catch (err) {
       toast(extractError(err), "error");
     }
@@ -400,12 +424,22 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                             +{pct}%
                           </span>
                           {isRole("admin", "super_admin") && (
-                            <button
-                              onClick={() => handleOpenEditBuild(p)}
-                              className="p-1 rounded-md text-slate-400 hover:text-indigo-600 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600"
-                            >
-                              <Pencil className="w-3 h-3" />
-                            </button>
+                            <>
+                              <button
+                                onClick={() => handleOpenEditBuild(p)}
+                                className="p-1 rounded-md text-slate-400 hover:text-indigo-600 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600"
+                                title="Edit"
+                              >
+                                <Pencil className="w-3 h-3" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteProgress(p.id || p.progress_id)}
+                                className="p-1 rounded-md text-slate-400 hover:text-rose-600 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600"
+                                title="Hapus"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </>
                           )}
                         </div>
                       </div>
@@ -560,11 +594,22 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                 historyDana.map((p, idx) => (
                   <div
                     key={p.id || idx}
-                    className="p-3 border border-slate-100 dark:border-slate-700 rounded-xl"
+                    className="p-3 border border-slate-100 dark:border-slate-700 rounded-xl relative group"
                   >
-                    <p className="font-bold text-slate-900 dark:text-white text-base">
-                      {formatCurrency(p.jumlah_bayar)}
-                    </p>
+                    <div className="flex justify-between items-start">
+                      <p className="font-bold text-slate-900 dark:text-white text-base">
+                        {formatCurrency(p.jumlah_bayar)}
+                      </p>
+                      {isRole("admin", "super_admin") && !isCashLunas && p.id !== "lunas-auto" && (
+                         <button
+                           onClick={() => handleDeletePayment(p.id)}
+                           className="p-1 rounded-md text-slate-400 hover:text-rose-600 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                           title="Hapus Pembayaran"
+                         >
+                           <Trash2 className="w-3 h-3" />
+                         </button>
+                      )}
+                    </div>
                     <div className="flex items-center text-xs text-slate-500 mt-1 gap-2">
                       <span>
                         <Calendar className="w-3.5 h-3.5 inline mr-1 -mt-0.5" />

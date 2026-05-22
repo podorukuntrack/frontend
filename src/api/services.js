@@ -59,8 +59,10 @@ export const assignmentsAPI = {
   get: (id) => api.get(`/assignments/${id}`),
   create: (data) => api.post('/assignments', data),
   update: (id, data) => api.patch(`/assignments/${id}`, data),
+  delete: (id) => api.delete(`/assignments/${id}`),
   getPayments: (id) => api.get(`/assignments/${id}/payments`),
   createPayment: (id, data) => api.post(`/assignments/${id}/payments`, data),
+  deletePayment: (id, paymentId) => api.delete(`/assignments/${id}/payments/${paymentId}`),
 };
 
 // PROGRESS
@@ -68,6 +70,7 @@ export const progressAPI = {
   list: (params) => api.get('/progress', { params }),
   create: (data) => api.post('/progress', data),
   update: (id, data) => api.patch(`/progress/${id}`, data),
+  delete: (id) => api.delete(`/progress/${id}`),
 };
 
 // DOCUMENTATION

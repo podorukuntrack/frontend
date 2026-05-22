@@ -164,6 +164,21 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
     }
   };
 
+  const handleDelete = async () => {
+    if (!window.confirm("Apakah Anda yakin ingin membatalkan/menghapus penugasan ini? Pastikan unit tidak memiliki riwayat pembayaran, dokumen serah terima, atau garansi.")) return;
+    setSaving(true);
+    try {
+      await assignmentsAPI.delete(assignment.id);
+      toast('Penugasan berhasil dibatalkan dan dihapus', 'success');
+      setAssignment(null);
+      if (onAssigned) onAssigned();
+    } catch (err) {
+      toast(extractError(err), 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) return <PageLoader />;
 
   if (assignment && !isEditing) {
@@ -174,9 +189,14 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
              <UserCheck className="w-5 h-5 text-indigo-600 dark:text-indigo-400" /> Detail Penugasan / Kepemilikan
           </h3>
           {isRole('super_admin', 'admin') && (
-            <button onClick={startEdit} className="btn-secondary text-sm px-3 py-1.5 h-auto">
-              <Pencil className="w-4 h-4 mr-1" /> Edit Data
-            </button>
+            <div className="flex gap-2">
+              <button onClick={handleDelete} className="btn-secondary !bg-rose-50 !text-rose-600 hover:!bg-rose-100 border-none text-sm px-3 py-1.5 h-auto" disabled={saving}>
+                <Trash2 className="w-4 h-4 mr-1" /> Batalkan Penugasan
+              </button>
+              <button onClick={startEdit} className="btn-secondary text-sm px-3 py-1.5 h-auto">
+                <Pencil className="w-4 h-4 mr-1" /> Edit Data
+              </button>
+            </div>
           )}
         </div>
 
