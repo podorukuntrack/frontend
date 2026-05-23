@@ -150,7 +150,7 @@ export function ToastContainer() {
   };
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 flex flex-col items-center sm:items-end gap-3 z-[100] pointer-events-none">
+    <div className="fixed top-4 left-0 right-0 flex flex-col items-center gap-3 z-[999999] pointer-events-none px-4">
       {toasts.map(t => {
         const Icon = icons[t.type] || Info;
         const style = styles[t.type] || styles.info;
