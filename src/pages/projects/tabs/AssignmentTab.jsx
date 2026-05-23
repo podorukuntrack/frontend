@@ -191,16 +191,16 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
   if (assignment && !isEditing) {
     return (
       <div className="space-y-4">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
              <UserCheck className="w-5 h-5 text-indigo-600 dark:text-indigo-400" /> Detail Penugasan / Kepemilikan
           </h3>
           {isRole('super_admin', 'admin') && (
-            <div className="flex gap-2">
-              <button onClick={handleDelete} className="btn-secondary !bg-rose-50 !text-rose-600 hover:!bg-rose-100 border-none text-sm px-3 py-1.5 h-auto" disabled={saving}>
+            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+              <button onClick={handleDelete} className="btn-secondary !bg-rose-50 !text-rose-600 hover:!bg-rose-100 border-none text-sm px-3 py-1.5 h-auto flex-1 sm:flex-none justify-center" disabled={saving}>
                 <Trash2 className="w-4 h-4 mr-1" /> Batalkan Penugasan
               </button>
-              <button onClick={startEdit} className="btn-secondary text-sm px-3 py-1.5 h-auto">
+              <button onClick={startEdit} className="btn-secondary text-sm px-3 py-1.5 h-auto flex-1 sm:flex-none justify-center">
                 <Pencil className="w-4 h-4 mr-1" /> Edit Data
               </button>
             </div>
@@ -252,19 +252,19 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
            <UserCheck className="w-5 h-5 text-indigo-600 dark:text-indigo-400" /> 
            {assignment ? 'Edit Penugasan' : 'Buat Penugasan Baru'}
         </h3>
         {assignment && (
-           <div className="flex gap-2">
+           <div className="flex flex-wrap gap-2 w-full sm:w-auto">
              {isRole('super_admin', 'admin') && (
-               <button type="button" onClick={handleDelete} className="btn-secondary !bg-rose-50 !text-rose-600 hover:!bg-rose-100 border-none text-sm px-3 py-1.5 h-auto" disabled={saving}>
+               <button type="button" onClick={handleDelete} className="btn-secondary !bg-rose-50 !text-rose-600 hover:!bg-rose-100 border-none text-sm px-3 py-1.5 h-auto flex-1 sm:flex-none justify-center" disabled={saving}>
                  <Trash2 className="w-4 h-4 mr-1" /> Batalkan Penugasan
                </button>
              )}
-             <button type="button" onClick={() => setIsEditing(false)} className="btn-ghost text-slate-500 text-sm">Batal Edit</button>
+             <button type="button" onClick={() => setIsEditing(false)} className="btn-ghost text-slate-500 text-sm flex-1 sm:flex-none justify-center">Batal Edit</button>
            </div>
         )}
       </div>
