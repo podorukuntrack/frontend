@@ -238,7 +238,7 @@ export default function UsersPage() {
                         <button onClick={() => openEdit(u)} className="btn-ghost !p-2 inline-flex">
                           <Pencil className="w-4 h-4 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400" />
                         </button>
-                        {u.id !== me?.id && isRole('super_admin') && (
+                        {u.id !== me?.id && isRole('super_admin', 'admin') && (
                           <button
                             onClick={() => setConfirm({ open: true, id: u.id })}
                             className="btn-ghost !p-2 inline-flex"
