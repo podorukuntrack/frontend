@@ -278,18 +278,21 @@ export default function HandoverTab({ unit, onHandover }) {
                     </span>
                   </div>
 
-                  {/* Edit & Delete — hanya untuk handover aktif (admin) */}
-                  {isRole('super_admin', 'admin') && isActive && (
+                  {/* Edit & Delete — edit hanya untuk aktif, hapus bisa untuk semua (admin) */}
+                  {isRole('super_admin', 'admin') && (
                     <div className="flex gap-2 shrink-0">
-                      <button
-                        onClick={() => openEdit(h)}
-                        className="btn-secondary px-3 py-1.5 text-xs h-auto"
-                      >
-                        <Pencil className="w-3.5 h-3.5 mr-1" /> Edit Jadwal
-                      </button>
+                      {isActive && (
+                        <button
+                          onClick={() => openEdit(h)}
+                          className="btn-secondary px-3 py-1.5 text-xs h-auto"
+                        >
+                          <Pencil className="w-3.5 h-3.5 mr-1" /> Edit Jadwal
+                        </button>
+                      )}
                       <button
                         onClick={() => setConfirm({ open: true, id: h.id })}
                         className="btn-danger px-2.5 py-1.5 text-xs h-auto"
+                        title="Hapus Serah Terima"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
