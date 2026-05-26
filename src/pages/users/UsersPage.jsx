@@ -381,7 +381,7 @@ export default function UsersPage() {
         onClose={() => setConfirm({ open: false })}
         onConfirm={handleDelete}
         title="Hapus Akun Pengguna"
-        description="Data pengguna akan dihapus secara permanen dari sistem. Tindakan ini tidak dapat dibatalkan."
+        description="Data pengguna akan dihapus permanen. PERHATIAN: Jika ini adalah akun customer, SELURUH data penugasan, riwayat pembayaran, progress, dan dokumen yang menempel pada unit customer ini juga akan direset dan dihapus secara permanen!"
         loading={saving}
       />
     </div>
