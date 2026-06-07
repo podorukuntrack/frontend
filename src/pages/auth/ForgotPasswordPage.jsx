@@ -187,6 +187,12 @@ export default function ForgotPasswordPage() {
               <p className="text-xs text-center text-slate-500 dark:text-slate-400 mt-3">
                 Kode dikirim ke <span className="font-semibold text-slate-700 dark:text-slate-200">{contact}</span>
               </p>
+              {method === 'email' && (
+                <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2 text-left leading-relaxed animate-in fade-in slide-in-from-top-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <p>Tidak menerima email? Silakan periksa folder <strong>Spam</strong> atau <strong>Junk</strong> Anda.</p>
+                </div>
+              )}
             </div>
 
             <button type="submit" disabled={loading || otp.length !== 6} className="btn-podorukun w-full justify-center py-3 text-base">

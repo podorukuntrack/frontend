@@ -3,24 +3,15 @@ import { authAPI } from '../api/services';
 
 const AuthContext = createContext(null);
 
-const clearAuthStorage = () => {
-  localStorage.removeItem('accessToken');
-  localStorage.removeItem('refreshToken');
-  localStorage.removeItem('access_token');
-  localStorage.removeItem('refresh_token');
-  localStorage.removeItem('user');
-};
-
 const getInitialUser = () => {
   const stored = localStorage.getItem('user');
-  const token = localStorage.getItem('accessToken');
 
-  if (!stored || !token) return null;
+  if (!stored) return null;
 
   try {
     return JSON.parse(stored);
   } catch {
-    clearAuthStorage();
+    localStorage.removeItem('user');
     return null;
   }
 };
@@ -31,9 +22,6 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const fetchMe = async () => {
-      const token = localStorage.getItem('accessToken');
-      if (!token) return;
-
       try {
         const { data } = await authAPI.getMe();
         if (data?.success && data?.data) {
@@ -47,6 +35,8 @@ export function AuthProvider({ children }) {
         }
       } catch (err) {
         console.error('Failed to sync user profile:', err);
+        localStorage.removeItem('user');
+        setUser(null);
       }
     };
 
@@ -54,26 +44,16 @@ export function AuthProvider({ children }) {
   }, []);
 
   const persistSession = (payload) => {
-    if (!payload) {
-      throw new Error('Invalid login response: payload kosong');
+    if (!payload || !payload.user) {
+      throw new Error('Invalid login response');
     }
 
-    const accessToken = payload.accessToken ?? payload.access_token;
-    const refreshToken = payload.refreshToken ?? payload.refresh_token;
     const normalizedUser = {
       ...payload.user,
       nama: payload.user?.nama ?? payload.user?.name,
       name: payload.user?.name ?? payload.user?.nama,
     };
 
-    if (!accessToken || !refreshToken || !payload.user) {
-      throw new Error('Invalid login response');
-    }
-
-    localStorage.setItem('accessToken', accessToken);
-    localStorage.setItem('refreshToken', refreshToken);
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
     localStorage.setItem('user', JSON.stringify(normalizedUser));
     setUser(normalizedUser);
     return normalizedUser;
@@ -89,8 +69,13 @@ export function AuthProvider({ children }) {
     return persistSession(data.data);
   }, []);
 
-  const logout = useCallback(() => {
-    clearAuthStorage();
+  const logout = useCallback(async () => {
+    try {
+      await authAPI.logout();
+    } catch (e) {
+      console.error(e);
+    }
+    localStorage.removeItem('user');
     setUser(null);
   }, []);
 
