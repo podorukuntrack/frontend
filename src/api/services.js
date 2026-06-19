@@ -119,4 +119,9 @@ export const retentionsAPI = {
   create: (data) => api.post('/retentions', data),
   update: (id, data) => api.patch(`/retentions/${id}`, data),
   delete: (id) => api.delete(`/retentions/${id}`),
+  // Complaints
+  getComplaints: (id) => api.get(`/retentions/${id}/complaints`),
+  addComplaint: (id, data) => api.post(`/retentions/${id}/complaints`, data),
+  updateComplaint: (id, complaintId, data) => api.patch(`/retentions/${id}/complaints/${complaintId}`, data),
+  deleteComplaint: (id, complaintId) => api.delete(`/retentions/${id}/complaints/${complaintId}`),
 };
