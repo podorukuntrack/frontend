@@ -124,11 +124,9 @@ export default function ComplaintManager({ retention, isRole, unitId }) {
         <h5 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
           <Wrench className="w-4 h-4 text-rose-500" /> Riwayat Keluhan & Perbaikan
         </h5>
-        {isRole('super_admin', 'admin') && (
-          <button onClick={openCreate} className="btn-secondary text-xs px-3 py-1.5 h-auto border border-slate-200">
-            <Plus className="w-3.5 h-3.5 mr-1" /> Tambah Keluhan
-          </button>
-        )}
+        <button onClick={openCreate} className="btn-secondary text-xs px-3 py-1.5 h-auto border border-slate-200">
+          <Plus className="w-3.5 h-3.5 mr-1" /> Tambah Keluhan
+        </button>
       </div>
 
       {loading ? (
@@ -155,16 +153,16 @@ export default function ComplaintManager({ retention, isRole, unitId }) {
                   </p>
                   <p className="text-[10px] text-slate-400 mt-1">Dicatat pada: {formatDate(c.created_at ?? c.createdAt)}</p>
                 </div>
-                {isRole('super_admin', 'admin') && (
-                  <div className="flex gap-1 shrink-0 ml-4">
-                    <button onClick={() => openEdit(c)} className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors">
-                      <Pencil className="w-3.5 h-3.5" />
-                    </button>
+                <div className="flex gap-1 shrink-0 ml-4">
+                  <button onClick={() => openEdit(c)} className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors">
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  {isRole('super_admin', 'admin') && (
                     <button onClick={() => setConfirm({ open: true, id: c.id })} className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors">
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3 mt-3">
