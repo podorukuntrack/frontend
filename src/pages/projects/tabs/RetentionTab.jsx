@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { retentionsAPI } from '../../../api/services';
+import { retentionsAPI, documentationAPI } from '../../../api/services';
 import { PageLoader, Modal, Confirm } from '../../../components/ui';
 import { useToast } from '../../../hooks/useToast';
 import { extractError, formatDate } from '../../../utils/helpers';
 import { useAuth } from '../../../context/AuthContext';
 import {
   ShieldCheck, Plus, Pencil, Trash2, Clock, CheckCircle,
-  AlertTriangle, Calendar, Compass, ExternalLink
+  AlertTriangle, Calendar, Compass, ExternalLink, Camera, Image as ImageIcon
 } from 'lucide-react';
 
 const STATUS_CONFIG = {
@@ -35,7 +35,9 @@ export default function RetentionTab({ unit }) {
 
   const [modal, setModal] = useState({ open: false, mode: 'create', data: null });
   const [confirm, setConfirm] = useState({ open: false, id: null });
-  const [form, setForm] = useState({ due_date: '', notes: '', status: 'active', linkFoto360: '' });
+  const [form, setForm] = useState({ due_date: '', notes: '', status: 'active', linkFoto360: '', photoBeforeUrl: '', photoAfterUrl: '' });
+  const [photoBeforeFile, setPhotoBeforeFile] = useState(null);
+  const [photoAfterFile, setPhotoAfterFile] = useState(null);
 
   const [startDate, setStartDate] = useState('');
   const [durationDays, setDurationDays] = useState(100);
@@ -74,12 +76,35 @@ export default function RetentionTab({ unit }) {
     if (!form.due_date) { toast('Batas waktu garansi wajib diisi', 'error'); return; }
     setSaving(true);
     try {
+      let pBefore = form.photoBeforeUrl;
+      let pAfter = form.photoAfterUrl;
+
+      if (photoBeforeFile) {
+        const fd = new FormData();
+        fd.append('file', photoBeforeFile);
+        fd.append('unitId', unit.id);
+        fd.append('jenis', 'retention');
+        const res = await documentationAPI.upload(fd);
+        pBefore = res.data?.data?.file_url || pBefore;
+      }
+
+      if (photoAfterFile) {
+        const fd = new FormData();
+        fd.append('file', photoAfterFile);
+        fd.append('unitId', unit.id);
+        fd.append('jenis', 'retention');
+        const res = await documentationAPI.upload(fd);
+        pAfter = res.data?.data?.file_url || pAfter;
+      }
+
       const payload = {
         unitId: unit.id,
         dueDate: new Date(form.due_date).toISOString(),
         status: 'active', // Default active, automatically release on expired
         notes: form.notes || null,
         linkFoto360: form.linkFoto360 || null,
+        photoBeforeUrl: pBefore || null,
+        photoAfterUrl: pAfter || null,
       };
       if (modal.mode === 'create') {
         await retentionsAPI.create(payload);
@@ -115,7 +140,9 @@ export default function RetentionTab({ unit }) {
     const today = new Date().toISOString().split('T')[0];
     setStartDate(today);
     setDurationDays(100);
-    setForm({ due_date: '', notes: '', status: 'active', linkFoto360: '' });
+    setForm({ due_date: '', notes: '', status: 'active', linkFoto360: '', photoBeforeUrl: '', photoAfterUrl: '' });
+    setPhotoBeforeFile(null);
+    setPhotoAfterFile(null);
     setModal({ open: true, mode: 'create', data: null });
   };
 
@@ -136,7 +163,11 @@ export default function RetentionTab({ unit }) {
       notes: r.notes || '',
       status: r.status || 'active',
       linkFoto360: r.link_foto_360 ?? r.linkFoto360 ?? '',
+      photoBeforeUrl: r.photo_before_url ?? r.photoBeforeUrl ?? '',
+      photoAfterUrl: r.photo_after_url ?? r.photoAfterUrl ?? '',
     });
+    setPhotoBeforeFile(null);
+    setPhotoAfterFile(null);
     setModal({ open: true, mode: 'edit', data: r });
   };
 
@@ -271,6 +302,28 @@ export default function RetentionTab({ unit }) {
                     </div>
                   )}
 
+                  {/* Foto Before / After */}
+                  {((r.photo_before_url ?? r.photoBeforeUrl) || (r.photo_after_url ?? r.photoAfterUrl)) && (
+                    <div className="mb-4 grid grid-cols-2 gap-3">
+                      {(r.photo_before_url ?? r.photoBeforeUrl) && (
+                        <div>
+                          <span className="font-semibold block mb-1.5 text-xs uppercase tracking-wide text-slate-400">Foto Keluhan (Sebelum)</span>
+                          <a href={r.photo_before_url ?? r.photoBeforeUrl} target="_blank" rel="noopener noreferrer" className="block aspect-video rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
+                            <img src={r.photo_before_url ?? r.photoBeforeUrl} alt="Before" className="w-full h-full object-cover hover:scale-105 transition-transform" />
+                          </a>
+                        </div>
+                      )}
+                      {(r.photo_after_url ?? r.photoAfterUrl) && (
+                        <div>
+                          <span className="font-semibold block mb-1.5 text-xs uppercase tracking-wide text-slate-400">Foto Perbaikan (Sesudah)</span>
+                          <a href={r.photo_after_url ?? r.photoAfterUrl} target="_blank" rel="noopener noreferrer" className="block aspect-video rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
+                            <img src={r.photo_after_url ?? r.photoAfterUrl} alt="After" className="w-full h-full object-cover hover:scale-105 transition-transform" />
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Released banner */}
                   {isExpired && (
                     <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 text-sm font-semibold mt-2 pt-2 border-t border-slate-100 dark:border-slate-700/50">
@@ -344,6 +397,37 @@ export default function RetentionTab({ unit }) {
               onChange={e => setForm({ ...form, linkFoto360: e.target.value })}
               placeholder="https://example.com/360-photo-link"
             />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="label">Foto Keluhan (Sebelum)</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={e => setPhotoBeforeFile(e.target.files[0])}
+                className="input text-sm p-1.5 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 dark:file:bg-indigo-900/30 dark:file:text-indigo-400 hover:file:bg-indigo-100"
+              />
+              {(photoBeforeFile || form.photoBeforeUrl) && (
+                <div className="mt-2 text-xs text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                  <CheckCircle className="w-3 h-3" /> Foto dipilih
+                </div>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <label className="label">Foto Perbaikan (Sesudah)</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={e => setPhotoAfterFile(e.target.files[0])}
+                className="input text-sm p-1.5 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 dark:file:bg-emerald-900/30 dark:file:text-emerald-400 hover:file:bg-emerald-100"
+              />
+              {(photoAfterFile || form.photoAfterUrl) && (
+                <div className="mt-2 text-xs text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                  <CheckCircle className="w-3 h-3" /> Foto dipilih
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="flex justify-end gap-2 pt-2">

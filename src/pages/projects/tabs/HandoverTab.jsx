@@ -54,9 +54,10 @@ export default function HandoverTab({ unit, onHandover }) {
   // Confirm: hapus
   const [confirm, setConfirm] = useState({ open: false, id: null });
 
-  // Photo uploads
+  // Photo & Doc uploads
   const [handoverPhoto, setHandoverPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
+  const [handoverDoc, setHandoverDoc] = useState(null);
   const [editPhoto, setEditPhoto] = useState(null);
   const [editPreview, setEditPreview] = useState(null);
 
@@ -144,22 +145,35 @@ export default function HandoverTab({ unit, onHandover }) {
     const h = resultModal.handover;
     const isSuccess = handoverResult === 'berhasil';
 
-    if (isSuccess && !handoverPhoto) {
-      toast('Foto bukti serah terima wajib diunggah', 'error');
+    if (isSuccess && (!handoverPhoto || !handoverDoc)) {
+      toast('Foto dan dokumen bukti serah terima wajib diunggah', 'error');
       return;
     }
 
     setSaving(true);
     try {
       let uploadedUrl = null;
-      if (isSuccess && handoverPhoto) {
-        const fd = new FormData();
-        fd.append("unitId", unit.id);
-        fd.append("jenis", "handover");
-        fd.append("file", handoverPhoto);
-        
-        const uploadRes = await documentationAPI.upload(fd);
-        uploadedUrl = uploadRes.data?.data?.url;
+      let uploadedDocUrl = null;
+      if (isSuccess) {
+        if (handoverPhoto) {
+          const fd = new FormData();
+          fd.append("unitId", unit.id);
+          fd.append("jenis", "handover");
+          fd.append("file", handoverPhoto);
+          
+          const uploadRes = await documentationAPI.upload(fd);
+          uploadedUrl = uploadRes.data?.data?.url || uploadRes.data?.data?.fileUrl;
+        }
+
+        if (handoverDoc) {
+          const fdDoc = new FormData();
+          fdDoc.append("unitId", unit.id);
+          fdDoc.append("jenis", "dokumen");
+          fdDoc.append("file", handoverDoc);
+          
+          const uploadResDoc = await documentationAPI.upload(fdDoc);
+          uploadedDocUrl = uploadResDoc.data?.data?.url || uploadResDoc.data?.data?.fileUrl;
+        }
       }
 
       if (isSuccess) {
@@ -168,6 +182,7 @@ export default function HandoverTab({ unit, onHandover }) {
           actualDate: new Date().toISOString(),
           notes: resultNotes || h.notes || null,
           imageUrl: uploadedUrl || h.imageUrl || h.image_url || null,
+          documentUrl: uploadedDocUrl || h.documentUrl || h.document_url || null,
         });
         toast('Serah terima ditandai selesai. Lanjutkan ke tab Retensi!', 'success');
       } else {
@@ -181,6 +196,7 @@ export default function HandoverTab({ unit, onHandover }) {
       setResultNotes('');
       setHandoverPhoto(null);
       setPhotoPreview(null);
+      setHandoverDoc(null);
       setHandoverResult('');
       loadData();
       if (onHandover) onHandover();
@@ -434,28 +450,41 @@ export default function HandoverTab({ unit, onHandover }) {
                   </div>
                 )}
 
-                {/* Foto Bukti Serah Terima */}
-                {(h.image_url ?? h.imageUrl) && (
+                {/* Foto & Dokumen Bukti Serah Terima */}
+                {((h.image_url ?? h.imageUrl) || (h.document_url ?? h.documentUrl)) && (
                   <div className="mt-3">
-                    <span className="font-semibold text-xs uppercase tracking-wide text-slate-400 block mb-1.5">Foto Bukti Serah Terima</span>
-                    <div className="relative group overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 max-w-sm">
-                      <img
-                        src={h.image_url ?? h.imageUrl}
-                        alt="Bukti Serah Terima"
-                        className="w-full h-44 object-cover transition-all duration-300 group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <a
-                          href={h.image_url ?? h.imageUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="bg-white text-slate-800 px-3.5 py-1.5 rounded-lg font-semibold text-xs shadow-md hover:bg-slate-50 transition-colors flex items-center gap-1.5"
-                        >
-                          <Image className="w-3.5 h-3.5" />
-                          Lihat Foto Penuh
-                          <ExternalLink className="w-3 h-3 opacity-60" />
+                    <span className="font-semibold text-xs uppercase tracking-wide text-slate-400 block mb-1.5">Bukti Serah Terima</span>
+                    <div className="flex gap-4 items-start flex-wrap">
+                      {/* Image */}
+                      {(h.image_url ?? h.imageUrl) && (
+                        <div className="relative group overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 w-44">
+                          <img
+                            src={h.image_url ?? h.imageUrl}
+                            alt="Bukti Serah Terima"
+                            className="w-full h-32 object-cover transition-all duration-300 group-hover:scale-105"
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <a
+                              href={h.image_url ?? h.imageUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="bg-white text-slate-800 px-3.5 py-1.5 rounded-lg font-semibold text-xs shadow-md hover:bg-slate-50 transition-colors flex items-center gap-1.5"
+                            >
+                              <Image className="w-3.5 h-3.5" />
+                              Lihat Foto
+                              <ExternalLink className="w-3 h-3 opacity-60" />
+                            </a>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Document */}
+                      {(h.document_url ?? h.documentUrl) && (
+                        <a href={h.document_url ?? h.documentUrl} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors w-32 h-32 group">
+                          <ExternalLink className="w-8 h-8 text-indigo-500 mb-2 group-hover:scale-110 transition-transform" />
+                          <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 text-center px-2">Lihat Dokumen<br/>BAST</span>
                         </a>
-                      </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -513,6 +542,7 @@ export default function HandoverTab({ unit, onHandover }) {
           setResultNotes(''); 
           setHandoverPhoto(null); 
           setPhotoPreview(null); 
+          setHandoverDoc(null);
           setHandoverResult('');
         }}
         title="Konfirmasi Hasil Serah Terima"
@@ -534,7 +564,7 @@ export default function HandoverTab({ unit, onHandover }) {
                 </div>
                 <span className="font-bold text-sm">Serah Terima Berhasil</span>
                 <span className="text-[11px] text-slate-500 dark:text-slate-400 text-center mt-1">
-                  Unit sukses diserahkan & wajib unggah foto bukti
+                  Unit sukses diserahkan & wajib unggah foto & dokumen
                 </span>
               </button>
 
@@ -580,49 +610,84 @@ export default function HandoverTab({ unit, onHandover }) {
             </div>
 
             <div className="p-4 bg-emerald-50/50 dark:bg-emerald-950/10 rounded-xl border border-emerald-100 dark:border-emerald-900/50 text-emerald-800 dark:text-emerald-400 text-xs leading-relaxed">
-              <strong>Penting:</strong> Untuk menyelesaikan serah terima, Anda wajib mengunggah foto bukti serah terima (misal foto bersama customer) sebagai dokumentasi resmi.
+              <strong>Penting:</strong> Untuk menyelesaikan serah terima, Anda wajib mengunggah foto dan dokumen bukti serah terima (BAST) sebagai dokumentasi resmi.
             </div>
 
-            <div className="space-y-2">
-              <label className="label font-bold text-slate-700 dark:text-slate-300">
-                Foto Bukti Serah Terima <span className="text-rose-500">*</span>
-              </label>
-              <div className="flex items-center gap-3">
-                <label className="flex items-center gap-2 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/30 rounded-xl cursor-pointer border border-emerald-200 dark:border-emerald-800 text-sm font-semibold text-emerald-700 dark:text-emerald-300 transition-colors">
-                  <Camera className="w-4 h-4" />
-                  Pilih Foto Bukti
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={e => {
-                      const file = e.target.files[0];
-                      if (file) {
-                        setHandoverPhoto(file);
-                        setPhotoPreview(URL.createObjectURL(file));
-                      }
-                    }}
-                    required
-                  />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="label font-bold text-slate-700 dark:text-slate-300">
+                  Foto Bukti <span className="text-rose-500">*</span>
                 </label>
-                {photoPreview && (
-                  <div className="relative w-12 h-12 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden group">
-                    <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => { setHandoverPhoto(null); setPhotoPreview(null); }}
-                      className="absolute inset-0 bg-black/60 text-white font-bold flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      Hapus
-                    </button>
-                  </div>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/30 rounded-xl cursor-pointer border border-emerald-200 dark:border-emerald-800 text-sm font-semibold text-emerald-700 dark:text-emerald-300 transition-colors">
+                    <Camera className="w-4 h-4" />
+                    Pilih Foto
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={e => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          setHandoverPhoto(file);
+                          setPhotoPreview(URL.createObjectURL(file));
+                        }
+                      }}
+                      required
+                    />
+                  </label>
+                  {photoPreview && (
+                    <div className="relative w-12 h-12 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden group">
+                      <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => { setHandoverPhoto(null); setPhotoPreview(null); }}
+                        className="absolute inset-0 bg-black/60 text-white font-bold flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        Hapus
+                      </button>
+                    </div>
+                  )}
+                </div>
+                {!handoverPhoto && (
+                  <p className="text-[11px] font-semibold text-rose-500">
+                    * Foto bukti wajib dipilih
+                  </p>
                 )}
               </div>
-              {!handoverPhoto && (
-                <p className="text-[11px] font-semibold text-rose-500">
-                  * Foto bukti wajib dipilih sebelum melanjutkan
-                </p>
-              )}
+
+              <div className="space-y-2">
+                <label className="label font-bold text-slate-700 dark:text-slate-300">
+                  Dokumen Bukti (BAST) <span className="text-rose-500">*</span>
+                </label>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/30 rounded-xl cursor-pointer border border-emerald-200 dark:border-emerald-800 text-sm font-semibold text-emerald-700 dark:text-emerald-300 transition-colors">
+                    <ExternalLink className="w-4 h-4" />
+                    Pilih Dokumen
+                    <input
+                      type="file"
+                      accept=".pdf,.doc,.docx"
+                      className="hidden"
+                      onChange={e => {
+                        const file = e.target.files[0];
+                        if (file) setHandoverDoc(file);
+                      }}
+                      required
+                    />
+                  </label>
+                  {handoverDoc && (
+                    <div className="flex flex-col">
+                      <span className="text-xs truncate max-w-[120px]" title={handoverDoc.name}>{handoverDoc.name}</span>
+                      <button type="button" onClick={() => setHandoverDoc(null)} className="text-[10px] text-rose-500 hover:underline text-left">Hapus</button>
+                    </div>
+                  )}
+                </div>
+                {!handoverDoc && (
+                  <p className="text-[11px] font-semibold text-rose-500">
+                    * Dokumen bukti wajib dipilih
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="space-y-1.5">
@@ -646,9 +711,9 @@ export default function HandoverTab({ unit, onHandover }) {
               <button
                 type="button"
                 onClick={handleConfirmResult}
-                disabled={saving || !handoverPhoto}
+                disabled={saving || !handoverPhoto || !handoverDoc}
                 className={`btn-primary flex-1 justify-center border-none ${
-                  !handoverPhoto 
+                  (!handoverPhoto || !handoverDoc)
                     ? 'bg-slate-300 dark:bg-slate-700 cursor-not-allowed text-slate-500 dark:text-slate-400' 
                     : 'bg-emerald-600 hover:bg-emerald-700 text-white'
                 }`}

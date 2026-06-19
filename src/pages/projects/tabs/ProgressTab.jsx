@@ -64,6 +64,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
   // Forms
   const [buildForm, setBuildForm] = useState(EMPTY_BUILD_FORM);
   const [payForm, setPayForm] = useState(EMPTY_PAY_FORM);
+  const [payFile, setPayFile] = useState(null);
   const [saving, setSaving] = useState(false);
 
   // Dokumentasi (foto/file progress)
@@ -335,12 +336,37 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
   // --- Handlers Pembayaran ---
   const handleSavePay = async (e) => {
     e.preventDefault();
+
+    if (!payFile) {
+      toast("Bukti pembayaran (gambar) wajib diunggah", "error");
+      return;
+    }
+
     setSaving(true);
     try {
+      // 1. Upload foto bukti pembayaran dulu
+      const fd = new FormData();
+      fd.append("unitId", unit.id);
+      fd.append("jenis", "foto"); // sebagai foto
+      fd.append("file", payFile);
+
+      let uploadedUrl = null;
+      try {
+        const rDocs = await documentationAPI.upload(fd);
+        uploadedUrl = rDocs.data?.data?.fileUrl || rDocs.data?.fileUrl;
+      } catch (uploadErr) {
+        throw new Error("Gagal mengunggah bukti pembayaran: " + (uploadErr.response?.data?.message || uploadErr.message));
+      }
+
+      if (!uploadedUrl) {
+        throw new Error("Gagal mendapatkan URL bukti pembayaran");
+      }
+
       const payload = {
         ...payForm,
         jumlah_bayar: Number(payForm.jumlah_bayar),
         tanggal_bayar: new Date(payForm.tanggal_bayar).toISOString(),
+        bukti_pembayaran: uploadedUrl,
       };
 
       if (payload.jumlah_bayar > sisaTagihan) {
@@ -356,6 +382,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
       toast("Pembayaran berhasil dicatat", "success");
 
       setPayModal({ open: false, mode: "view" });
+      setPayFile(null); // Reset file
       setRefreshKey((prev) => prev + 1);
       if (onUpdate) onUpdate(); // Sync parent data
     } catch (err) {
@@ -629,6 +656,14 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                         "{p.catatan}"
                       </p>
                     )}
+                    {p.bukti_pembayaran && (
+                      <button 
+                        onClick={() => setLightbox({ url: p.bukti_pembayaran, type: 'image', name: 'Bukti Pembayaran' })}
+                        className="mt-2 text-xs text-indigo-600 flex items-center gap-1 hover:underline"
+                      >
+                        <FileImage className="w-3.5 h-3.5" /> Lihat Bukti
+                      </button>
+                    )}
                   </div>
                 ))
               )}
@@ -701,10 +736,15 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                   }}
                 >
                   <option value="">-- Pilih Timeline --</option>
-                  {timelines.map((t) => (
-                    <option key={t.id} value={t.taskName}>
-                      {t.taskName}
-                    </option>
+                  {timelines
+                    .filter((t) => {
+                      if (buildModal.mode === "edit" && buildForm.tahap === t.taskName) return true;
+                      return !historyFisik.some((p) => p.tahap === t.taskName);
+                    })
+                    .map((t) => (
+                      <option key={t.id} value={t.taskName}>
+                        {t.taskName}
+                      </option>
                   ))}
                 </select>
                 {timelines.length === 0 && (
@@ -935,6 +975,17 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
               onChange={(e) =>
                 setPayForm((f) => ({ ...f, catatan: e.target.value }))
               }
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="label">Bukti Pembayaran (Gambar) <span className="text-rose-500">*</span></label>
+            <input
+              type="file"
+              required
+              accept="image/*"
+              className="input file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-emerald-900/30 dark:file:text-emerald-400"
+              onChange={(e) => setPayFile(e.target.files[0])}
             />
           </div>
 
