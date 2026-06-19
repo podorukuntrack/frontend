@@ -14,9 +14,7 @@ export default function ProjectList() {
   const navigate = useNavigate();
   const { isRole, user } = useAuth();
   const { toast } = useToast();
-  const [projects, setProjects] = useState([]);
   const [companies, setCompanies] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [modal, setModal] = useState({ open: false, mode: 'create', data: null });
   const [confirm, setConfirm] = useState({ open: false, id: null });
