@@ -1,5 +1,6 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { unitsAPI, assignmentsAPI, documentationAPI } from "../../../api/services"; 
 import { PageLoader, EmptyState, SearchInput, Modal, ProgressBar, Select } from "../../../components/ui";
 import { useToast } from "../../../hooks/useToast";
@@ -21,9 +22,20 @@ export default function UnitList({ cluster, project }) {
   const { isRole } = useAuth();
   const { toast } = useToast();
 
-  const [units, setUnits] = useState([]);
-  const [assignments, setAssignments] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  const { data: { units = [], assignments = [] } = {}, isLoading: loading } = useQuery({
+    queryKey: ['units', cluster.id],
+    queryFn: async () => {
+      const [rUnits, rAsg] = await Promise.all([
+        unitsAPI.list({ limit: 2000 }),
+        assignmentsAPI.list({ limit: 2000 })
+      ]);
+      const clusterUnits = (rUnits.data?.data || []).filter(u => String(u.cluster_id) === String(cluster.id) || String(u.cluster?.id) === String(cluster.id));
+      const uniqueUnits = Array.from(new Map(clusterUnits.map(u => [u.id, u])).values());
+      return { units: uniqueUnits, assignments: rAsg.data?.data || [] };
+    }
+  });
 
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
@@ -67,31 +79,7 @@ export default function UnitList({ cluster, project }) {
     }
   };
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [rUnits, rAsg] = await Promise.all([
-        unitsAPI.list({ limit: 2000 }),
-        assignmentsAPI.list({ limit: 2000 })
-      ]);
-      const clusterUnits = (rUnits.data?.data || []).filter(u => String(u.cluster_id) === String(cluster.id) || String(u.cluster?.id) === String(cluster.id));
-      
-      // Mencegah duplicate ID yang mungkin muncul dari relasi database
-      const uniqueUnits = Array.from(new Map(clusterUnits.map(u => [u.id, u])).values());
-      
-      setUnits(uniqueUnits);
-      setAssignments(rAsg.data?.data || []);
-    } catch (err) {
-      toast(extractError(err), "error");
-    } finally {
-      setLoading(false);
-    }
-  }, [cluster.id, toast]);
 
-  useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [load]);
   
   const filtered = units.filter((u) => {
     const matchSearch = u.nomor_unit?.toLowerCase().includes(search.toLowerCase()) || u.tipe_rumah?.toLowerCase().includes(search.toLowerCase());
@@ -161,7 +149,7 @@ export default function UnitList({ cluster, project }) {
       toast(`${payloads.length} unit berhasil ditambahkan`, "success");
       setAddModal(false);
       setAddForm(initialAddForm);
-      load();
+      queryClient.invalidateQueries({ queryKey: ['units', cluster.id] });
     } catch (err) {
       toast(extractError(err), "error");
     } finally {
@@ -194,7 +182,7 @@ export default function UnitList({ cluster, project }) {
       });
       toast("Spesifikasi unit berhasil diperbarui", "success");
       setEditModal({ open: false, data: null });
-      load();
+      queryClient.invalidateQueries({ queryKey: ['units', cluster.id] });
     } catch (err) {
       toast(extractError(err), "error");
     } finally {
@@ -213,7 +201,7 @@ export default function UnitList({ cluster, project }) {
       await unitsAPI.delete(deleteModal.data.id);
       toast("Unit berhasil dihapus", "success");
       setDeleteModal({ open: false, data: null });
-      load();
+      queryClient.invalidateQueries({ queryKey: ['units', cluster.id] });
     } catch (err) {
       toast(extractError(err), "error");
     } finally {

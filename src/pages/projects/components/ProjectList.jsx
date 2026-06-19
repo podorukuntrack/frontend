@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { companiesAPI, projectsAPI, documentationAPI } from '../../../api/services';
 import { PageLoader, EmptyState, SearchInput, Modal, Confirm, CardSkeleton } from '../../../components/ui';
 import { useToast } from '../../../hooks/useToast';
@@ -23,22 +24,15 @@ export default function ProjectList() {
   const [form, setForm] = useState(EMPTY_FORM);
   const needsCompanyPicker = isRole('super_admin') || (isRole('admin') && !user?.companyId);
 
-  const load = async () => {
-    setLoading(true);
-    try {
-      const r = await projectsAPI.list();
-      setProjects(r.data.data || []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const queryClient = useQueryClient();
 
-  useEffect(() => { 
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const { data: projects = [], isLoading: loading } = useQuery({
+    queryKey: ['projects'],
+    queryFn: async () => {
+      const r = await projectsAPI.list();
+      return r.data?.data || [];
+    }
+  });
 
   useEffect(() => {
     if (!needsCompanyPicker) return;
@@ -116,7 +110,7 @@ export default function ProjectList() {
         toast('Detail proyek berhasil diperbarui', 'success');
       }
       setModal({ open: false, mode: 'create', data: null });
-      load();
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
     } catch (err) {
       toast(extractError(err), 'error');
     } finally {
@@ -130,7 +124,7 @@ export default function ProjectList() {
       await projectsAPI.delete(confirm.id);
       toast('Proyek berhasil dihapus', 'success');
       setConfirm({ open: false, id: null });
-      load();
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
     } catch (err) {
       toast(extractError(err), 'error');
     } finally {
