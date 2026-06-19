@@ -353,7 +353,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
       let uploadedUrl = null;
       try {
         const rDocs = await documentationAPI.upload(fd);
-        uploadedUrl = rDocs.data?.data?.fileUrl || rDocs.data?.fileUrl;
+        uploadedUrl = rDocs.data?.data?.url || rDocs.data?.data?.fileUrl || rDocs.data?.fileUrl;
       } catch (uploadErr) {
         throw new Error("Gagal mengunggah bukti pembayaran: " + (uploadErr.response?.data?.message || uploadErr.message));
       }

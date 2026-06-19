@@ -224,7 +224,7 @@ export function Modal({ open, onClose, title, children, size = 'md' }) {
               <X className="w-5 h-5" />
           </button>
         )}
-        <div className={`overflow-y-auto ${title ? "p-5 sm:p-6" : "p-5 sm:p-6 pt-10"}`}>{children}</div>
+        <div className={`flex-1 overflow-y-auto ${title ? "p-5 sm:p-6" : "p-5 sm:p-6 pt-10"}`}>{children}</div>
       </div>
     </div>
   );
