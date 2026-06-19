@@ -75,9 +75,16 @@ export function AuthProvider({ children }) {
     } catch (e) {
       console.error(e);
     }
+    // Clear persisted user and cookies
     localStorage.removeItem('user');
     setUser(null);
+    // Remove HttpOnly cookies by setting expired dates (browser will honor Set-Cookie from server, but we also attempt client-side clear for safety)
+    document.cookie = 'accessToken=; Max-Age=0; path=/;';
+    document.cookie = 'refreshToken=; Max-Age=0; path=/;';
+    // Set a flag to avoid immediate token refresh loop
+    window.__loggedOut = true;
   }, []);
+
 
   const isRole = useCallback((...roles) => {
     return user && roles.includes(user.role);
