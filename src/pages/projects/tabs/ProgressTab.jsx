@@ -297,6 +297,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
 
   // --- Handler Delete Dokumentasi ---
   const handleDeleteDoc = async (docId) => {
+    if (!window.confirm("Apakah Anda yakin ingin menghapus foto/dokumen ini?")) return;
     try {
       await documentationAPI.delete(docId);
       toast("Dokumen dihapus", "success");
