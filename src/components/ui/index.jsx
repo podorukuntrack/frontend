@@ -1,4 +1,4 @@
-import { Loader2, AlertTriangle, X, CheckCircle, Info } from 'lucide-react';
+import { Loader2, AlertTriangle, X, CheckCircle, Info, FileImage } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -346,5 +346,71 @@ export function Avatar({ name, size = 'md' }) {
     <div className={`${sizes[size]} ${color} rounded-xl flex items-center justify-center font-bold flex-shrink-0 border border-white/20`}>
       {initials}
     </div>
+  );
+}
+
+// ==========================================
+// 8. LIGHTBOX / MEDIA VIEWER
+// ==========================================
+export function Lightbox({ item, onClose }) {
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    if (item) {
+      document.addEventListener('keydown', handler);
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      document.removeEventListener('keydown', handler);
+      document.body.style.overflow = 'unset';
+    };
+  }, [item, onClose]);
+
+  if (!item) return null;
+  const { url, type, name } = item;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[99999] bg-black/95 flex flex-col items-center justify-center p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <button
+        className="absolute top-6 right-6 text-white/70 hover:text-white bg-white/10 hover:bg-rose-500 p-2 rounded-full transition-all"
+        onClick={onClose}
+        title="Tutup (Esc)"
+      >
+        <X className="w-6 h-6" strokeWidth={2.5} />
+      </button>
+      {name && <p className="text-white/80 font-medium text-sm mb-4 max-w-lg text-center truncate">{name}</p>}
+      {type === 'image' ? (
+        <img
+          src={url}
+          alt={name || 'Preview'}
+          className="max-w-full max-h-[85vh] rounded-xl object-contain shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        />
+      ) : type === 'video' ? (
+        <video
+          src={url}
+          controls
+          autoPlay
+          className="max-w-full max-h-[85vh] rounded-xl shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        />
+      ) : (
+        <div className="flex flex-col items-center gap-4">
+          <FileImage className="w-20 h-20 text-white/30" />
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors"
+            onClick={(e) => e.stopPropagation()}
+          >
+            Buka File
+          </a>
+        </div>
+      )}
+    </div>,
+    document.body
   );
 }

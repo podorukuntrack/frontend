@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, UserCheck, CalendarDays, BarChart3, Key, ShieldCheck, Pencil, Home } from 'lucide-react';
 import { unitsAPI, assignmentsAPI, timelinesAPI, progressAPI, handoversAPI, retentionsAPI, documentationAPI } from '../../../api/services';
-import { PageLoader } from '../../../components/ui';
+import { PageLoader, Lightbox } from '../../../components/ui';
 import { useToast } from '../../../hooks/useToast';
 import { useAuth } from '../../../context/AuthContext';
 import { extractError } from '../../../utils/helpers';
@@ -31,6 +31,7 @@ export default function UnitDetailPanel({ unit, cluster, project }) {
   const [progressData, setProgressData] = useState([]);
   const [handover, setHandover] = useState(null);
   const [currentUnit, setCurrentUnit] = useState(unit);
+  const [lightbox, setLightbox] = useState(null);
 
   const handleUnitPhotoUpload = async (e) => {
     const file = e.target.files[0];
@@ -147,12 +148,12 @@ export default function UnitDetailPanel({ unit, cluster, project }) {
                     <img
                       src={currentUnit.image_url || currentUnit.imageUrl}
                       alt={`Foto Unit ${currentUnit.nomor_unit}`}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 cursor-pointer"
+                      onClick={() => setLightbox({ url: currentUnit.image_url || currentUnit.imageUrl, type: 'image', name: `Unit ${currentUnit.nomor_unit}` })}
                     />
                     {isRole('super_admin', 'admin') && (
-                      <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-[11px] font-semibold gap-1">
+                      <label className="absolute top-2 right-2 bg-black/70 hover:bg-black/90 p-1.5 rounded-lg cursor-pointer transition-colors text-white" title="Ubah Foto">
                         <Pencil className="w-3.5 h-3.5" />
-                        Ubah Foto
                         <input
                           type="file"
                           accept="image/*"
@@ -266,6 +267,9 @@ export default function UnitDetailPanel({ unit, cluster, project }) {
         {activeTab === 'handover' && <HandoverTab unit={currentUnit} project={project} onHandover={fetchUnitContext} />}
         {activeTab === 'retention' && <RetentionTab unit={currentUnit} project={project} />}
       </div>
+
+      {/* LIGHTBOX */}
+      <Lightbox item={lightbox} onClose={() => setLightbox(null)} />
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { companiesAPI, documentationAPI } from '../../api/services';
-import { PageLoader, EmptyState, Modal } from '../../components/ui';
+import { PageLoader, EmptyState, Modal, Lightbox } from '../../components/ui';
 import { useToast } from '../../hooks/useToast';
 import { formatDate, extractError } from '../../utils/helpers';
 import { Building2, Plus, Pencil, MapPin, Camera } from 'lucide-react';
@@ -16,6 +16,7 @@ export default function CompaniesPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState(null);
+  const [lightbox, setLightbox] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -188,7 +189,15 @@ export default function CompaniesPage() {
                     <div className="flex items-start justify-between mb-5">
                       <div className="w-14 h-14 bg-white dark:bg-white rounded-2xl flex items-center justify-center border border-slate-200 dark:border-slate-100 shadow-sm overflow-hidden p-1 shrink-0">
                         {c.logo_url ? (
-                          <img src={c.logo_url} alt={c.nama_pt} className="w-full h-full object-contain" />
+                          <img 
+                            src={c.logo_url} 
+                            alt={c.nama_pt} 
+                            className="w-full h-full object-contain cursor-pointer hover:scale-110 transition-transform" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setLightbox({ url: c.logo_url, type: 'image', name: `Logo ${c.nama_pt}` });
+                            }} 
+                          />
                         ) : (
                           <Building2 className="w-6 h-6 text-indigo-400" />
                         )}
@@ -273,6 +282,9 @@ export default function CompaniesPage() {
           </div>
         </form>
       </Modal>
+
+      {/* LIGHTBOX */}
+      <Lightbox item={lightbox} onClose={() => setLightbox(null)} />
     </div>
   );
 }

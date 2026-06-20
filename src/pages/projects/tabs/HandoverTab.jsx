@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { handoversAPI, documentationAPI } from '../../../api/services';
-import { PageLoader, Modal, Confirm } from '../../../components/ui';
+import { PageLoader, Modal, Confirm, Lightbox } from '../../../components/ui';
 import { useToast } from '../../../hooks/useToast';
 import { extractError, formatDate } from '../../../utils/helpers';
 import { useAuth } from '../../../context/AuthContext';
@@ -60,6 +60,7 @@ export default function HandoverTab({ unit, onHandover }) {
   const [handoverDoc, setHandoverDoc] = useState(null);
   const [editPhoto, setEditPhoto] = useState(null);
   const [editPreview, setEditPreview] = useState(null);
+  const [lightbox, setLightbox] = useState(null);
 
   // Cek apakah sudah ada handover yang selesai
   const hasCompleted = handovers.some(h => h.status === 'selesai' || h.status === 'completed');
@@ -502,26 +503,23 @@ export default function HandoverTab({ unit, onHandover }) {
                             className="w-full h-32 object-cover transition-all duration-300 group-hover:scale-105"
                           />
                           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <a
-                              href={h.image_url ?? h.imageUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                            <button
+                              onClick={() => setLightbox({ url: h.image_url ?? h.imageUrl, type: 'image', name: 'Bukti Serah Terima' })}
                               className="bg-white text-slate-800 px-3.5 py-1.5 rounded-lg font-semibold text-xs shadow-md hover:bg-slate-50 transition-colors flex items-center gap-1.5"
                             >
                               <Image className="w-3.5 h-3.5" />
                               Lihat Foto
-                              <ExternalLink className="w-3 h-3 opacity-60" />
-                            </a>
+                            </button>
                           </div>
                         </div>
                       )}
 
                       {/* Document */}
                       {(h.document_url ?? h.documentUrl) && (
-                        <a href={h.document_url ?? h.documentUrl} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors w-32 h-32 group">
+                        <button onClick={() => setLightbox({ url: h.document_url ?? h.documentUrl, type: 'file', name: 'Dokumen BAST' })} className="flex flex-col items-center justify-center border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors w-32 h-32 group">
                           <ExternalLink className="w-8 h-8 text-indigo-500 mb-2 group-hover:scale-110 transition-transform" />
                           <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 text-center px-2">Lihat Dokumen<br/>BAST</span>
-                        </a>
+                        </button>
                       )}
                     </div>
                   </div>
@@ -571,6 +569,9 @@ export default function HandoverTab({ unit, onHandover }) {
           </div>
         </form>
       </Modal>
+
+      {/* LIGHTBOX */}
+      <Lightbox item={lightbox} onClose={() => setLightbox(null)} />
 
       {/* ── Modal: Konfirmasi Hasil Serah Terima ────────────── */}
       <Modal

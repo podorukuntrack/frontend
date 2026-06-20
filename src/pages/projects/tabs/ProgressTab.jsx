@@ -6,7 +6,7 @@ import {
   timelinesAPI,
   documentationAPI,
 } from "../../../api/services";
-import { PageLoader, Modal, ProgressBar } from "../../../components/ui";
+import { PageLoader, Modal, ProgressBar, Lightbox } from "../../../components/ui";
 import { useToast } from "../../../hooks/useToast";
 import {
   formatDate,
@@ -1002,51 +1002,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
       </Modal>
 
       {/* LIGHTBOX */}
-      {lightbox && createPortal(
-        <div
-          className="fixed inset-0 z-[99999] bg-black/95 flex flex-col items-center justify-center p-4 backdrop-blur-sm"
-          onClick={() => setLightbox(null)}
-        >
-          <button
-            className="absolute top-6 right-6 text-white/70 hover:text-white bg-white/10 hover:bg-rose-500 p-2 rounded-full transition-all"
-            onClick={() => setLightbox(null)}
-            title="Tutup (Esc)"
-          >
-            <X className="w-6 h-6" strokeWidth={2.5} />
-          </button>
-          <p className="text-white/80 font-medium text-sm mb-4 max-w-lg text-center truncate">{lightbox.name}</p>
-          {lightbox.type === 'image' ? (
-            <img
-              src={lightbox.url}
-              alt={lightbox.name}
-              className="max-w-full max-h-[85vh] rounded-xl object-contain shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            />
-          ) : lightbox.type === 'video' ? (
-            <video
-              src={lightbox.url}
-              controls
-              autoPlay
-              className="max-w-full max-h-[85vh] rounded-xl shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            />
-          ) : (
-            <div className="flex flex-col items-center gap-4">
-              <FileImage className="w-20 h-20 text-white/30" />
-              <a
-                href={lightbox.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors"
-                onClick={(e) => e.stopPropagation()}
-              >
-                Buka File
-              </a>
-            </div>
-          )}
-        </div>,
-        document.body
-      )}
+      <Lightbox item={lightbox} onClose={() => setLightbox(null)} />
     </div>
   );
 }

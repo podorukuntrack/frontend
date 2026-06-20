@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { retentionsAPI, documentationAPI } from '../../../../api/services';
-import { Modal, Confirm } from '../../../../components/ui';
+import { Modal, Confirm, Lightbox } from '../../../../components/ui';
 import { useToast } from '../../../../hooks/useToast';
 import { extractError, formatDate } from '../../../../utils/helpers';
 import { Plus, Pencil, Trash2, Camera, CheckCircle, Image as ImageIcon, Wrench, AlertCircle } from 'lucide-react';
@@ -17,6 +17,7 @@ export default function ComplaintManager({ retention, isRole, unitId }) {
   const [form, setForm] = useState({ description: '', status: 'pending', photoBeforeUrls: [], photoAfterUrls: [] });
   const [photoBeforeFiles, setPhotoBeforeFiles] = useState([]);
   const [photoAfterFiles, setPhotoAfterFiles] = useState([]);
+  const [lightbox, setLightbox] = useState(null);
 
 
   const loadComplaints = async () => {
@@ -225,9 +226,9 @@ export default function ComplaintManager({ retention, isRole, unitId }) {
                     <span className="font-semibold block mb-1.5 text-[10px] uppercase tracking-wide text-slate-500">Foto Keluhan ({Math.max(c.photo_before_urls?.length || 0, c.photoBeforeUrls?.length || 0)})</span>
                     <div className="grid grid-cols-2 gap-2">
                       {(c.photo_before_urls ?? c.photoBeforeUrls).map((url, i) => (
-                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block aspect-video rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-black/5">
+                        <button key={i} type="button" onClick={() => setLightbox({ url, type: 'image', name: `Foto Keluhan ${i+1}` })} className="block aspect-video rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-black/5 w-full text-left">
                           <img src={url} alt={`Before ${i+1}`} className="w-full h-full object-cover hover:scale-105 transition-transform" />
-                        </a>
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -238,9 +239,9 @@ export default function ComplaintManager({ retention, isRole, unitId }) {
                     <span className="font-semibold block mb-1.5 text-[10px] uppercase tracking-wide text-emerald-600 dark:text-emerald-500">Foto Perbaikan ({Math.max(c.photo_after_urls?.length || 0, c.photoAfterUrls?.length || 0)})</span>
                     <div className="grid grid-cols-2 gap-2">
                       {(c.photo_after_urls ?? c.photoAfterUrls).map((url, i) => (
-                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block aspect-video rounded-lg overflow-hidden border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-900/10">
+                        <button key={i} type="button" onClick={() => setLightbox({ url, type: 'image', name: `Foto Perbaikan ${i+1}` })} className="block aspect-video rounded-lg overflow-hidden border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-900/10 w-full text-left">
                           <img src={url} alt={`After ${i+1}`} className="w-full h-full object-cover hover:scale-105 transition-transform" />
-                        </a>
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -341,6 +342,9 @@ export default function ComplaintManager({ retention, isRole, unitId }) {
         description="Yakin ingin menghapus data keluhan ini beserta foto-fotonya? Tindakan ini tidak dapat dibatalkan."
         loading={saving}
       />
+
+      {/* LIGHTBOX */}
+      <Lightbox item={lightbox} onClose={() => setLightbox(null)} />
     </div>
   );
 }
