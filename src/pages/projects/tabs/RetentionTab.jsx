@@ -261,8 +261,7 @@ export default function RetentionTab({ unit }) {
                       <span className="font-semibold block mb-1.5 text-xs uppercase tracking-wide text-slate-400">Foto 360 Unit</span>
                       <a
                         href={r.link_foto_360 ?? r.linkFoto360}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        target="_blank" rel="noopener noreferrer"
                         className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 rounded-xl border border-indigo-100 dark:border-indigo-800 text-sm font-semibold transition-all shadow-sm active:scale-95"
                       >
                         <Compass className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />

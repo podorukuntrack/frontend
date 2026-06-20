@@ -401,8 +401,7 @@ export function Lightbox({ item, onClose }) {
           <FileImage className="w-20 h-20 text-white/30" />
           <a
             href={url}
-            target="_blank"
-            rel="noopener noreferrer"
+            target="_blank" rel="noopener noreferrer"
             className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors"
             onClick={(e) => e.stopPropagation()}
           >
