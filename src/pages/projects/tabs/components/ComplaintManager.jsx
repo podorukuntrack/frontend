@@ -3,7 +3,7 @@ import { retentionsAPI, documentationAPI } from '../../../../api/services';
 import { Modal, Confirm, Lightbox } from '../../../../components/ui';
 import { useToast } from '../../../../hooks/useToast';
 import { extractError, formatDate } from '../../../../utils/helpers';
-import { Plus, Pencil, Trash2, Camera, CheckCircle, Image as ImageIcon, Wrench, AlertCircle } from 'lucide-react';
+import { Plus, Pencil, Trash2, Camera, CheckCircle, Image as ImageIcon, Wrench, AlertCircle, X } from 'lucide-react';
 
 export default function ComplaintManager({ retention, isRole, unitId }) {
   const { toast } = useToast();
@@ -140,6 +140,34 @@ export default function ComplaintManager({ retention, isRole, unitId }) {
     }
   };
 
+  const handleDeletePhoto = async (complaintId, type, urlToRemove) => {
+    if (!window.confirm("Apakah Anda yakin ingin menghapus foto ini?")) return;
+    
+    const comp = complaints.find(c => c.id === complaintId);
+    if (!comp) return;
+
+    try {
+      let payload = {
+        description: comp.description,
+        status: comp.status,
+        photoBeforeUrls: comp.photo_before_urls ?? comp.photoBeforeUrls ?? [],
+        photoAfterUrls: comp.photo_after_urls ?? comp.photoAfterUrls ?? []
+      };
+
+      if (type === 'before') {
+        payload.photoBeforeUrls = payload.photoBeforeUrls.filter(u => u !== urlToRemove);
+      } else {
+        payload.photoAfterUrls = payload.photoAfterUrls.filter(u => u !== urlToRemove);
+      }
+
+      await retentionsAPI.updateComplaint(retention.id, complaintId, payload);
+      toast('Foto berhasil dihapus', 'success');
+      loadComplaints();
+    } catch (err) {
+      toast(extractError(err), 'error');
+    }
+  };
+
   const handleDelete = async () => {
     setSaving(true);
     try {
@@ -226,9 +254,21 @@ export default function ComplaintManager({ retention, isRole, unitId }) {
                     <span className="font-semibold block mb-1.5 text-[10px] uppercase tracking-wide text-slate-500">Foto Keluhan ({Math.max(c.photo_before_urls?.length || 0, c.photoBeforeUrls?.length || 0)})</span>
                     <div className="grid grid-cols-2 gap-2">
                       {(c.photo_before_urls ?? c.photoBeforeUrls).map((url, i) => (
-                        <button key={i} type="button" onClick={() => setLightbox({ url, type: 'image', name: `Foto Keluhan ${i+1}` })} className="block aspect-video rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-black/5 w-full text-left">
-                          <img src={url} alt={`Before ${i+1}`} className="w-full h-full object-cover hover:scale-105 transition-transform" />
-                        </button>
+                        <div key={i} className="relative group/media">
+                          <button type="button" onClick={() => setLightbox({ url, type: 'image', name: `Foto Keluhan ${i+1}` })} className="block aspect-video rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-black/5 w-full text-left">
+                            <img src={url} alt={`Before ${i+1}`} className="w-full h-full object-cover hover:scale-105 transition-transform" />
+                          </button>
+                          {isRole('super_admin', 'admin') && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeletePhoto(c.id, 'before', url)}
+                              className="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full opacity-0 group-hover/media:opacity-100 transition-opacity flex items-center justify-center"
+                              title="Hapus"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -239,9 +279,21 @@ export default function ComplaintManager({ retention, isRole, unitId }) {
                     <span className="font-semibold block mb-1.5 text-[10px] uppercase tracking-wide text-emerald-600 dark:text-emerald-500">Foto Perbaikan ({Math.max(c.photo_after_urls?.length || 0, c.photoAfterUrls?.length || 0)})</span>
                     <div className="grid grid-cols-2 gap-2">
                       {(c.photo_after_urls ?? c.photoAfterUrls).map((url, i) => (
-                        <button key={i} type="button" onClick={() => setLightbox({ url, type: 'image', name: `Foto Perbaikan ${i+1}` })} className="block aspect-video rounded-lg overflow-hidden border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-900/10 w-full text-left">
-                          <img src={url} alt={`After ${i+1}`} className="w-full h-full object-cover hover:scale-105 transition-transform" />
-                        </button>
+                        <div key={i} className="relative group/media">
+                          <button type="button" onClick={() => setLightbox({ url, type: 'image', name: `Foto Perbaikan ${i+1}` })} className="block aspect-video rounded-lg overflow-hidden border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-900/10 w-full text-left">
+                            <img src={url} alt={`After ${i+1}`} className="w-full h-full object-cover hover:scale-105 transition-transform" />
+                          </button>
+                          {isRole('super_admin', 'admin') && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeletePhoto(c.id, 'after', url)}
+                              className="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full opacity-0 group-hover/media:opacity-100 transition-opacity flex items-center justify-center"
+                              title="Hapus"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
                       ))}
                     </div>
                   </div>
