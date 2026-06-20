@@ -41,27 +41,36 @@ export default function UnitDetailPanel({ unit, cluster, project }) {
       return;
     }
 
-    try {
-      const fd = new FormData();
-      fd.append('unitId', currentUnit.id);
-      fd.append('jenis', 'unit');
-      fd.append('file', file);
+    const toastId = `upload-unit-${Date.now()}`;
+    toast({ title: "Mengunggah Foto Unit", description: "Memulai unggahan..." }, "info", { id: toastId, progress: 0 });
 
-      toast('Mengunggah foto unit...', 'info');
-      const uploadRes = await documentationAPI.upload(fd);
-      const url = uploadRes.data?.data?.url;
+    (async () => {
+      try {
+        const fd = new FormData();
+        fd.append('unitId', currentUnit.id);
+        fd.append('jenis', 'unit');
+        fd.append('file', file);
 
-      if (!url) throw new Error('Gagal mendapatkan URL foto unit');
+        const uploadRes = await documentationAPI.upload(fd, {
+           onUploadProgress: (progressEvent) => {
+             const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+             toast({ title: "Mengunggah Foto Unit", description: "Sedang mengunggah..." }, "info", { id: toastId, progress: percentCompleted });
+           }
+        });
+        const url = uploadRes.data?.data?.url;
 
-      await unitsAPI.update(currentUnit.id, {
-        image_url: url
-      });
+        if (!url) throw new Error('Gagal mendapatkan URL foto unit');
 
-      toast('Foto unit berhasil diperbarui', 'success');
-      setCurrentUnit(prev => ({ ...prev, image_url: url, imageUrl: url }));
-    } catch (err) {
-      toast(extractError(err), 'error');
-    }
+        await unitsAPI.update(currentUnit.id, {
+          image_url: url
+        });
+
+        toast({ title: "Upload Selesai", description: "Foto unit berhasil diperbarui" }, "success", { id: toastId });
+        setCurrentUnit(prev => ({ ...prev, image_url: url, imageUrl: url }));
+      } catch (err) {
+        toast({ title: "Upload Gagal", description: extractError(err) }, "error", { id: toastId });
+      }
+    })();
   };
 
   const fetchUnitContext = async () => {

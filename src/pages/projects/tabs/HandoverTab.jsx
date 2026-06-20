@@ -152,39 +152,16 @@ export default function HandoverTab({ unit, onHandover }) {
 
     setSaving(true);
     try {
-      let uploadedUrl = null;
-      let uploadedDocUrl = null;
+      let currentHandover = h;
       if (isSuccess) {
-        if (handoverPhoto) {
-          const fd = new FormData();
-          fd.append("unitId", unit.id);
-          fd.append("jenis", "handover");
-          fd.append("file", handoverPhoto);
-          
-          const uploadRes = await documentationAPI.upload(fd);
-          uploadedUrl = uploadRes.data?.data?.url || uploadRes.data?.data?.fileUrl;
-        }
-
-        if (handoverDoc) {
-          const fdDoc = new FormData();
-          fdDoc.append("unitId", unit.id);
-          fdDoc.append("jenis", "dokumen");
-          fdDoc.append("file", handoverDoc);
-          
-          const uploadResDoc = await documentationAPI.upload(fdDoc);
-          uploadedDocUrl = uploadResDoc.data?.data?.url || uploadResDoc.data?.data?.fileUrl;
-        }
-      }
-
-      if (isSuccess) {
-        await handoversAPI.update(h.id, {
+        const payload = {
           status: 'selesai',
           actualDate: new Date().toISOString(),
           notes: resultNotes || h.notes || null,
-          imageUrl: uploadedUrl || h.imageUrl || h.image_url || null,
-          documentUrl: uploadedDocUrl || h.documentUrl || h.document_url || null,
-        });
-        toast('Serah terima ditandai selesai. Lanjutkan ke tab Retensi!', 'success');
+        };
+        const res = await handoversAPI.update(h.id, payload);
+        currentHandover = res.data?.data || payload;
+        toast('Serah terima ditandai selesai. Memulai unggahan dokumen...', 'success');
       } else {
         await handoversAPI.update(h.id, {
           status: 'gagal',
@@ -192,14 +169,75 @@ export default function HandoverTab({ unit, onHandover }) {
         });
         toast('Serah terima dicatat gagal. Silakan buat jadwal baru.', 'warning');
       }
+
       setResultModal({ open: false, handover: null });
       setResultNotes('');
+      const photoToUpload = handoverPhoto;
+      const docToUpload = handoverDoc;
       setHandoverPhoto(null);
       setPhotoPreview(null);
       setHandoverDoc(null);
       setHandoverResult('');
       loadData();
       if (onHandover) onHandover();
+
+      if (isSuccess && (photoToUpload || docToUpload)) {
+        const toastId = `upload-handover-${Date.now()}`;
+        const totalFiles = (photoToUpload ? 1 : 0) + (docToUpload ? 1 : 0);
+        toast({ title: "Mengunggah Dokumen", description: `Memulai unggahan ${totalFiles} file...` }, "info", { id: toastId, progress: 0 });
+
+        (async () => {
+           let uploadedUrl = currentHandover.imageUrl || currentHandover.image_url || null;
+           let uploadedDocUrl = currentHandover.documentUrl || currentHandover.document_url || null;
+           let successCount = 0;
+           let completedFiles = 0;
+
+           try {
+             if (photoToUpload) {
+                const fd = new FormData();
+                fd.append("unitId", unit.id);
+                fd.append("jenis", "handover");
+                fd.append("file", photoToUpload);
+                const uploadRes = await documentationAPI.upload(fd, {
+                  onUploadProgress: (e) => {
+                     const pct = Math.round((e.loaded * 100) / e.total);
+                     toast({ title: "Mengunggah Foto", description: `File 1 dari ${totalFiles}` }, "info", { id: toastId, progress: Math.round(pct / totalFiles) });
+                  }
+                });
+                uploadedUrl = uploadRes.data?.data?.url || uploadRes.data?.data?.fileUrl || uploadedUrl;
+                successCount++;
+                completedFiles++;
+             }
+             if (docToUpload) {
+                const fd = new FormData();
+                fd.append("unitId", unit.id);
+                fd.append("jenis", "dokumen");
+                fd.append("file", docToUpload);
+                const uploadRes = await documentationAPI.upload(fd, {
+                  onUploadProgress: (e) => {
+                     const pct = Math.round((e.loaded * 100) / e.total);
+                     const basePct = completedFiles * 100;
+                     toast({ title: "Mengunggah BAST", description: `File ${completedFiles+1} dari ${totalFiles}` }, "info", { id: toastId, progress: Math.round((basePct + pct) / totalFiles) });
+                  }
+                });
+                uploadedDocUrl = uploadRes.data?.data?.url || uploadRes.data?.data?.fileUrl || uploadedDocUrl;
+                successCount++;
+                completedFiles++;
+             }
+             
+             if (successCount > 0) {
+               await handoversAPI.update(h.id, {
+                 imageUrl: uploadedUrl,
+                 documentUrl: uploadedDocUrl,
+               });
+               toast({ title: "Upload Selesai", description: `${successCount} file berhasil diunggah` }, "success", { id: toastId });
+               loadData();
+             }
+           } catch (err) {
+             toast({ title: "Upload Gagal", description: extractError(err) }, "error", { id: toastId });
+           }
+        })();
+      }
     } catch (err) {
       toast(extractError(err), 'error');
     } finally {

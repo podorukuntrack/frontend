@@ -14,6 +14,8 @@ export default function CompaniesPage() {
   const [modal, setModal] = useState({ open: false, mode: 'create', data: null });
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [logoFile, setLogoFile] = useState(null);
+  const [logoPreview, setLogoPreview] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -34,6 +36,8 @@ export default function CompaniesPage() {
 
   const openCreate = () => { 
     setForm(EMPTY_FORM); 
+    setLogoFile(null);
+    setLogoPreview(null);
     setModal({ open: true, mode: 'create' }); 
   };
   
@@ -45,10 +49,12 @@ export default function CompaniesPage() {
       logo_url: c.logo_url || '', 
       theme_color: c.theme_color || '#4f46e5' 
     });
+    setLogoFile(null);
+    setLogoPreview(c.logo_url || null);
     setModal({ open: true, mode: 'edit', data: c });
   };
 
-  const handleLogoUpload = async (e) => {
+  const handleLogoSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     
@@ -57,41 +63,67 @@ export default function CompaniesPage() {
       return;
     }
 
-    try {
-      const fd = new FormData();
-      fd.append('jenis', 'logo');
-      fd.append('file', file);
-
-      toast('Mengunggah logo...', 'info');
-      const uploadRes = await documentationAPI.upload(fd);
-      const url = uploadRes.data?.data?.url;
-
-      if (!url) throw new Error('Gagal mendapatkan URL logo');
-
-      setForm(f => ({ ...f, logo_url: url }));
-      toast('Logo berhasil diunggah', 'success');
-    } catch (err) {
-      toast(extractError(err), 'error');
-    }
+    setLogoFile(file);
+    setLogoPreview(URL.createObjectURL(file));
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
+      let savedCompany;
       if (modal.mode === 'create') { 
-        await companiesAPI.create(form); 
+        const res = await companiesAPI.create(form); 
+        savedCompany = res.data?.data;
         toast('Perusahaan berhasil ditambahkan', 'success'); 
       } else { 
-        await companiesAPI.update(modal.data.id, form); 
+        const res = await companiesAPI.update(modal.data.id, form); 
+        savedCompany = res.data?.data || modal.data;
         toast('Perusahaan berhasil diperbarui', 'success'); 
       }
+      
+      const companyId = savedCompany?.id || modal.data?.id;
       setModal({ open: false });
       load();
+
+      // Background upload if there is a new logo file
+      if (logoFile && companyId) {
+        const toastId = `upload-logo-${Date.now()}`;
+        toast({ title: "Mengunggah Logo", description: "Memulai unggahan logo..." }, "info", { id: toastId, progress: 0 });
+        
+        (async () => {
+          try {
+            const fd = new FormData();
+            fd.append('jenis', 'logo');
+            fd.append('file', logoFile);
+
+            const uploadRes = await documentationAPI.upload(fd, {
+              onUploadProgress: (progressEvent) => {
+                const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                toast({ title: "Mengunggah Logo", description: "Sedang mengunggah..." }, "info", { id: toastId, progress: percentCompleted });
+              }
+            });
+            const url = uploadRes.data?.data?.url;
+
+            if (url) {
+               await companiesAPI.update(companyId, { logo_url: url });
+               toast({ title: "Upload Selesai", description: "Logo perusahaan berhasil diperbarui" }, "success", { id: toastId });
+               load();
+            } else {
+               throw new Error('Gagal mendapatkan URL logo');
+            }
+          } catch (err) {
+            toast({ title: "Upload Gagal", description: extractError(err) }, "error", { id: toastId });
+          }
+        })();
+      }
+
     } catch (err) { 
       toast(extractError(err), 'error'); 
     } finally { 
       setSaving(false); 
+      setLogoFile(null);
+      setLogoPreview(null);
     }
   };
 
@@ -208,13 +240,13 @@ export default function CompaniesPage() {
             <div className="space-y-1.5">
               <label className="label">Logo Perusahaan</label>
               <div className="flex items-center gap-3">
-                {form.logo_url && (
-                  <img src={form.logo_url} alt="Logo" className="w-10 h-10 object-contain rounded-lg border border-slate-200 dark:border-slate-700 bg-white p-1" />
+                {logoPreview && (
+                  <img src={logoPreview} alt="Logo" className="w-10 h-10 object-contain rounded-lg border border-slate-200 dark:border-slate-700 bg-white p-1" />
                 )}
                 <label className="btn-secondary !py-2.5 !px-3 text-xs cursor-pointer inline-flex items-center">
                   <Camera className="w-3.5 h-3.5 mr-1" />
                   Pilih Logo
-                  <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                  <input type="file" accept="image/*" className="hidden" onChange={handleLogoSelect} />
                 </label>
               </div>
             </div>

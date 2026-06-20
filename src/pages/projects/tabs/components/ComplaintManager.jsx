@@ -14,9 +14,10 @@ export default function ComplaintManager({ retention, isRole, unitId }) {
   const [modal, setModal] = useState({ open: false, mode: 'create', data: null });
   const [confirm, setConfirm] = useState({ open: false, id: null });
   
-  const [form, setForm] = useState({ description: '', status: 'pending', photoBeforeUrl: '', photoAfterUrl: '' });
-  const [photoBeforeFile, setPhotoBeforeFile] = useState(null);
-  const [photoAfterFile, setPhotoAfterFile] = useState(null);
+  const [form, setForm] = useState({ description: '', status: 'pending', photoBeforeUrls: [], photoAfterUrls: [] });
+  const [photoBeforeFiles, setPhotoBeforeFiles] = useState([]);
+  const [photoAfterFiles, setPhotoAfterFiles] = useState([]);
+
 
   const loadComplaints = async () => {
     setLoading(true);
@@ -39,45 +40,98 @@ export default function ComplaintManager({ retention, isRole, unitId }) {
     e.preventDefault();
     setSaving(true);
     try {
-      let pBefore = form.photoBeforeUrl;
-      let pAfter = form.photoAfterUrl;
-
-      if (photoBeforeFile) {
-        const fd = new FormData();
-        fd.append('file', photoBeforeFile);
-        fd.append('unitId', unitId);
-        fd.append('jenis', 'retention');
-        const res = await documentationAPI.upload(fd);
-        pBefore = res.data?.data?.url || res.data?.data?.fileUrl || pBefore;
-      }
-
-      if (photoAfterFile) {
-        const fd = new FormData();
-        fd.append('file', photoAfterFile);
-        fd.append('unitId', unitId);
-        fd.append('jenis', 'retention');
-        const res = await documentationAPI.upload(fd);
-        pAfter = res.data?.data?.url || res.data?.data?.fileUrl || pAfter;
+      const isCreate = modal.mode === 'create';
+      if (isCreate && photoBeforeFiles.length === 0) {
+        throw new Error('Foto keluhan (sebelum) wajib diunggah minimal 1 untuk keluhan baru.');
       }
 
       const payload = {
         description: form.description || null,
-        photoBeforeUrl: pBefore || null,
-        photoAfterUrl: pAfter || null,
+        photoBeforeUrls: form.photoBeforeUrls || [],
+        photoAfterUrls: form.photoAfterUrls || [],
         status: form.status,
       };
 
-      if (modal.mode === 'create') {
-        if (!pBefore) throw new Error('Foto keluhan (sebelum) wajib diunggah untuk keluhan baru.');
-        await retentionsAPI.addComplaint(retention.id, payload);
-        toast('Keluhan berhasil ditambahkan', 'success');
+      let savedComplaint;
+      if (isCreate) {
+        const res = await retentionsAPI.addComplaint(retention.id, payload);
+        savedComplaint = res.data?.data;
+        toast('Keluhan berhasil dicatat, memulai unggahan foto...', 'success');
       } else {
-        await retentionsAPI.updateComplaint(retention.id, modal.data.id, payload);
-        toast('Keluhan berhasil diperbarui', 'success');
+        const res = await retentionsAPI.updateComplaint(retention.id, modal.data.id, payload);
+        savedComplaint = res.data?.data;
+        toast('Keluhan diperbarui, memulai unggahan foto...', 'success');
       }
 
+      const complaintId = savedComplaint?.id || modal.data?.id;
+
+      // Close modal immediately and let it run in background
       setModal({ open: false, mode: 'create', data: null });
+      setPhotoBeforeFiles([]);
+      setPhotoAfterFiles([]);
       loadComplaints();
+
+      const filesToUpload = [
+        ...photoBeforeFiles.map(f => ({ file: f, type: 'before' })),
+        ...photoAfterFiles.map(f => ({ file: f, type: 'after' }))
+      ];
+
+      if (filesToUpload.length > 0 && complaintId) {
+        const toastId = `upload-comp-${Date.now()}`;
+        toast({ title: "Mengunggah Foto", description: `Memulai unggahan ${filesToUpload.length} file...` }, "info", { id: toastId, progress: 0 });
+        
+        (async () => {
+          let successCount = 0;
+          let currentBeforeUrls = [...payload.photoBeforeUrls];
+          let currentAfterUrls = [...payload.photoAfterUrls];
+
+          for (let i = 0; i < filesToUpload.length; i++) {
+            const { file, type } = filesToUpload[i];
+            const fd = new FormData();
+            fd.append("unitId", unitId);
+            fd.append("jenis", "retention");
+            fd.append("file", file); // Appended last
+
+            try {
+              const uploadRes = await documentationAPI.upload(fd, {
+                onUploadProgress: (progressEvent) => {
+                  const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                  const totalPercent = Math.round(((i * 100) + percentCompleted) / filesToUpload.length);
+                  toast(
+                    { title: "Mengunggah Foto", description: `File ${i + 1} dari ${filesToUpload.length}` }, 
+                    "info", 
+                    { id: toastId, progress: totalPercent }
+                  );
+                }
+              });
+              
+              const url = uploadRes.data?.data?.url || uploadRes.data?.data?.fileUrl;
+              if (url) {
+                if (type === 'before') currentBeforeUrls.push(url);
+                if (type === 'after') currentAfterUrls.push(url);
+                successCount++;
+              }
+            } catch (err) {
+              const errInfo = extractError(err);
+              toast(`Gagal upload file ke-${i+1}: ${errInfo.description || errInfo}`, "error");
+            }
+          }
+
+          // Final update to attach URLs
+          if (successCount > 0) {
+            await retentionsAPI.updateComplaint(retention.id, complaintId, {
+              ...payload,
+              photoBeforeUrls: currentBeforeUrls,
+              photoAfterUrls: currentAfterUrls
+            });
+            toast({ title: "Upload Selesai", description: `${successCount} foto berhasil diunggah` }, "success", { id: toastId });
+            loadComplaints();
+          } else {
+            toast({ title: "Upload Gagal", description: "Semua unggahan foto gagal diproses" }, "error", { id: toastId });
+          }
+        })();
+      }
+
     } catch (err) {
       toast(extractError(err), 'error');
     } finally {
@@ -100,9 +154,9 @@ export default function ComplaintManager({ retention, isRole, unitId }) {
   };
 
   const openCreate = () => {
-    setForm({ description: '', status: 'pending', photoBeforeUrl: '', photoAfterUrl: '' });
-    setPhotoBeforeFile(null);
-    setPhotoAfterFile(null);
+    setForm({ description: '', status: 'pending', photoBeforeUrls: [], photoAfterUrls: [] });
+    setPhotoBeforeFiles([]);
+    setPhotoAfterFiles([]);
     setModal({ open: true, mode: 'create', data: null });
   };
 
@@ -110,11 +164,11 @@ export default function ComplaintManager({ retention, isRole, unitId }) {
     setForm({
       description: c.description || '',
       status: c.status || 'pending',
-      photoBeforeUrl: c.photo_before_url ?? c.photoBeforeUrl ?? '',
-      photoAfterUrl: c.photo_after_url ?? c.photoAfterUrl ?? '',
+      photoBeforeUrls: c.photo_before_urls ?? c.photoBeforeUrls ?? [],
+      photoAfterUrls: c.photo_after_urls ?? c.photoAfterUrls ?? [],
     });
-    setPhotoBeforeFile(null);
-    setPhotoAfterFile(null);
+    setPhotoBeforeFiles([]);
+    setPhotoAfterFiles([]);
     setModal({ open: true, mode: 'edit', data: c });
   };
 
@@ -166,21 +220,29 @@ export default function ComplaintManager({ retention, isRole, unitId }) {
               </div>
 
               <div className="grid grid-cols-2 gap-3 mt-3">
-                {(c.photo_before_url ?? c.photoBeforeUrl) ? (
+                {((c.photo_before_urls ?? c.photoBeforeUrls)?.length > 0) ? (
                   <div>
-                    <span className="font-semibold block mb-1.5 text-[10px] uppercase tracking-wide text-slate-500">Foto Keluhan (Sebelum)</span>
-                    <a href={c.photo_before_url ?? c.photoBeforeUrl} target="_blank" rel="noopener noreferrer" className="block aspect-video rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-black/5">
-                      <img src={c.photo_before_url ?? c.photoBeforeUrl} alt="Before" className="w-full h-full object-cover hover:scale-105 transition-transform" />
-                    </a>
+                    <span className="font-semibold block mb-1.5 text-[10px] uppercase tracking-wide text-slate-500">Foto Keluhan ({Math.max(c.photo_before_urls?.length || 0, c.photoBeforeUrls?.length || 0)})</span>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(c.photo_before_urls ?? c.photoBeforeUrls).map((url, i) => (
+                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block aspect-video rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-black/5">
+                          <img src={url} alt={`Before ${i+1}`} className="w-full h-full object-cover hover:scale-105 transition-transform" />
+                        </a>
+                      ))}
+                    </div>
                   </div>
                 ) : <div />}
                 
-                {(c.photo_after_url ?? c.photoAfterUrl) ? (
+                {((c.photo_after_urls ?? c.photoAfterUrls)?.length > 0) ? (
                   <div>
-                    <span className="font-semibold block mb-1.5 text-[10px] uppercase tracking-wide text-emerald-600 dark:text-emerald-500">Foto Perbaikan (Sesudah)</span>
-                    <a href={c.photo_after_url ?? c.photoAfterUrl} target="_blank" rel="noopener noreferrer" className="block aspect-video rounded-lg overflow-hidden border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-900/10">
-                      <img src={c.photo_after_url ?? c.photoAfterUrl} alt="After" className="w-full h-full object-cover hover:scale-105 transition-transform" />
-                    </a>
+                    <span className="font-semibold block mb-1.5 text-[10px] uppercase tracking-wide text-emerald-600 dark:text-emerald-500">Foto Perbaikan ({Math.max(c.photo_after_urls?.length || 0, c.photoAfterUrls?.length || 0)})</span>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(c.photo_after_urls ?? c.photoAfterUrls).map((url, i) => (
+                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block aspect-video rounded-lg overflow-hidden border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-900/10">
+                          <img src={url} alt={`After ${i+1}`} className="w-full h-full object-cover hover:scale-105 transition-transform" />
+                        </a>
+                      ))}
+                    </div>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center aspect-video rounded-lg border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
@@ -229,28 +291,36 @@ export default function ComplaintManager({ retention, isRole, unitId }) {
               <input
                 type="file"
                 accept="image/*"
-                onChange={e => setPhotoBeforeFile(e.target.files[0])}
+                multiple
+                onChange={e => setPhotoBeforeFiles(Array.from(e.target.files))}
                 className="input text-sm p-1.5 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-amber-50 file:text-amber-700 dark:file:bg-amber-900/30 dark:file:text-amber-400 hover:file:bg-amber-100"
               />
-              {(photoBeforeFile || form.photoBeforeUrl) && (
-                <div className="mt-2 text-xs text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1">
-                  <CheckCircle className="w-3 h-3" /> Foto tersedia
-                </div>
-              )}
+              <div className="mt-2 text-xs text-amber-600 dark:text-amber-400 font-medium flex flex-col gap-1">
+                {(form.photoBeforeUrls?.length > 0) && (
+                   <span className="flex items-center gap-1"><CheckCircle className="w-3 h-3" /> {form.photoBeforeUrls.length} foto tersimpan</span>
+                )}
+                {(photoBeforeFiles.length > 0) && (
+                   <span className="flex items-center gap-1 text-slate-500"><Plus className="w-3 h-3" /> {photoBeforeFiles.length} foto baru siap diunggah</span>
+                )}
+              </div>
             </div>
             <div className="space-y-1.5">
               <label className="label">Foto Perbaikan (Sesudah)</label>
               <input
                 type="file"
                 accept="image/*"
-                onChange={e => setPhotoAfterFile(e.target.files[0])}
+                multiple
+                onChange={e => setPhotoAfterFiles(Array.from(e.target.files))}
                 className="input text-sm p-1.5 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 dark:file:bg-emerald-900/30 dark:file:text-emerald-400 hover:file:bg-emerald-100"
               />
-              {(photoAfterFile || form.photoAfterUrl) && (
-                <div className="mt-2 text-xs text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
-                  <CheckCircle className="w-3 h-3" /> Foto tersedia
-                </div>
-              )}
+              <div className="mt-2 text-xs text-emerald-600 dark:text-emerald-400 font-medium flex flex-col gap-1">
+                {(form.photoAfterUrls?.length > 0) && (
+                   <span className="flex items-center gap-1"><CheckCircle className="w-3 h-3" /> {form.photoAfterUrls.length} foto tersimpan</span>
+                )}
+                {(photoAfterFiles.length > 0) && (
+                   <span className="flex items-center gap-1 text-slate-500"><Plus className="w-3 h-3" /> {photoAfterFiles.length} foto baru siap diunggah</span>
+                )}
+              </div>
             </div>
           </div>
 
