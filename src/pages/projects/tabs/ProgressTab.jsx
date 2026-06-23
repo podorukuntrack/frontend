@@ -311,7 +311,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
   // --- Handlers Pembayaran ---
   const handleOpenEditPayment = (p) => {
     setPayForm({
-      jumlah_bayar: p.jumlah_bayar,
+      jumlah_bayar: p.jumlah_bayar ? Number(p.jumlah_bayar) : 0,
       tanggal_bayar: p.tanggal_bayar?.split("T")[0] || "",
       catatan: p.catatan || "",
     });
@@ -954,7 +954,12 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
               value={!payForm.jumlah_bayar ? '' : payForm.jumlah_bayar.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
               onChange={(e) => {
                 const rawValue = e.target.value.replace(/[^0-9]/g, '');
-                setPayForm((f) => ({ ...f, jumlah_bayar: rawValue ? Number(rawValue) : '' }));
+                let numValue = rawValue ? Number(rawValue) : '';
+                if (numValue !== '') {
+                  const maxAllowed = payModal.mode === "edit" ? payModal.oldAmount + sisaTagihan : sisaTagihan;
+                  if (numValue > maxAllowed) numValue = maxAllowed;
+                }
+                setPayForm((f) => ({ ...f, jumlah_bayar: numValue }));
               }}
             />
           </div>

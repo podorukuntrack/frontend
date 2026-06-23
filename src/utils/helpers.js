@@ -67,7 +67,9 @@ export const extractError = (err) => {
     description = 'Anda tidak memiliki hak akses atau otorisasi untuk melakukan tindakan ini.';
   } else if (status === 404) {
     title = 'Data Tidak Ditemukan';
-    description = 'Data yang Anda cari atau coba proses tidak dapat ditemukan di sistem.';
+    description = rawMessage && !rawMessage.toLowerCase().includes('not found') 
+        ? rawMessage 
+        : 'Data yang Anda cari atau coba proses tidak dapat ditemukan di sistem.';
   } else if (status >= 500) {
     title = 'Kesalahan Server';
     description = 'Mohon maaf, terjadi gangguan pada server kami. Tim teknis sedang menangani kendala ini.';

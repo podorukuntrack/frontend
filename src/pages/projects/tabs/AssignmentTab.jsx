@@ -134,8 +134,14 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
       return;
     }
 
-    if (form.tipe_pembayaran === 'cash_lunas' && !assignment && !payFile && form.harga_total > 0) {
+    const isChangingToCashLunas = assignment && assignment.pembayaran?.tipe !== 'cash_lunas' && form.tipe_pembayaran === 'cash_lunas';
+    if (form.tipe_pembayaran === 'cash_lunas' && (!assignment || isChangingToCashLunas) && !payFile && form.harga_total > 0) {
       toast('Bukti pembayaran wajib dilampirkan untuk tipe Cash Lunas', 'error');
+      return;
+    }
+
+    if (assignment && assignment.pembayaran?.total_dibayar > form.harga_total) {
+      toast(`Harga Total tidak boleh lebih kecil dari yang sudah dibayar (Rp ${formatCurrency(assignment.pembayaran.total_dibayar)})`, 'error');
       return;
     }
 
@@ -441,7 +447,7 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
                       <textarea className="input" rows="2" value={form.keterangan_kpr} onChange={e => setForm({...form, keterangan_kpr: e.target.value})} placeholder="Catatan..."></textarea>
                     </div>
                   )}
-                  {form.tipe_pembayaran === 'cash_lunas' && !assignment && form.harga_total > 0 && (
+                  {form.tipe_pembayaran === 'cash_lunas' && (!assignment || assignment.pembayaran?.tipe !== 'cash_lunas') && form.harga_total > 0 && (
                     <div className="md:col-span-2 mt-2 p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800/50">
                       <label className="label text-indigo-900 dark:text-indigo-300">
                         Upload Bukti Pembayaran <span className="text-rose-500">*</span>
