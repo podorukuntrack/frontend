@@ -78,9 +78,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
   // Kalkulasi Dana
   const isCashLunas = assignment?.pembayaran?.tipe === "cash_lunas";
   const hargaTotal = assignment?.pembayaran?.harga_total || 0;
-  const totalDibayar = isCashLunas
-    ? hargaTotal
-    : assignment?.pembayaran?.total_dibayar || 0;
+  const totalDibayar = assignment?.pembayaran?.total_dibayar || 0;
   const sisaTagihan = hargaTotal - totalDibayar;
 
   useEffect(() => {
