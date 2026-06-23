@@ -88,13 +88,15 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Fetch History Fisik & Timelines
-        const [rProg, rTime] = await Promise.all([
+        // Fetch everything in parallel
+        const [rProg, rTime, rDocsRes, rPayRes] = await Promise.allSettled([
           progressAPI.list({ unitId: unit.id }),
           timelinesAPI.list({ unitId: unit.id }),
+          documentationAPI.list({ unitId: unit.id }),
+          assignment ? assignmentsAPI.getPayments(assignment.id) : Promise.resolve({ data: { data: [] } })
         ]);
 
-        const filteredFisik = (rProg.data?.data || [])
+        const filteredFisik = (rProg.status === 'fulfilled' ? rProg.value.data?.data || [] : [])
           .filter((p) => {
             const pid = p.unit_id ?? p.unitId;
             return pid && String(pid) === String(unit.id);
@@ -105,17 +107,14 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
               new Date(x.tanggal_update || x.tanggalUpdate),
           );
 
-        // Filter timelines by unit as safety net (backend now also filters by unitId)
-        const unitTimelines = (rTime.data?.data || []).filter((t) => {
+        const unitTimelines = (rTime.status === 'fulfilled' ? rTime.value.data?.data || [] : []).filter((t) => {
           const tid = t.unit_id ?? t.unitId;
           return tid && String(tid) === String(unit.id);
         });
 
-        // Fetch docs for this unit and map by progress_id
         let dMap = {};
-        try {
-          const rDocs = await documentationAPI.list({ unitId: unit.id });
-          const docs = rDocs.data?.data || [];
+        if (rDocsRes.status === 'fulfilled') {
+          const docs = rDocsRes.value.data?.data || [];
           docs.forEach((d) => {
             const pid = d.progressId || d.progress_id;
             if (pid) {
@@ -123,35 +122,10 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
               dMap[pid].push(d);
             }
           });
-          setDocsMap(dMap);
-        } catch (err) {
-          // docs are optional, don't block progress
         }
-
-        // Fetch History Dana
-        let fDana = [];
-        let pPct = isCashLunas
-          ? 100
-          : Number(assignment?.pembayaran?.persentase_dibayar || 0);
-
-        if (assignment) {
-          if (!isCashLunas) {
-            const rPay = await assignmentsAPI.getPayments(assignment.id);
-            fDana = rPay.data?.data || [];
-          } else {
-            fDana = [
-              {
-                id: "lunas-auto",
-                jumlah_bayar: hargaTotal,
-                tanggal_bayar:
-                  assignment.tanggal_pembelian || new Date().toISOString(),
-                catatan:
-                  "Pembayaran Cash Lunas diselesaikan secara penuh pada saat transaksi pembelian unit.",
-                dicatat_oleh: "Sistem Otomatis",
-              },
-            ];
-          }
-        }
+        
+        let fDana = rPayRes.status === 'fulfilled' ? rPayRes.value.data?.data || [] : [];
+        let pPct = isCashLunas ? 100 : Number(assignment?.pembayaran?.persentase_dibayar || 0);
 
         if (isMounted) {
           setHistoryFisik(filteredFisik);
@@ -335,52 +309,72 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
   };
 
   // --- Handlers Pembayaran ---
+  const handleOpenEditPayment = (p) => {
+    setPayForm({
+      jumlah_bayar: p.jumlah_bayar,
+      tanggal_bayar: p.tanggal_bayar?.split("T")[0] || "",
+      catatan: p.catatan || "",
+    });
+    setPayModal({ open: true, mode: "edit", editId: p.id, oldAmount: p.jumlah_bayar });
+  };
+
   const handleSavePay = async (e) => {
     e.preventDefault();
 
-    if (!payFile) {
+    if (payModal.mode === "create" && !payFile) {
       toast("Bukti pembayaran (gambar) wajib diunggah", "error");
       return;
     }
 
     setSaving(true);
     try {
-      // 1. Upload foto bukti pembayaran dulu
-      const fd = new FormData();
-      fd.append("unitId", unit.id);
-      fd.append("jenis", "foto"); // sebagai foto
-      fd.append("file", payFile);
-
       let uploadedUrl = null;
-      try {
-        const rDocs = await documentationAPI.upload(fd);
-        uploadedUrl = rDocs.data?.data?.url || rDocs.data?.data?.fileUrl || rDocs.data?.fileUrl;
-      } catch (uploadErr) {
-        throw new Error("Gagal mengunggah bukti pembayaran: " + (uploadErr.response?.data?.message || uploadErr.message));
-      }
+      if (payFile) {
+        const fd = new FormData();
+        fd.append("unitId", unit.id);
+        fd.append("jenis", "foto"); // sebagai foto
+        fd.append("file", payFile);
 
-      if (!uploadedUrl) {
-        throw new Error("Gagal mendapatkan URL bukti pembayaran");
+        try {
+          const rDocs = await documentationAPI.upload(fd);
+          uploadedUrl = rDocs.data?.data?.url || rDocs.data?.data?.fileUrl || rDocs.data?.fileUrl;
+        } catch (uploadErr) {
+          throw new Error("Gagal mengunggah bukti pembayaran: " + (uploadErr.response?.data?.message || uploadErr.message));
+        }
+
+        if (!uploadedUrl) {
+          throw new Error("Gagal mendapatkan URL bukti pembayaran");
+        }
       }
 
       const payload = {
-        ...payForm,
         jumlah_bayar: Number(payForm.jumlah_bayar),
         tanggal_bayar: new Date(payForm.tanggal_bayar).toISOString(),
-        bukti_pembayaran: uploadedUrl,
+        catatan: payForm.catatan,
       };
 
-      if (payload.jumlah_bayar > sisaTagihan) {
-        toast(
-          `Gagal: Maksimal pembayaran adalah ${formatCurrency(sisaTagihan)}`,
-          "error",
-        );
-        setSaving(false);
-        return;
+      if (uploadedUrl) {
+        payload.bukti_pembayaran = uploadedUrl;
       }
 
-      await assignmentsAPI.createPayment(assignment.id, payload);
-      toast("Pembayaran berhasil dicatat", "success");
+      if (payModal.mode === "edit") {
+        const diff = payload.jumlah_bayar - payModal.oldAmount;
+        if (diff > sisaTagihan) {
+          toast(`Gagal: Maksimal penambahan pembayaran adalah ${formatCurrency(sisaTagihan)}`, "error");
+          setSaving(false);
+          return;
+        }
+        await assignmentsAPI.updatePayment(assignment.id, payModal.editId, payload);
+        toast("Pembayaran berhasil diperbarui", "success");
+      } else {
+        if (payload.jumlah_bayar > sisaTagihan) {
+          toast(`Gagal: Maksimal pembayaran adalah ${formatCurrency(sisaTagihan)}`, "error");
+          setSaving(false);
+          return;
+        }
+        await assignmentsAPI.createPayment(assignment.id, payload);
+        toast("Pembayaran berhasil dicatat", "success");
+      }
 
       setPayModal({ open: false, mode: "view" });
       setPayFile(null); // Reset file
@@ -585,7 +579,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
 
           <div className="p-4 flex-1 flex flex-col">
             <div
-              className={`p-4 rounded-xl flex justify-between border mb-4 ${sisaTagihan <= 0 ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800" : "bg-slate-50 border-slate-100 dark:bg-slate-800 dark:border-slate-700"}`}
+              className={`p-4 rounded-xl flex flex-col sm:flex-row justify-between gap-3 sm:gap-0 border mb-4 ${sisaTagihan <= 0 ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800" : "bg-slate-50 border-slate-100 dark:bg-slate-800 dark:border-slate-700"}`}
             >
               <div>
                 <p
@@ -633,13 +627,22 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                         {formatCurrency(p.jumlah_bayar)}
                       </p>
                       {isRole("admin", "super_admin") && (
-                         <button
-                           onClick={() => handleDeletePayment(p.id)}
-                           className="p-1 rounded-md text-slate-400 hover:text-rose-600 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                           title="Hapus Pembayaran"
-                         >
-                           <Trash2 className="w-3 h-3" />
-                         </button>
+                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                           <button
+                             onClick={() => handleOpenEditPayment(p)}
+                             className="p-1 rounded-md text-slate-400 hover:text-indigo-600 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600"
+                             title="Edit Pembayaran"
+                           >
+                             <Pencil className="w-3 h-3" />
+                           </button>
+                           <button
+                             onClick={() => handleDeletePayment(p.id)}
+                             className="p-1 rounded-md text-slate-400 hover:text-rose-600 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600"
+                             title="Hapus Pembayaran"
+                           >
+                             <Trash2 className="w-3 h-3" />
+                           </button>
+                         </div>
                       )}
                     </div>
                     <div className="flex items-center text-xs text-slate-500 mt-1 gap-2">
@@ -671,8 +674,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
             </div>
 
             {isRole("admin", "super_admin") &&
-              sisaTagihan > 0 &&
-              !isCashLunas && (
+              sisaTagihan > 0 && (
                 <button
                   className="btn-primary !bg-emerald-600 hover:!bg-emerald-700 w-full mt-auto"
                   onClick={() => {
@@ -930,13 +932,15 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
       <Modal
         open={payModal.open}
         onClose={() => setPayModal({ open: false, mode: "view" })}
-        title={`Catat Pembayaran: Unit ${unit.nomor_unit}`}
+        title={payModal.mode === "edit" ? `Edit Pembayaran` : `Catat Pembayaran: Unit ${unit.nomor_unit}`}
       >
         <form onSubmit={handleSavePay} className="space-y-4">
           <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 p-3 rounded-lg text-sm border border-amber-200 dark:border-amber-800/50 mb-4">
-            Sisa tagihan yang harus dilunasi adalah{" "}
-            <strong>{formatCurrency(sisaTagihan)}</strong>. Anda tidak dapat
-            menginput melebihi nominal ini.
+            {payModal.mode === "edit" ? (
+              <>Maksimal tagihan yang bisa ditambahkan dari nominal sekarang adalah <strong>{formatCurrency(sisaTagihan)}</strong>.</>
+            ) : (
+              <>Sisa tagihan yang harus dilunasi adalah <strong>{formatCurrency(sisaTagihan)}</strong>. Anda tidak dapat menginput melebihi nominal ini.</>
+            )}
           </div>
 
           <div className="space-y-1.5">
@@ -980,10 +984,10 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
           </div>
 
           <div className="space-y-1.5">
-            <label className="label">Bukti Pembayaran (Gambar) <span className="text-rose-500">*</span></label>
+            <label className="label">Bukti Pembayaran (Gambar) {payModal.mode === "create" && <span className="text-rose-500">*</span>}</label>
             <input
               type="file"
-              required
+              required={payModal.mode === "create"}
               accept="image/*"
               className="input file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-emerald-900/30 dark:file:text-emerald-400"
               onChange={(e) => setPayFile(e.target.files[0])}

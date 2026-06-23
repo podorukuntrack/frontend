@@ -63,6 +63,7 @@ export const assignmentsAPI = {
   delete: (id) => api.delete(`/assignments/${id}`),
   getPayments: (id) => api.get(`/assignments/${id}/payments`),
   createPayment: (id, data) => api.post(`/assignments/${id}/payments`, data),
+  updatePayment: (id, paymentId, data) => api.patch(`/assignments/${id}/payments/${paymentId}`, data),
   deletePayment: (id, paymentId) => api.delete(`/assignments/${id}/payments/${paymentId}`),
 };
 

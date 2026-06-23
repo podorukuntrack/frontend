@@ -20,9 +20,9 @@ export default function TimelineTab({ unit, project, onUpdate }) {
   const loadData = async () => {
     setLoading(true);
     try {
-      const res = await timelinesAPI.list({ limit: 100 });
-      // Filter by unitId
-      const data = (res.data?.data || []).filter(t => String(t.unitId) === String(unit.id));
+      const res = await timelinesAPI.list({ unitId: unit.id, limit: 100 });
+      // Filter by unitId for safety
+      const data = (res.data?.data || []).filter(t => String(t.unitId) === String(unit.id) || String(t.unit_id) === String(unit.id));
       setTimelines(data);
     } catch (err) {
       toast(extractError(err), 'error');

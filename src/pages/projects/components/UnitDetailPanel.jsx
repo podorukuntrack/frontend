@@ -81,22 +81,21 @@ export default function UnitDetailPanel({ unit, cluster, project }) {
       const unitRes = await unitsAPI.get(unit.id);
       if (unitRes.data?.data) setCurrentUnit(unitRes.data.data);
 
-      // Fetch assignment untuk unit ini
-      const asgRes = await assignmentsAPI.list({ limit: 2000 });
+      const [asgRes, progRes, hoRes] = await Promise.all([
+        assignmentsAPI.list({ unitId: unit.id, limit: 1 }),
+        progressAPI.list({ unitId: unit.id }),
+        handoversAPI.list({ unitId: unit.id })
+      ]);
+
       const currentAsg = (asgRes.data?.data || []).find(a => 
          String(a.unit_id) === String(unit.id) || String(a.unit?.id) === String(unit.id)
       );
       if (currentAsg) setAssignment(currentAsg);
 
-      // Fetch progress
-      const progRes = await progressAPI.list();
-      const currentProg = (progRes.data?.data || []).filter(p => String(p.unit_id) === String(unit.id));
+      const currentProg = (progRes.data?.data || []).filter(p => String(p.unit_id) === String(unit.id) || String(p.unitId) === String(unit.id));
       setProgressData(currentProg);
 
-      // Fetch handover (filter by unitId)
-      const hoRes = await handoversAPI.list({ unitId: unit.id });
       const allHo = hoRes.data?.data || [];
-      // Cari handover yang selesai dulu, kalau tidak ada ambil yang aktif
       const completedHo = allHo.find(h => h.status === 'selesai' || h.status === 'completed');
       const currentHo = completedHo ?? allHo[0];
       if (currentHo) setHandover(currentHo);

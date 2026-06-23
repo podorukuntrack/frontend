@@ -5,24 +5,23 @@ import {
   Navigate,
   useNavigate,
 } from "react-router-dom";
-import { useEffect } from "react"; // ✅ tambah useEffect
+import { useEffect, lazy, Suspense } from "react"; // ✅ tambah useEffect, lazy, Suspense
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ToastContainer } from "./components/ui";
 import AppLayout from "./components/layout/AppLayout";
 import { navigateRef } from "./api/client"; // ✅ tambah import ini
 
-import LoginPage from "./pages/auth/LoginPage";
-import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
-import DashboardPage from "./pages/dashboard/DashboardPage";
-import ProjectsPage from "./pages/projects/ProjectsPage";
-import UsersPage from "./pages/users/UsersPage";
-import CompaniesPage from "./pages/companies/CompaniesPage";
+const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
+const ForgotPasswordPage = lazy(() => import("./pages/auth/ForgotPasswordPage"));
+const DashboardPage = lazy(() => import("./pages/dashboard/DashboardPage"));
+const ProjectsPage = lazy(() => import("./pages/projects/ProjectsPage"));
+const UsersPage = lazy(() => import("./pages/users/UsersPage"));
+const CompaniesPage = lazy(() => import("./pages/companies/CompaniesPage"));
 
 // Halaman Error & Proteksi
-import UnauthorizedPage from "./pages/UnauthorizedPage";
-import NotFoundPage from "./pages/NotFoundPage";
-
-import ServerErrorPage from "./pages/ServerErrorPage"; // ✅ tambah import ini
+const UnauthorizedPage = lazy(() => import("./pages/UnauthorizedPage"));
+const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
+const ServerErrorPage = lazy(() => import("./pages/ServerErrorPage"));
 
 function NavigateSetter() {
   const navigate = useNavigate();
@@ -90,7 +89,12 @@ function AppRoutes() {
   }, [user]);
 
   return (
-    <Routes>
+    <Suspense fallback={
+      <div className="min-h-screen w-full flex items-center justify-center bg-slate-50 dark:bg-slate-900">
+        <div className="w-10 h-10 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin"></div>
+      </div>
+    }>
+      <Routes>
       {/* Rute Publik */}
       <Route
         path="/login"
@@ -155,7 +159,8 @@ function AppRoutes() {
       {/* ✅ tambah ini */}
       {/* 404 Wildcard (Harus diletakkan paling bawah) */}
       <Route path="*" element={<NotFoundPage />} />
-    </Routes>
+      </Routes>
+    </Suspense>
   );
 }
 
