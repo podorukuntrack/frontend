@@ -123,7 +123,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
         }
         
         let fDana = rPayRes.status === 'fulfilled' ? rPayRes.value.data?.data || [] : [];
-        let pPct = isCashLunas ? 100 : Number(assignment?.pembayaran?.persentase_dibayar || 0);
+        let pPct = hargaTotal > 0 ? Math.min(100, (totalDibayar / hargaTotal) * 100) : 0;
 
         if (isMounted) {
           setHistoryFisik(filteredFisik);
