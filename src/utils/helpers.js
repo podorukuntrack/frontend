@@ -96,6 +96,6 @@ export const formatCurrency = (amount, showDecimal = false) => {
     currency: 'IDR',
     // Jika tidak ingin ada desimal (.00), set minimumFractionDigits ke 0
     minimumFractionDigits: showDecimal ? 2 : 0,
-    maximumFractionDigits: 2,
+    maximumFractionDigits: showDecimal ? 2 : 0,
   }).format(amount);
 };

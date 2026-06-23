@@ -315,7 +315,8 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
       tanggal_bayar: p.tanggal_bayar?.split("T")[0] || "",
       catatan: p.catatan || "",
     });
-    setPayModal({ open: true, mode: "edit", editId: p.id, oldAmount: p.jumlah_bayar });
+    setPayModal({ open: true, mode: "edit", editId: p.id, oldAmount: p.jumlah_bayar, existingUrl: p.bukti_pembayaran });
+    setPayFile(null);
   };
 
   const handleSavePay = async (e) => {
@@ -985,6 +986,19 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
 
           <div className="space-y-1.5">
             <label className="label">Bukti Pembayaran (Gambar) {payModal.mode === "create" && <span className="text-rose-500">*</span>}</label>
+            {payModal.mode === "edit" && payModal.existingUrl && (
+              <div className="mb-2 p-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                <p className="text-xs text-slate-500 mb-2">Bukti Pembayaran Saat Ini:</p>
+                <img 
+                  src={payModal.existingUrl} 
+                  alt="Bukti Pembayaran" 
+                  className="h-24 w-auto rounded border border-slate-300 dark:border-slate-600 object-cover"
+                />
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                  *Abaikan input file di bawah jika tidak ingin mengganti bukti pembayaran ini.
+                </p>
+              </div>
+            )}
             <input
               type="file"
               required={payModal.mode === "create"}
