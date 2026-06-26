@@ -14,7 +14,6 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [payFile, setPayFile] = useState(null);
   
   // Search state
   const [searchTerm, setSearchTerm] = useState('');
@@ -134,12 +133,6 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
       return;
     }
 
-    const isChangingToCashLunas = assignment && assignment.pembayaran?.tipe !== 'cash_lunas' && form.tipe_pembayaran === 'cash_lunas';
-    if (form.tipe_pembayaran === 'cash_lunas' && (!assignment || isChangingToCashLunas) && !payFile && form.harga_total > 0) {
-      toast('Bukti pembayaran wajib dilampirkan untuk tipe Cash Lunas', 'error');
-      return;
-    }
-
     if (assignment && assignment.pembayaran?.total_dibayar > form.harga_total) {
       toast(`Harga Total tidak boleh lebih kecil dari yang sudah dibayar (Rp ${formatCurrency(assignment.pembayaran.total_dibayar)})`, 'error');
       return;
@@ -153,24 +146,6 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
 
     setSaving(true);
     try {
-      let uploadedUrl = null;
-      if (payFile && form.tipe_pembayaran === 'cash_lunas') {
-        const fd = new FormData();
-        fd.append("unitId", unit.id);
-        fd.append("jenis", "foto");
-        fd.append("file", payFile);
-
-        try {
-          const rDocs = await documentationAPI.upload(fd);
-          uploadedUrl = rDocs.data?.data?.url || rDocs.data?.data?.fileUrl || rDocs.data?.fileUrl;
-        } catch (uploadErr) {
-          throw new Error("Gagal mengunggah bukti pembayaran: " + (uploadErr.response?.data?.message || uploadErr.message));
-        }
-
-        if (!uploadedUrl) {
-          throw new Error("Gagal mendapatkan URL bukti pembayaran");
-        }
-      }
       const payload = {
         project_id: project.id,
         cluster_id: unit.cluster_id || unit.cluster?.id,
@@ -184,10 +159,6 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
         status_kepemilikan: form.status_kepemilikan
       };
 
-      if (uploadedUrl) {
-        payload.bukti_pembayaran = uploadedUrl;
-      }
-
       if (!assignment) {
         await assignmentsAPI.create(payload);
         toast('Penugasan berhasil dibuat', 'success');
@@ -196,7 +167,6 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
         toast('Data penugasan diperbarui', 'success');
       }
       setIsEditing(false);
-      setPayFile(null);
       await loadData();
       if (onAssigned) onAssigned(); // Panggil ini agar tab lain terbuka!
     } catch (err) {
@@ -445,23 +415,6 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
                     <div className="md:col-span-2">
                       <label className="label">Keterangan / Bank KPR</label>
                       <textarea className="input" rows="2" value={form.keterangan_kpr} onChange={e => setForm({...form, keterangan_kpr: e.target.value})} placeholder="Catatan..."></textarea>
-                    </div>
-                  )}
-                  {form.tipe_pembayaran === 'cash_lunas' && (!assignment || assignment.pembayaran?.tipe !== 'cash_lunas') && form.harga_total > 0 && (
-                    <div className="md:col-span-2 mt-2 p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800/50">
-                      <label className="label text-indigo-900 dark:text-indigo-300">
-                        Upload Bukti Pembayaran <span className="text-rose-500">*</span>
-                      </label>
-                      <input 
-                        type="file" 
-                        accept="image/*"
-                        className="input mt-1 bg-white dark:bg-slate-900"
-                        onChange={(e) => setPayFile(e.target.files[0])}
-                        required
-                      />
-                      <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-2">
-                        Karena Anda memilih <b>Cash Lunas</b>, sistem akan otomatis mencatat riwayat pembayaran sebesar {formatCurrency(form.harga_total)}. Silakan lampirkan bukti transaksinya.
-                      </p>
                     </div>
                   )}
                 </div>
