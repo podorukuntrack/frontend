@@ -80,8 +80,10 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
   const tipePembayaran = assignment?.pembayaran?.tipe;
   const isCashLunas = tipePembayaran === "cash_lunas";
   const isKpr = tipePembayaran === "kredit_kpr";
+  const isCicil = tipePembayaran === "cash_cicil";
   const dp = assignment?.pembayaran?.dp || 0;
   const hargaTotal = assignment?.pembayaran?.harga_total || 0;
+  const tenorBulan = assignment?.pembayaran?.tenor_bulan || 0;
   const targetTagihan = isKpr ? dp : hargaTotal;
   const totalDibayar = assignment?.pembayaran?.total_dibayar || 0;
   const sisaTagihan = targetTagihan - totalDibayar;
@@ -582,23 +584,42 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
           />
 
           <div className="p-4 flex-1 flex flex-col">
-            {isKpr ? (
+            {isCicil ? (
               <div className="flex flex-col mb-4">
                 <div className="bg-slate-100/80 dark:bg-slate-800/50 p-3.5 px-4 rounded-t-xl border border-b-0 border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                  <p className="text-xs uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">
-                    Harga Keseluruhan Rumah
-                  </p>
-                  <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                    {formatCurrency(hargaTotal)}
-                  </p>
+                  <p className="text-xs uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">Harga Keseluruhan Rumah</p>
+                  <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{formatCurrency(hargaTotal)}</p>
                 </div>
-                <div
-                  className={`p-4 rounded-b-xl flex flex-col sm:flex-row justify-between gap-3 sm:gap-0 border ${sisaTagihan <= 0 ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800" : "bg-slate-50 border-slate-200 dark:bg-slate-800 dark:border-slate-700"}`}
-                >
+                <div className="bg-white dark:bg-slate-900 border-x border-slate-200 dark:border-slate-700 p-3 px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <p className="text-xs uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">Tenor</p>
+                  <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{tenorBulan} Bulan</p>
+                </div>
+                <div className={`p-4 rounded-b-xl flex flex-col sm:flex-row justify-between gap-3 sm:gap-0 border ${sisaTagihan <= 0 ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800" : "bg-slate-50 border-slate-200 dark:bg-slate-800 dark:border-slate-700"}`}>
                   <div className="flex-1">
-                    <p className="text-xs mb-0.5 uppercase tracking-wider font-bold text-slate-500">Target DP</p>
-                    <p className="text-base font-bold text-slate-900 dark:text-white">{formatCurrency(targetTagihan)}</p>
+                    <p className={`text-xs mb-0.5 uppercase tracking-wider font-bold ${sisaTagihan <= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-slate-500"}`}>Sudah Dibayar</p>
+                    <p className={`text-base font-bold ${sisaTagihan <= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-emerald-600"}`}>{formatCurrency(totalDibayar)}</p>
                   </div>
+                  <div className="flex-1 sm:text-right">
+                    <p className={`text-xs mb-0.5 uppercase tracking-wider font-bold ${sisaTagihan <= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-slate-500"}`}>{sisaTagihan <= 0 ? "Status" : "Sisa Pembayaran"}</p>
+                    {sisaTagihan <= 0 ? (
+                      <p className="text-base font-bold flex items-center sm:justify-end gap-1 text-emerald-600 dark:text-emerald-400"><CheckCircle className="w-4 h-4" /> LUNAS</p>
+                    ) : (
+                      <p className="text-base font-bold text-slate-800 dark:text-slate-100">{formatCurrency(sisaTagihan)}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : isKpr ? (
+              <div className="flex flex-col mb-4">
+                <div className="bg-slate-100/80 dark:bg-slate-800/50 p-3.5 px-4 rounded-t-xl border border-b-0 border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <p className="text-xs uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">Harga Keseluruhan Rumah</p>
+                  <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{formatCurrency(hargaTotal)}</p>
+                </div>
+                <div className="bg-white dark:bg-slate-900 border-x border-slate-200 dark:border-slate-700 p-3 px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <p className="text-xs uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">Target DP</p>
+                  <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{formatCurrency(targetTagihan)}</p>
+                </div>
+                <div className={`p-4 rounded-b-xl flex flex-col sm:flex-row justify-between gap-3 sm:gap-0 border ${sisaTagihan <= 0 ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800" : "bg-slate-50 border-slate-200 dark:bg-slate-800 dark:border-slate-700"}`}>
                   <div className="flex-1">
                     <p className={`text-xs mb-0.5 uppercase tracking-wider font-bold ${sisaTagihan <= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-slate-500"}`}>DP Dibayar</p>
                     <p className={`text-base font-bold ${sisaTagihan <= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-emerald-600"}`}>{formatCurrency(totalDibayar)}</p>
@@ -606,9 +627,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                   <div className="flex-1 sm:text-right">
                     <p className={`text-xs mb-0.5 uppercase tracking-wider font-bold ${sisaTagihan <= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-slate-500"}`}>{sisaTagihan <= 0 ? "Status DP" : "Sisa DP"}</p>
                     {sisaTagihan <= 0 ? (
-                      <p className="text-base font-bold flex items-center sm:justify-end gap-1 text-emerald-600 dark:text-emerald-400">
-                        <CheckCircle className="w-4 h-4" /> LUNAS
-                      </p>
+                      <p className="text-base font-bold flex items-center sm:justify-end gap-1 text-emerald-600 dark:text-emerald-400"><CheckCircle className="w-4 h-4" /> LUNAS</p>
                     ) : (
                       <p className="text-base font-bold text-slate-800 dark:text-slate-100">{formatCurrency(sisaTagihan)}</p>
                     )}
@@ -616,44 +635,24 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                 </div>
               </div>
             ) : (
-              <div
-                className={`p-4 rounded-xl flex flex-col sm:flex-row justify-between gap-3 sm:gap-0 border mb-4 ${sisaTagihan <= 0 ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800" : "bg-slate-50 border-slate-100 dark:bg-slate-800 dark:border-slate-700"}`}
-              >
-                <div>
-                  <p
-                    className={`text-xs mb-0.5 uppercase tracking-wider font-bold ${sisaTagihan <= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-slate-500"}`}
-                  >
-                    Total Dibayar
-                  </p>
-                  <p
-                    className={`text-base font-bold ${sisaTagihan <= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-emerald-600"}`}
-                  >
-                    {formatCurrency(totalDibayar)}
-                  </p>
+              <div className="flex flex-col mb-4">
+                <div className="bg-slate-100/80 dark:bg-slate-800/50 p-3.5 px-4 rounded-t-xl border border-b-0 border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <p className="text-xs uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">Harga Keseluruhan Rumah</p>
+                  <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{formatCurrency(hargaTotal)}</p>
                 </div>
-                <div>
-                  <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">
-                    Total Tagihan
-                  </p>
-                  <p className="text-xl font-bold text-slate-900 dark:text-white">
-                    {formatCurrency(targetTagihan)}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p
-                    className={`text-xs mb-0.5 uppercase tracking-wider font-bold ${sisaTagihan <= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-slate-500"}`}
-                  >
-                    {sisaTagihan <= 0 ? "Status" : "Sisa Tagihan"}
-                  </p>
-                  {sisaTagihan <= 0 ? (
-                    <p className="text-base font-bold flex items-center justify-end gap-1 text-emerald-600 dark:text-emerald-400">
-                      <CheckCircle className="w-4 h-4" /> LUNAS
-                    </p>
-                  ) : (
-                    <p className="text-base font-bold text-slate-800 dark:text-slate-100">
-                      {formatCurrency(sisaTagihan)}
-                    </p>
-                  )}
+                <div className={`p-4 rounded-b-xl flex flex-col sm:flex-row justify-between gap-3 sm:gap-0 border ${sisaTagihan <= 0 ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800" : "bg-slate-50 border-slate-200 dark:bg-slate-800 dark:border-slate-700"}`}>
+                  <div className="flex-1">
+                    <p className={`text-xs mb-0.5 uppercase tracking-wider font-bold ${sisaTagihan <= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-slate-500"}`}>Sudah Dibayar</p>
+                    <p className={`text-base font-bold ${sisaTagihan <= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-emerald-600"}`}>{formatCurrency(totalDibayar)}</p>
+                  </div>
+                  <div className="flex-1 sm:text-right">
+                    <p className={`text-xs mb-0.5 uppercase tracking-wider font-bold ${sisaTagihan <= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-slate-500"}`}>{sisaTagihan <= 0 ? "Status" : "Sisa Pembayaran"}</p>
+                    {sisaTagihan <= 0 ? (
+                      <p className="text-base font-bold flex items-center sm:justify-end gap-1 text-emerald-600 dark:text-emerald-400"><CheckCircle className="w-4 h-4" /> LUNAS</p>
+                    ) : (
+                      <p className="text-base font-bold text-slate-800 dark:text-slate-100">{formatCurrency(sisaTagihan)}</p>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
