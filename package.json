@@ -14,11 +14,12 @@
     "@headlessui/react": "^2.2.10",
     "@tanstack/react-query": "^5.101.0",
     "axios": "^1.16.0",
+    "flatpickr": "^4.6.13",
     "lucide-react": "^1.14.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
+    "react-flatpickr": "^4.0.11",
     "react-router-dom": "^7.15.0",
-    "react-tailwindcss-datepicker": "^2.0.0",
     "recharts": "^3.8.1"
   },
   "devDependencies": {

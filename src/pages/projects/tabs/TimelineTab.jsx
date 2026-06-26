@@ -5,7 +5,7 @@ import { useToast } from '../../../hooks/useToast';
 import { extractError, formatDate } from '../../../utils/helpers';
 import { useAuth } from '../../../context/AuthContext';
 import { Trash2, Pencil, Plus, Calendar as CalIcon } from 'lucide-react';
-import Datepicker from "react-tailwindcss-datepicker";
+import { CustomDatePicker } from '../../../components/ui';
 
 export default function TimelineTab({ unit, project, onUpdate }) {
   const { isRole } = useAuth();
@@ -144,33 +144,19 @@ export default function TimelineTab({ unit, project, onUpdate }) {
             <div className="grid grid-cols-2 gap-4">
                <div className="space-y-1.5">
                   <label className="label">Tanggal Mulai</label>
-                  <div className="relative border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 shadow-sm focus-within:ring-2 focus-within:ring-indigo-500 hover:border-slate-300 dark:hover:border-slate-600 transition-colors z-[100]">
-                    <Datepicker 
-                      useRange={false} 
-                      asSingle={true} 
-                      value={{ startDate: form.start_date, endDate: form.start_date }} 
-                      onChange={v => setForm({...form, start_date: v?.startDate || ""})} 
-                      displayFormat="DD/MM/YYYY" 
-                      inputClassName="w-full bg-transparent px-4 py-2.5 text-sm text-slate-900 dark:text-white outline-none cursor-pointer placeholder:text-slate-400 dark:placeholder:text-slate-500" 
-                      containerClassName="relative w-full"
-                      popoverDirection="down"
-                      primaryColor="indigo"
+                  <div className="z-[100]">
+                    <CustomDatePicker 
+                      value={form.start_date} 
+                      onChange={v => setForm({...form, start_date: v})} 
                     />
                   </div>
                </div>
                <div className="space-y-1.5">
                   <label className="label">Tanggal Selesai</label>
-                  <div className="relative border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 shadow-sm focus-within:ring-2 focus-within:ring-indigo-500 hover:border-slate-300 dark:hover:border-slate-600 transition-colors z-[100]">
-                    <Datepicker 
-                      useRange={false} 
-                      asSingle={true} 
-                      value={{ startDate: form.end_date, endDate: form.end_date }} 
-                      onChange={v => setForm({...form, end_date: v?.startDate || ""})} 
-                      displayFormat="DD/MM/YYYY" 
-                      inputClassName="w-full bg-transparent px-4 py-2.5 text-sm text-slate-900 dark:text-white outline-none cursor-pointer placeholder:text-slate-400 dark:placeholder:text-slate-500" 
-                      containerClassName="relative w-full"
-                      popoverDirection="down"
-                      primaryColor="indigo"
+                  <div className="z-[100]">
+                    <CustomDatePicker 
+                      value={form.end_date} 
+                      onChange={v => setForm({...form, end_date: v})} 
                     />
                   </div>
                </div>

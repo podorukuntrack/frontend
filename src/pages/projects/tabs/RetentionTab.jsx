@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { retentionsAPI, documentationAPI } from '../../../api/services';
-import { PageLoader, Modal, Confirm } from '../../../components/ui';
-import Datepicker from "react-tailwindcss-datepicker";
+import { PageLoader, Modal, Confirm, CustomDatePicker } from '../../../components/ui';
 import { useToast } from '../../../hooks/useToast';
 import { extractError, formatDate } from '../../../utils/helpers';
 import { useAuth } from '../../../context/AuthContext';
@@ -293,17 +292,10 @@ export default function RetentionTab({ unit }) {
           <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="label">Tanggal Mulai Garansi</label>
-                <div className="relative border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 shadow-sm focus-within:ring-2 focus-within:ring-indigo-500 hover:border-slate-300 dark:hover:border-slate-600 transition-colors z-[100]">
-                  <Datepicker 
-                    useRange={false} 
-                    asSingle={true} 
-                    value={{ startDate: startDate, endDate: startDate }} 
-                    onChange={v => setStartDate(v?.startDate || "")} 
-                    displayFormat="DD/MM/YYYY" 
-                    inputClassName="w-full bg-transparent px-4 py-2.5 text-sm text-slate-900 dark:text-white outline-none cursor-pointer placeholder:text-slate-400 dark:placeholder:text-slate-500" 
-                    containerClassName="relative w-full"
-                    popoverDirection="down"
-                    primaryColor="indigo"
+                <div className="z-[100]">
+                  <CustomDatePicker 
+                    value={startDate} 
+                    onChange={v => setStartDate(v)} 
                   />
                 </div>
               </div>
@@ -322,16 +314,10 @@ export default function RetentionTab({ unit }) {
 
             <div className="space-y-1.5">
               <label className="label">Batas Waktu Garansi (Otomatis Terhitung)</label>
-              <div className="relative border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 shadow-sm cursor-not-allowed">
-                <Datepicker 
-                  useRange={false} 
-                  asSingle={true} 
-                  value={{ startDate: form.due_date, endDate: form.due_date }} 
+              <div className="z-[100]">
+                <CustomDatePicker 
+                  value={form.due_date} 
                   disabled={true}
-                  displayFormat="DD/MM/YYYY" 
-                  inputClassName="w-full bg-transparent px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 font-medium outline-none cursor-not-allowed" 
-                  containerClassName="relative w-full"
-                  primaryColor="indigo"
                 />
               </div>
             </div>
