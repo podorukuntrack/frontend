@@ -1,4 +1,4 @@
-﻿/* Custom styling for react-datepicker to fit the theme */
+/* Custom styling for react-datepicker to fit the theme */
 .custom-datepicker-container .react-datepicker-wrapper {
   width: 100%;
 }
@@ -73,9 +73,29 @@
 .react-datepicker {
   width: max-content;
   min-width: 260px;
+  display: flex !important;
 }
 .react-datepicker__month-container {
-  width: 100%;
+  /* Removed width: 100% to allow time container to sit side-by-side */
+}
+
+/* Dark mode overrides for time container */
+.dark .react-datepicker__time-container {
+  border-left-color: #334155;
+}
+.dark .react-datepicker__time-container .react-datepicker__time {
+  background-color: #1e293b;
+}
+.dark .react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box ul.react-datepicker__time-list li.react-datepicker__time-list-item {
+  color: #cbd5e1;
+}
+.dark .react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box ul.react-datepicker__time-list li.react-datepicker__time-list-item:hover {
+  background-color: #334155;
+  color: #fff;
+}
+.dark .react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box ul.react-datepicker__time-list li.react-datepicker__time-list-item--selected {
+  background-color: #4f46e5 !important;
+  color: #fff !important;
 }
 
 /* Distinguish outside month days */
@@ -87,7 +107,6 @@
   color: #64748b !important;
   opacity: 0.3;
 }
-
 
 /* Hide redundant month text since we have dropdowns */
 .react-datepicker__current-month {
