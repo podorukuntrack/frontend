@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { handoversAPI, documentationAPI } from '../../../api/services';
 import { PageLoader, Modal, Confirm, Lightbox } from '../../../components/ui';
 import CustomDatePicker from '../../../components/ui/CustomDatePicker';
+import DateTimePickerModal from '../../../components/ui/DateTimePickerModal';
 import { useToast } from '../../../hooks/useToast';
 import { extractError, formatDate } from '../../../utils/helpers';
 import { useAuth } from '../../../context/AuthContext';
@@ -46,6 +47,7 @@ export default function HandoverTab({ unit, onHandover }) {
   // Modal: create/edit jadwal
   const [modal, setModal] = useState({ open: false, mode: 'create', data: null });
   const [form, setForm] = useState({ scheduled_date: '', notes: '' });
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   // Modal: konfirmasi hasil serah terima hari H
   const [resultModal, setResultModal] = useState({ open: false, handover: null });
@@ -540,12 +542,27 @@ export default function HandoverTab({ unit, onHandover }) {
         <form onSubmit={handleSave} className="space-y-4">
           <div className="space-y-1.5">
             <label className="label">Tanggal & Waktu Serah Terima</label>
-            <CustomDatePicker
-              value={form.scheduled_date}
-              onChange={(val) => setForm({ ...form, scheduled_date: val })}
-              placeholder="Pilih Tanggal dan Jam"
-              showTimeSelect
+            <div 
+              className="input flex items-center justify-between cursor-pointer w-full text-slate-700 dark:text-slate-300"
+              onClick={() => setShowTimePicker(true)}
+            >
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-slate-400" />
+                <span>
+                  {form.scheduled_date 
+                    ? formatDate(form.scheduled_date, true) 
+                    : <span className="text-slate-400">Pilih Tanggal dan Jam</span>}
+                </span>
+              </div>
+            </div>
+            
+            <DateTimePickerModal 
+              isOpen={showTimePicker}
+              onClose={() => setShowTimePicker(false)}
+              initialValue={form.scheduled_date}
+              onSave={(val) => setForm({ ...form, scheduled_date: val })}
             />
+            
             <p className="text-xs text-slate-500">
               {modal.mode === 'create'
                 ? 'Notifikasi akan dikirim ke aplikasi mobile customer untuk dikonfirmasi.'
