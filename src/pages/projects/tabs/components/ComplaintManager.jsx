@@ -162,6 +162,13 @@ export default function ComplaintManager({ retention, isRole, unitId }) {
 
       await retentionsAPI.updateComplaint(retention.id, complaintId, payload);
       toast('Foto berhasil dihapus', 'success');
+      if (modal.open && modal.data?.id === complaintId) {
+        if (type === 'before') {
+          setForm(prev => ({ ...prev, photoBeforeUrls: prev.photoBeforeUrls.filter(u => u !== urlToRemove) }));
+        } else {
+          setForm(prev => ({ ...prev, photoAfterUrls: prev.photoAfterUrls.filter(u => u !== urlToRemove) }));
+        }
+      }
       loadComplaints();
     } catch (err) {
       toast(extractError(err), 'error');
@@ -313,72 +320,126 @@ export default function ComplaintManager({ retention, isRole, unitId }) {
         open={modal.open}
         onClose={() => setModal({ open: false, mode: 'create', data: null })}
         title={modal.mode === 'create' ? 'Tambah Data Keluhan' : 'Edit Keluhan & Perbaikan'}
+        size="xl"
       >
-        <form onSubmit={handleSave} className="space-y-4">
-          <div className="space-y-1.5">
-            <label className="label">Deskripsi Keluhan <span className="text-rose-500">*</span></label>
-            <textarea
-              className="input resize-none h-20"
-              required
-              value={form.description}
-              onChange={e => setForm({ ...form, description: e.target.value })}
-              placeholder="Jelaskan detail keluhan dari customer..."
-            />
-          </div>
+        <form onSubmit={handleSave} className="flex flex-col gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Left Column: Inputs */}
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+              <div className="space-y-1.5">
+                <label className="label">Deskripsi Keluhan <span className="text-rose-500">*</span></label>
+                <textarea
+                  className="input resize-none h-32"
+                  required
+                  value={form.description}
+                  onChange={e => setForm({ ...form, description: e.target.value })}
+                  placeholder="Jelaskan detail keluhan dari customer..."
+                />
+              </div>
 
-          <div className="space-y-1.5">
-            <label className="label">Status Keluhan</label>
-            <select
-              className="input"
-              value={form.status}
-              onChange={e => setForm({ ...form, status: e.target.value })}
-            >
-              <option value="pending">Menunggu Perbaikan</option>
-              <option value="resolved">Selesai Diperbaiki</option>
-            </select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 pt-2">
-            <div className="space-y-1.5">
-              <label className="label">Foto Keluhan (Sebelum) {modal.mode === 'create' && <span className="text-rose-500">*</span>}</label>
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={e => setPhotoBeforeFiles(Array.from(e.target.files))}
-                className="input text-sm p-1.5 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-amber-50 file:text-amber-700 dark:file:bg-amber-900/30 dark:file:text-amber-400 hover:file:bg-amber-100"
-              />
-              <div className="mt-2 text-xs text-amber-600 dark:text-amber-400 font-medium flex flex-col gap-1">
-                {(form.photoBeforeUrls?.length > 0) && (
-                   <span className="flex items-center gap-1"><CheckCircle className="w-3 h-3" /> {form.photoBeforeUrls.length} foto tersimpan</span>
-                )}
-                {(photoBeforeFiles.length > 0) && (
-                   <span className="flex items-center gap-1 text-slate-500"><Plus className="w-3 h-3" /> {photoBeforeFiles.length} foto baru siap diunggah</span>
-                )}
+              <div className="space-y-1.5">
+                <label className="label">Status Keluhan</label>
+                <select
+                  className="input"
+                  value={form.status}
+                  onChange={e => setForm({ ...form, status: e.target.value })}
+                >
+                  <option value="pending">Menunggu Perbaikan</option>
+                  <option value="resolved">Selesai Diperbaiki</option>
+                </select>
               </div>
             </div>
-            <div className="space-y-1.5">
-              <label className="label">Foto Perbaikan (Sesudah)</label>
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={e => setPhotoAfterFiles(Array.from(e.target.files))}
-                className="input text-sm p-1.5 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 dark:file:bg-emerald-900/30 dark:file:text-emerald-400 hover:file:bg-emerald-100"
-              />
-              <div className="mt-2 text-xs text-emerald-600 dark:text-emerald-400 font-medium flex flex-col gap-1">
-                {(form.photoAfterUrls?.length > 0) && (
-                   <span className="flex items-center gap-1"><CheckCircle className="w-3 h-3" /> {form.photoAfterUrls.length} foto tersimpan</span>
+
+            {/* Right Column: Images */}
+            <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+              
+              {/* Foto Sebelum */}
+              <div className="space-y-3">
+                <label className="label flex justify-between items-center">
+                  <span>Foto Keluhan (Sebelum) {modal.mode === 'create' && <span className="text-rose-500">*</span>}</span>
+                </label>
+
+                {form.photoBeforeUrls?.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2">
+                    {form.photoBeforeUrls.map((url, i) => (
+                      <div key={i} className="relative group/media">
+                        <button type="button" onClick={() => setLightbox({ url, type: 'image', name: `Foto Sebelum ${i+1}` })} className="block aspect-square rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 w-full text-left">
+                          <img src={url} alt={`Before ${i+1}`} className="w-full h-full object-cover hover:scale-105 transition-transform" />
+                        </button>
+                        {isRole('super_admin', 'admin') && modal.data?.id && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeletePhoto(modal.data.id, 'before', url)}
+                            className="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full opacity-0 group-hover/media:opacity-100 transition-opacity flex items-center justify-center"
+                            title="Hapus"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 )}
-                {(photoAfterFiles.length > 0) && (
-                   <span className="flex items-center gap-1 text-slate-500"><Plus className="w-3 h-3" /> {photoAfterFiles.length} foto baru siap diunggah</span>
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={e => setPhotoBeforeFiles(Array.from(e.target.files))}
+                  className="input text-sm p-1.5 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-amber-50 file:text-amber-700 dark:file:bg-amber-900/30 dark:file:text-amber-400 hover:file:bg-amber-100"
+                />
+                {(photoBeforeFiles.length > 0) && (
+                   <span className="flex items-center gap-1 text-xs text-slate-500"><Plus className="w-3 h-3" /> {photoBeforeFiles.length} foto baru siap diunggah</span>
                 )}
               </div>
+
+              <div className="border-t border-slate-200 dark:border-slate-700"></div>
+
+              {/* Foto Sesudah */}
+              <div className="space-y-3">
+                <label className="label flex justify-between items-center">
+                  <span>Foto Perbaikan (Sesudah)</span>
+                </label>
+
+                {form.photoAfterUrls?.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2">
+                    {form.photoAfterUrls.map((url, i) => (
+                      <div key={i} className="relative group/media">
+                        <button type="button" onClick={() => setLightbox({ url, type: 'image', name: `Foto Sesudah ${i+1}` })} className="block aspect-square rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 w-full text-left">
+                          <img src={url} alt={`After ${i+1}`} className="w-full h-full object-cover hover:scale-105 transition-transform" />
+                        </button>
+                        {isRole('super_admin', 'admin') && modal.data?.id && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeletePhoto(modal.data.id, 'after', url)}
+                            className="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full opacity-0 group-hover/media:opacity-100 transition-opacity flex items-center justify-center"
+                            title="Hapus"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={e => setPhotoAfterFiles(Array.from(e.target.files))}
+                  className="input text-sm p-1.5 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 dark:file:bg-emerald-900/30 dark:file:text-emerald-400 hover:file:bg-emerald-100"
+                />
+                {(photoAfterFiles.length > 0) && (
+                   <span className="flex items-center gap-1 text-xs text-slate-500"><Plus className="w-3 h-3" /> {photoAfterFiles.length} foto baru siap diunggah</span>
+                )}
+              </div>
+
             </div>
           </div>
 
           <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
-            <button type="button" onClick={() => setModal({ open: false })} className="btn-secondary">Batal</button>
+            <button type="button" onClick={() => setModal({ open: false, mode: 'create', data: null })} className="btn-secondary">Batal</button>
             <button type="submit" className="btn-primary" disabled={saving}>
               {saving ? 'Menyimpan...' : modal.mode === 'create' ? 'Tambah Keluhan' : 'Simpan Perubahan'}
             </button>
