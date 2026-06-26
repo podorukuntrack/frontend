@@ -29,6 +29,7 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
     tanggal_pembelian: new Date().toISOString().split("T")[0],
     tipe_pembayaran: 'cash_lunas',
     harga_total: 0,
+    dp: 0,
     tenor_bulan: 0,
     keterangan_kpr: '',
     status_kepemilikan: 'active'
@@ -117,6 +118,7 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
       tanggal_pembelian: assignment.tanggal_pembelian?.split("T")[0] || "",
       tipe_pembayaran: assignment.pembayaran?.tipe || "cash_lunas",
       harga_total: assignment.pembayaran?.harga_total || 0,
+      dp: assignment.pembayaran?.dp || 0,
       tenor_bulan: assignment.pembayaran?.tenor_bulan || 0,
       keterangan_kpr: assignment.pembayaran?.keterangan_kpr || "",
       status_kepemilikan: assignment.status_kepemilikan || 'active'
@@ -155,6 +157,7 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
         tanggal_pembelian: form.tanggal_pembelian,
         tipe_pembayaran: form.tipe_pembayaran,
         harga_total: Number(form.harga_total),
+        dp: form.tipe_pembayaran === 'kredit_kpr' ? Number(form.dp) : 0,
         tenor_bulan: Number(form.tenor_bulan),
         keterangan_kpr: form.keterangan_kpr,
         status_kepemilikan: form.status_kepemilikan
@@ -411,6 +414,22 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
                       placeholder="0" 
                     />
                   </div>
+                  {form.tipe_pembayaran === 'kredit_kpr' && (
+                    <div>
+                      <label className="label">Down Payment (DP)</label>
+                      <input 
+                        type="text" 
+                        className="input" 
+                        required={form.tipe_pembayaran === 'kredit_kpr'}
+                        value={form.dp === 0 ? '' : form.dp.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")} 
+                        onChange={e => {
+                          const rawValue = e.target.value.replace(/[^0-9]/g, '');
+                          setForm({...form, dp: rawValue ? Number(rawValue) : 0});
+                        }} 
+                        placeholder="0" 
+                      />
+                    </div>
+                  )}
                   {form.tipe_pembayaran !== 'cash_lunas' && (
                     <div>
                       <label className="label">Tenor (Bulan)</label>

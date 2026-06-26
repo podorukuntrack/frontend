@@ -110,13 +110,14 @@ export default function TimelineTab({ unit, project, onUpdate }) {
       ) : (
         <div className="space-y-3 mt-4">
            {timelines.map(t => (
-             <div key={t.id} className="p-4 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex justify-between items-center">
-                <div>
-                   <h4 className="font-bold text-slate-900 dark:text-white">{t.taskName}</h4>
-                   <p className="text-xs text-slate-500 mt-1">
-                      {formatDate(t.startDate)} - {formatDate(t.endDate)}
-                   </p>
-                </div>
+               <div key={t.id} className="p-4 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex justify-between items-center flex-wrap gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                     <h4 className="font-bold text-slate-900 dark:text-white text-base">{t.taskName}</h4>
+                     <div className="flex items-center gap-1.5 text-xs font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-2.5 py-1 rounded-md w-fit">
+                        <CalIcon className="w-3.5 h-3.5" />
+                        <span>{formatDate(t.startDate)} - {formatDate(t.endDate)}</span>
+                     </div>
+                  </div>
                 <div className="flex items-center gap-4">
                    <span className="badge bg-amber-100 text-amber-700">{t.status}</span>
                    {isRole('super_admin', 'admin') && (

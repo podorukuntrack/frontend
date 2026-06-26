@@ -412,5 +412,4 @@ export function Lightbox({ item, onClose }) {
     </div>,
     document.body
   );
-}e x p o r t   {   d e f a u l t   a s   C u s t o m D a t e P i c k e r   }   f r o m   ' . / C u s t o m D a t e P i c k e r ' ;  
- 
+}export { default as CustomDatePicker } from './CustomDatePicker';

@@ -77,10 +77,14 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
   const [lightbox, setLightbox] = useState(null); // { url, type: 'image'|'video', name }
 
   // Kalkulasi Dana
-  const isCashLunas = assignment?.pembayaran?.tipe === "cash_lunas";
+  const tipePembayaran = assignment?.pembayaran?.tipe;
+  const isCashLunas = tipePembayaran === "cash_lunas";
+  const isKpr = tipePembayaran === "kredit_kpr";
+  const dp = assignment?.pembayaran?.dp || 0;
   const hargaTotal = assignment?.pembayaran?.harga_total || 0;
+  const targetTagihan = isKpr ? dp : hargaTotal;
   const totalDibayar = assignment?.pembayaran?.total_dibayar || 0;
-  const sisaTagihan = hargaTotal - totalDibayar;
+  const sisaTagihan = targetTagihan - totalDibayar;
 
   useEffect(() => {
     let isMounted = true;
@@ -124,7 +128,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
         }
         
         let fDana = rPayRes.status === 'fulfilled' ? rPayRes.value.data?.data || [] : [];
-        let pPct = hargaTotal > 0 ? Math.min(100, (totalDibayar / hargaTotal) * 100) : 0;
+        let pPct = targetTagihan > 0 ? Math.min(100, (totalDibayar / targetTagihan) * 100) : 0;
 
         if (isMounted) {
           setHistoryFisik(filteredFisik);
@@ -453,14 +457,14 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                             <>
                               <button
                                 onClick={() => handleOpenEditBuild(p)}
-                                className="p-1 rounded-md text-slate-400 hover:text-indigo-600 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600"
+                                className="p-1 rounded-md text-slate-400 hover:text-indigo-600 bg-white dark:bg-slate-800 border border-slate-200 dark:bg-slate-600"
                                 title="Edit"
                               >
                                 <Pencil className="w-3 h-3" />
                               </button>
                               <button
                                 onClick={() => handleDeleteProgress(p.id || p.progress_id)}
-                                className="p-1 rounded-md text-slate-400 hover:text-rose-600 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600"
+                                className="p-1 rounded-md text-slate-400 hover:text-rose-600 bg-white dark:bg-slate-800 border border-slate-200 dark:bg-slate-600"
                                 title="Hapus"
                               >
                                 <Trash2 className="w-3 h-3" />
@@ -591,6 +595,14 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                   className={`text-base font-bold ${sisaTagihan <= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-emerald-600"}`}
                 >
                   {formatCurrency(totalDibayar)}
+                </p>
+              </div>
+              <div>
+                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">
+                  {isKpr ? "Down Payment (DP)" : "Total Tagihan"}
+                </p>
+                <p className="text-xl font-bold text-slate-900 dark:text-white">
+                  Rp {formatCurrency(targetTagihan)}
                 </p>
               </div>
               <div className="text-right">
