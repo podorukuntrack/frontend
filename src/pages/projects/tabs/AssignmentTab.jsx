@@ -31,6 +31,7 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
     harga_total: 0,
     dp: 0,
     jatuh_tempo_kpr: '',
+    tenor_bulan: 0,
     keterangan_kpr: '',
     status_kepemilikan: 'active'
   });
@@ -120,6 +121,7 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
       harga_total: assignment.pembayaran?.harga_total || 0,
       dp: assignment.pembayaran?.dp || 0,
       jatuh_tempo_kpr: assignment.pembayaran?.jatuh_tempo_kpr || '',
+      tenor_bulan: assignment.pembayaran?.tenor_bulan || 0,
       keterangan_kpr: assignment.pembayaran?.keterangan_kpr || "",
       status_kepemilikan: assignment.status_kepemilikan || 'active'
     });
@@ -159,6 +161,7 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
         harga_total: Number(form.harga_total),
         dp: form.tipe_pembayaran === 'kredit_kpr' ? Number(form.dp) : 0,
         jatuh_tempo_kpr: form.tipe_pembayaran === 'kredit_kpr' ? form.jatuh_tempo_kpr : null,
+        tenor_bulan: form.tipe_pembayaran === 'cash_cicil' ? Number(form.tenor_bulan) : 0,
         keterangan_kpr: form.keterangan_kpr,
         status_kepemilikan: form.status_kepemilikan
       };
@@ -235,6 +238,12 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
                     <td className="text-slate-500 py-1">Harga Net</td>
                     <td className="font-mono font-semibold text-right text-slate-900 dark:text-white">{formatCurrency(assignment.pembayaran?.harga_total)}</td>
                   </tr>
+                  {assignment.pembayaran?.tipe === "cash_cicil" && (
+                    <tr>
+                      <td className="text-slate-500 py-1">Tenor</td>
+                      <td className="font-semibold text-right text-slate-900 dark:text-white">{assignment.pembayaran?.tenor_bulan} Bulan</td>
+                    </tr>
+                  )}
                   {assignment.pembayaran?.tipe === "kredit_kpr" && (
                     <tr>
                       <td className="text-slate-500 py-1">Tanggal Jatuh Tempo</td>
@@ -428,6 +437,12 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
                         }} 
                         placeholder="0" 
                       />
+                    </div>
+                  )}
+                  {form.tipe_pembayaran === 'cash_cicil' && (
+                    <div>
+                      <label className="label">Tenor (Bulan)</label>
+                      <input type="number" className="input" value={form.tenor_bulan === 0 ? '' : form.tenor_bulan} onChange={e => setForm({...form, tenor_bulan: e.target.value})} placeholder="0" />
                     </div>
                   )}
                   {form.tipe_pembayaran === 'kredit_kpr' && (
