@@ -31,7 +31,7 @@ export default function CustomDatePicker({ value, onChange, disabled, placeholde
         dateFormat="dd/MM/yyyy"
         locale={id}
         portalId="root-portal"
-        className="w-full bg-transparent px-4 py-2.5 pl-10 text-sm text-slate-900 dark:text-white outline-none cursor-pointer placeholder:text-slate-400 dark:placeholder:text-slate-500 disabled:cursor-not-allowed disabled:text-slate-500 border border-transparent"
+        className="input w-full pl-10 cursor-pointer disabled:cursor-not-allowed"
         wrapperClassName="w-full"
       />
       <Calendar className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
