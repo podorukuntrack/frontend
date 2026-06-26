@@ -602,7 +602,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                   {isKpr ? "Down Payment (DP)" : "Total Tagihan"}
                 </p>
                 <p className="text-xl font-bold text-slate-900 dark:text-white">
-                  Rp {formatCurrency(targetTagihan)}
+                  {formatCurrency(targetTagihan)}
                 </p>
               </div>
               <div className="text-right">
