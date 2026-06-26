@@ -4,7 +4,8 @@ import { PageLoader, Modal, Confirm } from '../../../components/ui';
 import { useToast } from '../../../hooks/useToast';
 import { extractError, formatDate } from '../../../utils/helpers';
 import { useAuth } from '../../../context/AuthContext';
-import { CalendarDays, Plus, Pencil, Trash2 } from 'lucide-react';
+import { Trash2, Pencil, Plus, Calendar as CalIcon } from 'lucide-react';
+import Datepicker from "react-tailwindcss-datepicker";
 
 export default function TimelineTab({ unit, project, onUpdate }) {
   const { isRole } = useAuth();
@@ -86,7 +87,7 @@ export default function TimelineTab({ unit, project, onUpdate }) {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-           <CalendarDays className="w-5 h-5 text-indigo-600 dark:text-indigo-400" /> Estimasi Pengerjaan
+           <CalIcon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" /> Estimasi Pengerjaan
         </h3>
         {isRole('super_admin', 'admin') && (
           <button 
@@ -103,7 +104,7 @@ export default function TimelineTab({ unit, project, onUpdate }) {
 
       {timelines.length === 0 ? (
         <div className="text-center py-12 px-4 bg-white dark:bg-slate-800 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
-           <CalendarDays className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+           <CalIcon className="w-12 h-12 text-slate-300 mx-auto mb-3" />
            <p className="text-slate-500 font-medium">Belum ada timeline yang dibuat</p>
         </div>
       ) : (
@@ -143,11 +144,35 @@ export default function TimelineTab({ unit, project, onUpdate }) {
             <div className="grid grid-cols-2 gap-4">
                <div className="space-y-1.5">
                   <label className="label">Tanggal Mulai</label>
-                  <input type="date" className="input" required value={form.start_date} onChange={e => setForm({...form, start_date: e.target.value})} />
+                  <div className="relative border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 shadow-sm focus-within:ring-2 focus-within:ring-indigo-500 hover:border-slate-300 dark:hover:border-slate-600 transition-colors z-[100]">
+                    <Datepicker 
+                      useRange={false} 
+                      asSingle={true} 
+                      value={{ startDate: form.start_date, endDate: form.start_date }} 
+                      onChange={v => setForm({...form, start_date: v?.startDate || ""})} 
+                      displayFormat="DD/MM/YYYY" 
+                      inputClassName="w-full bg-transparent px-4 py-2.5 text-sm text-slate-900 dark:text-white outline-none cursor-pointer placeholder:text-slate-400 dark:placeholder:text-slate-500" 
+                      containerClassName="relative w-full"
+                      popoverDirection="down"
+                      primaryColor="indigo"
+                    />
+                  </div>
                </div>
                <div className="space-y-1.5">
                   <label className="label">Tanggal Selesai</label>
-                  <input type="date" className="input" required value={form.end_date} onChange={e => setForm({...form, end_date: e.target.value})} />
+                  <div className="relative border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 shadow-sm focus-within:ring-2 focus-within:ring-indigo-500 hover:border-slate-300 dark:hover:border-slate-600 transition-colors z-[100]">
+                    <Datepicker 
+                      useRange={false} 
+                      asSingle={true} 
+                      value={{ startDate: form.end_date, endDate: form.end_date }} 
+                      onChange={v => setForm({...form, end_date: v?.startDate || ""})} 
+                      displayFormat="DD/MM/YYYY" 
+                      inputClassName="w-full bg-transparent px-4 py-2.5 text-sm text-slate-900 dark:text-white outline-none cursor-pointer placeholder:text-slate-400 dark:placeholder:text-slate-500" 
+                      containerClassName="relative w-full"
+                      popoverDirection="down"
+                      primaryColor="indigo"
+                    />
+                  </div>
                </div>
             </div>
             <div className="flex justify-end pt-4">

@@ -14,6 +14,7 @@ import {
   extractError,
 } from "../../../utils/helpers";
 import { useAuth } from "../../../context/AuthContext";
+import Datepicker from "react-tailwindcss-datepicker";
 import {
   Hammer,
   Receipt,
@@ -785,15 +786,19 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
 
               <div className="space-y-1.5">
                 <label className="label">Tanggal Laporan</label>
-                <input
-                  type="date"
-                  required
-                  className="input"
-                  value={buildForm.tanggal_update}
-                  onChange={(e) =>
-                    setBuildForm((f) => ({ ...f, tanggal_update: e.target.value }))
-                  }
-                />
+                <div className="relative border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 shadow-sm focus-within:ring-2 focus-within:ring-indigo-500 hover:border-slate-300 dark:hover:border-slate-600 transition-colors z-[100]">
+                  <Datepicker 
+                    useRange={false} 
+                    asSingle={true} 
+                    value={{ startDate: buildForm.tanggal_update, endDate: buildForm.tanggal_update }} 
+                    onChange={v => setBuildForm((f) => ({ ...f, tanggal_update: v?.startDate || "" }))} 
+                    displayFormat="DD/MM/YYYY" 
+                    inputClassName="w-full bg-transparent px-4 py-2.5 text-sm text-slate-900 dark:text-white outline-none cursor-pointer placeholder:text-slate-400 dark:placeholder:text-slate-500" 
+                    containerClassName="relative w-full"
+                    popoverDirection="down"
+                    primaryColor="indigo"
+                  />
+                </div>
               </div>
 
               <div className="space-y-1.5">
@@ -964,15 +969,19 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
 
           <div className="space-y-1.5">
             <label className="label">Tanggal Transaksi</label>
-            <input
-              type="date"
-              required
-              className="input"
-              value={payForm.tanggal_bayar}
-              onChange={(e) =>
-                setPayForm((f) => ({ ...f, tanggal_bayar: e.target.value }))
-              }
-            />
+            <div className="relative border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 shadow-sm focus-within:ring-2 focus-within:ring-indigo-500 hover:border-slate-300 dark:hover:border-slate-600 transition-colors z-[100]">
+              <Datepicker 
+                useRange={false} 
+                asSingle={true} 
+                value={{ startDate: payForm.tanggal_bayar, endDate: payForm.tanggal_bayar }} 
+                onChange={v => setPayForm((f) => ({ ...f, tanggal_bayar: v?.startDate || "" }))} 
+                displayFormat="DD/MM/YYYY" 
+                inputClassName="w-full bg-transparent px-4 py-2.5 text-sm text-slate-900 dark:text-white outline-none cursor-pointer placeholder:text-slate-400 dark:placeholder:text-slate-500" 
+                containerClassName="relative w-full"
+                popoverDirection="down"
+                primaryColor="indigo"
+              />
+            </div>
           </div>
 
           <div className="space-y-1.5">
