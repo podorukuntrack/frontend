@@ -57,3 +57,13 @@
 .react-datepicker-popper {
   z-index: 9999 !important;
 }
+
+.dark .react-datepicker__month-select,
+.dark .react-datepicker__year-select {
+  background-color: #1e293b;
+  color: #f8fafc;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  padding: 2px;
+  outline: none;
+}

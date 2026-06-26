@@ -31,6 +31,9 @@ export default function CustomDatePicker({ value, onChange, disabled, placeholde
         dateFormat="dd/MM/yyyy"
         locale={id}
         portalId="root-portal"
+        showMonthDropdown
+        showYearDropdown
+        dropdownMode="select"
         className="input w-full pl-10 cursor-pointer disabled:cursor-not-allowed"
         wrapperClassName="w-full"
       />
