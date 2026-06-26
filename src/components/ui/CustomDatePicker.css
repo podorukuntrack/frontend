@@ -67,3 +67,23 @@
   padding: 2px;
   outline: none;
 }
+
+
+/* Stabilize width */
+.react-datepicker {
+  width: max-content;
+  min-width: 260px;
+}
+.react-datepicker__month-container {
+  width: 100%;
+}
+
+/* Distinguish outside month days */
+.react-datepicker__day--outside-month {
+  color: #94a3b8 !important;
+  opacity: 0.5;
+}
+.dark .react-datepicker__day--outside-month {
+  color: #64748b !important;
+  opacity: 0.3;
+}

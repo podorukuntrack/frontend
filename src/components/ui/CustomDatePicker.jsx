@@ -34,6 +34,7 @@ export default function CustomDatePicker({ value, onChange, disabled, placeholde
         showMonthDropdown
         showYearDropdown
         dropdownMode="select"
+        fixedHeight
         className="input w-full pl-10 cursor-pointer disabled:cursor-not-allowed"
         wrapperClassName="w-full"
       />
