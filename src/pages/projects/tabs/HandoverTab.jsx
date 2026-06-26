@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { handoversAPI, documentationAPI } from '../../../api/services';
 import { PageLoader, Modal, Confirm, Lightbox } from '../../../components/ui';
+import CustomDatePicker from '../../../components/ui/CustomDatePicker';
 import { useToast } from '../../../hooks/useToast';
 import { extractError, formatDate } from '../../../utils/helpers';
 import { useAuth } from '../../../context/AuthContext';
@@ -539,12 +540,11 @@ export default function HandoverTab({ unit, onHandover }) {
         <form onSubmit={handleSave} className="space-y-4">
           <div className="space-y-1.5">
             <label className="label">Tanggal & Waktu Serah Terima</label>
-            <input
-              type="datetime-local"
-              className="input"
-              required
+            <CustomDatePicker
               value={form.scheduled_date}
-              onChange={e => setForm({ ...form, scheduled_date: e.target.value })}
+              onChange={(val) => setForm({ ...form, scheduled_date: val })}
+              placeholder="Pilih Tanggal dan Jam"
+              showTimeSelect
             />
             <p className="text-xs text-slate-500">
               {modal.mode === 'create'
