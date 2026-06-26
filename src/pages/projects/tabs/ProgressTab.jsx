@@ -725,7 +725,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Left Column: Inputs */}
-            <div className="space-y-4">
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
               <div className="space-y-1.5">
                 <label className="label">Nama Tahap Pengerjaan</label>
                 <select
@@ -810,19 +810,19 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
             </div>
 
             {/* Right Column: UPLOAD & KELOLA DOKUMENTASI */}
-            <div className="space-y-4">
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
               <div className="space-y-2">
                 <label className="label flex items-center gap-2">
                   <FileImage className="w-4 h-4 text-indigo-500" />
-                  Foto / Video Lapangan{" "}
-                  <span className="text-slate-400 font-normal text-xs">(opsional, bisa multiple)</span>
+                  Foto Lapangan{" "}
+                  <span className="text-slate-400 font-normal text-xs">(opsional, multiple)</span>
                 </label>
 
                 {/* Existing docs in edit mode */}
                 {buildModal.mode === "edit" && (() => {
                   const existingDocs = docsMap[buildModal.editId] || [];
                   if (existingDocs.length === 0) return (
-                    <p className="text-xs text-slate-400 italic">Belum ada foto/video terlampir.</p>
+                    <p className="text-xs text-slate-400 italic">Belum ada foto terlampir.</p>
                   );
                   return (
                     <div className="grid grid-cols-4 gap-2 mb-2">
@@ -876,14 +876,14 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                   }}
                 >
                   <ImagePlus className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                  <p className="text-sm text-slate-500">Klik atau drag & drop foto/video di sini</p>
-                  <p className="text-xs text-slate-400 mt-0.5">JPG, PNG, MP4, MOV, PDF...</p>
+                  <p className="text-sm text-slate-500">Klik atau drag & drop gambar di sini</p>
+                  <p className="text-xs text-slate-400 mt-0.5">JPG, PNG, WEBP, GIF...</p>
                 </div>
                 <input
                   ref={fileInputRef}
                   type="file"
                   multiple
-                  accept="image/*,video/*,application/pdf"
+                  accept="image/*"
                   className="hidden"
                   onChange={(e) => {
                     const selected = Array.from(e.target.files);
