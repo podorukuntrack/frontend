@@ -30,7 +30,7 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
     tipe_pembayaran: 'cash_lunas',
     harga_total: 0,
     dp: 0,
-    tenor_bulan: 0,
+    jatuh_tempo_kpr: '',
     keterangan_kpr: '',
     status_kepemilikan: 'active'
   });
@@ -119,7 +119,7 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
       tipe_pembayaran: assignment.pembayaran?.tipe || "cash_lunas",
       harga_total: assignment.pembayaran?.harga_total || 0,
       dp: assignment.pembayaran?.dp || 0,
-      tenor_bulan: assignment.pembayaran?.tenor_bulan || 0,
+      jatuh_tempo_kpr: assignment.pembayaran?.jatuh_tempo_kpr || '',
       keterangan_kpr: assignment.pembayaran?.keterangan_kpr || "",
       status_kepemilikan: assignment.status_kepemilikan || 'active'
     });
@@ -158,7 +158,7 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
         tipe_pembayaran: form.tipe_pembayaran,
         harga_total: Number(form.harga_total),
         dp: form.tipe_pembayaran === 'kredit_kpr' ? Number(form.dp) : 0,
-        tenor_bulan: Number(form.tenor_bulan),
+        jatuh_tempo_kpr: form.tipe_pembayaran === 'kredit_kpr' ? form.jatuh_tempo_kpr : null,
         keterangan_kpr: form.keterangan_kpr,
         status_kepemilikan: form.status_kepemilikan
       };
@@ -235,10 +235,10 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
                     <td className="text-slate-500 py-1">Harga Net</td>
                     <td className="font-mono font-semibold text-right text-slate-900 dark:text-white">{formatCurrency(assignment.pembayaran?.harga_total)}</td>
                   </tr>
-                  {assignment.pembayaran?.tipe !== "cash_lunas" && (
+                  {assignment.pembayaran?.tipe === "kredit_kpr" && (
                     <tr>
-                      <td className="text-slate-500 py-1">Tenor</td>
-                      <td className="font-semibold text-right text-slate-900 dark:text-white">{assignment.pembayaran?.tenor_bulan} Bulan</td>
+                      <td className="text-slate-500 py-1">Tanggal Jatuh Tempo</td>
+                      <td className="font-semibold text-right text-slate-900 dark:text-white">{assignment.pembayaran?.jatuh_tempo_kpr ? formatDate(assignment.pembayaran.jatuh_tempo_kpr) : '-'}</td>
                     </tr>
                   )}
                   <tr>
@@ -430,11 +430,15 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
                       />
                     </div>
                   )}
-                  {form.tipe_pembayaran !== 'cash_lunas' && (
-                    <div>
-                      <label className="label">Tenor (Bulan)</label>
-                      <input type="number" className="input" value={form.tenor_bulan === 0 ? '' : form.tenor_bulan} onChange={e => setForm({...form, tenor_bulan: e.target.value})} placeholder="0" />
-                    </div>
+                  {form.tipe_pembayaran === 'kredit_kpr' && (
+                      <div>
+                        <label className="label">Tanggal Jatuh Tempo (KPR)</label>
+                        <CustomDatePicker
+                          value={form.jatuh_tempo_kpr}
+                          onChange={(val) => setForm({...form, jatuh_tempo_kpr: val})}
+                          placeholder="Pilih Tanggal Jatuh Tempo"
+                        />
+                      </div>
                   )}
                   {form.tipe_pembayaran === 'kredit_kpr' && (
                     <div className="md:col-span-2">
