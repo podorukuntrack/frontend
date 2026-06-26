@@ -87,3 +87,13 @@
   color: #64748b !important;
   opacity: 0.3;
 }
+
+
+/* Hide redundant month text since we have dropdowns */
+.react-datepicker__current-month {
+  display: none !important;
+}
+.react-datepicker__header__dropdown {
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
