@@ -124,6 +124,7 @@ export default function BannersPage() {
                 <tr className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
                   <th className="py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Preview</th>
                   <th className="py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Nama Banner</th>
+                  <th className="py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Target</th>
                   <th className="py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Link Tujuan</th>
                   <th className="py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
                   <th className="py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Aksi</th>
@@ -133,12 +134,23 @@ export default function BannersPage() {
                 {banners.map((banner) => (
                   <tr key={banner.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
                     <td className="py-4 px-6">
-                      <div className="w-24 h-14 rounded-lg bg-slate-100 overflow-hidden">
+                      <div className="w-24 h-14 rounded-lg bg-slate-100 dark:bg-slate-800 overflow-hidden">
                         <img src={banner.imageUrl} alt={banner.name} className="w-full h-full object-cover" />
                       </div>
                     </td>
                     <td className="py-4 px-6 font-medium text-slate-900 dark:text-white">
                       {banner.name}
+                    </td>
+                    <td className="py-4 px-6 text-sm text-slate-600 dark:text-slate-400">
+                      {banner.targetCompanies && banner.targetCompanies.length > 0 ? (
+                        <span className="px-2 py-1 bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 rounded-md text-xs font-medium">
+                          {banner.targetCompanies.length} Perusahaan
+                        </span>
+                      ) : (
+                        <span className="px-2 py-1 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 rounded-md text-xs font-medium">
+                          Global
+                        </span>
+                      )}
                     </td>
                     <td className="py-4 px-6 text-slate-500 dark:text-slate-400">
                       {banner.linkUrl ? (

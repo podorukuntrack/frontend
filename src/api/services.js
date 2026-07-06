@@ -128,11 +128,15 @@ export const retentionsAPI = {
   deleteComplaint: (id, complaintId) => api.delete(`/retentions/${id}/complaints/${complaintId}`),
 };
 
-// BANNERS
+// Banners
 export const bannersAPI = {
   list: (params) => api.get('/banners', { params }),
   get: (id) => api.get(`/banners/${id}`),
-  create: (data) => api.post('/banners', data),
-  update: (id, data) => api.put(`/banners/${id}`, data),
+  create: (data) => api.post('/banners', data, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  update: (id, data) => api.put(`/banners/${id}`, data, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
   delete: (id) => api.delete(`/banners/${id}`),
 };
