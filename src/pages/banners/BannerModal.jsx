@@ -158,27 +158,55 @@ export default function BannerModal({ open, onClose, banner, onSave, loading }) 
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-            Target Perusahaan
-          </label>
-          <div className="p-3 border border-slate-200 dark:border-slate-700 rounded-xl space-y-3">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" className="rounded text-indigo-600 focus:ring-indigo-600" checked={isGlobal} onChange={(e) => setIsGlobal(e.target.checked)} />
-              <span className="text-sm font-medium text-slate-900 dark:text-white">Tampilkan di Semua Perusahaan (Global)</span>
+          <div className="flex justify-between items-center mb-2">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+              Target Perusahaan
             </label>
-            
-            {!isGlobal && (
-              <div className="pl-6 space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800 max-h-40 overflow-y-auto">
-                {companies.map(c => (
-                  <label key={c.id} className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" className="rounded text-indigo-600 focus:ring-indigo-600" checked={selectedCompanies.includes(c.id)} onChange={() => toggleCompany(c.id)} />
-                    <span className="text-sm text-slate-700 dark:text-slate-300">{c.name}</span>
-                  </label>
-                ))}
-                {companies.length === 0 && <p className="text-xs text-slate-500">Belum ada perusahaan.</p>}
-              </div>
-            )}
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Global (Semua Perusahaan)</span>
+              <button 
+                type="button"
+                role="switch"
+                aria-checked={isGlobal}
+                onClick={() => setIsGlobal(!isGlobal)}
+                className={`${isGlobal ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-700'} relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2`}
+              >
+                <span className={`${isGlobal ? 'translate-x-5' : 'translate-x-0'} pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`} />
+              </button>
+            </div>
           </div>
+          
+          {!isGlobal && (
+            <div className="p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl mt-3 animate-fadeIn">
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-3">Pilih satu atau lebih perusahaan:</p>
+              {companies.length === 0 ? (
+                 <p className="text-sm text-slate-500 italic">Belum ada data perusahaan.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto pr-1">
+                  {companies.map(c => {
+                    const isSelected = selectedCompanies.includes(c.id);
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => toggleCompany(c.id)}
+                        className={`flex items-center gap-2.5 px-3.5 py-2 rounded-lg border text-sm font-medium transition-all duration-200 ${
+                          isSelected 
+                          ? 'bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-500/10 dark:border-indigo-500/30 dark:text-indigo-400 shadow-sm' 
+                          : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-300 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:border-slate-600'
+                        }`}
+                      >
+                        <div className={`w-4 h-4 rounded-full flex items-center justify-center border transition-colors ${isSelected ? 'border-indigo-600 bg-indigo-600 dark:border-indigo-400 dark:bg-indigo-400' : 'border-slate-300 dark:border-slate-600 bg-transparent'}`}>
+                          {isSelected && <svg className="w-2.5 h-2.5 text-white dark:text-slate-900" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                        </div>
+                        {c.nama_pt || c.name || 'Tanpa Nama'}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div>
