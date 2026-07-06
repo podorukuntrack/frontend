@@ -10,6 +10,7 @@ import {
   X,
   Moon,
   Sun,
+  Image as ImageIcon
 } from "lucide-react";
 
 import { useState, useEffect } from "react";
@@ -19,6 +20,7 @@ import { useTheme } from "../../hooks/useTheme";
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ["super_admin","admin"], match: ["/"] },
   { to: "/companies", icon: Building2, label: "Perusahaan", roles: ["super_admin"], match: ["/companies"] },
+  { to: "/banners", icon: ImageIcon, label: "Banner Iklan", roles: ["super_admin"], match: ["/banners"] },
   { to: "/projects", icon: FolderKanban, label: "Proyek", roles: ["super_admin","admin"], match: ["/projects"] },
 ];
 

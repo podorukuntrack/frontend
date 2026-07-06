@@ -17,6 +17,7 @@ const DashboardPage = lazy(() => import("./pages/dashboard/DashboardPage"));
 const ProjectsPage = lazy(() => import("./pages/projects/ProjectsPage"));
 const UsersPage = lazy(() => import("./pages/users/UsersPage"));
 const CompaniesPage = lazy(() => import("./pages/companies/CompaniesPage"));
+const BannersPage = lazy(() => import("./pages/banners/BannersPage"));
 
 // Halaman Error & Proteksi
 const UnauthorizedPage = lazy(() => import("./pages/UnauthorizedPage"));
@@ -129,6 +130,16 @@ function AppRoutes() {
           <PrivateRoute roles={["super_admin"]}>
             <AppLayout>
               <CompaniesPage />
+            </AppLayout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/banners"
+        element={
+          <PrivateRoute roles={["super_admin"]}>
+            <AppLayout>
+              <BannersPage />
             </AppLayout>
           </PrivateRoute>
         }

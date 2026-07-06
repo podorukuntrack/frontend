@@ -127,3 +127,12 @@ export const retentionsAPI = {
   updateComplaint: (id, complaintId, data) => api.patch(`/retentions/${id}/complaints/${complaintId}`, data),
   deleteComplaint: (id, complaintId) => api.delete(`/retentions/${id}/complaints/${complaintId}`),
 };
+
+// BANNERS
+export const bannersAPI = {
+  list: (params) => api.get('/banners', { params }),
+  get: (id) => api.get(`/banners/${id}`),
+  create: (data) => api.post('/banners', data),
+  update: (id, data) => api.put(`/banners/${id}`, data),
+  delete: (id) => api.delete(`/banners/${id}`),
+};
