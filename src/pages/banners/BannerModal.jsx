@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { Modal, Spinner } from '../../components/ui';
-import { companiesAPI } from '../../api/services';
+import { Modal } from '../../components/ui';
 import { UploadCloud, X } from 'lucide-react';
 
-export default function BannerModal({ open, onClose, banner, onSave, loading }) {
+export default function BannerModal({ open, onClose, banner, onSave, loading, companies = [] }) {
   const [formData, setFormData] = useState({
     name: '',
     linkUrl: '',
@@ -13,23 +12,9 @@ export default function BannerModal({ open, onClose, banner, onSave, loading }) 
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
   
-  const [companies, setCompanies] = useState([]);
   const [isGlobal, setIsGlobal] = useState(true);
   const [selectedCompanies, setSelectedCompanies] = useState([]);
   const fileInputRef = useRef(null);
-
-  useEffect(() => {
-    fetchCompanies();
-  }, []);
-
-  const fetchCompanies = async () => {
-    try {
-      const res = await companiesAPI.list();
-      setCompanies(res.data.data || []);
-    } catch (err) {
-      console.error('Failed to fetch companies', err);
-    }
-  };
 
   useEffect(() => {
     if (banner) {

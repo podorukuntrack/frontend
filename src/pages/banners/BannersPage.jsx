@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, ExternalLink } from 'lucide-react';
-import { bannersAPI } from '../../api/services';
+import { createPortal } from 'react-dom';
+import { bannersAPI, companiesAPI } from '../../api/services';
 import { Spinner, TableSkeleton, EmptyState, Confirm } from '../../components/ui';
 import BannerModal from './BannerModal';
 import { format } from 'date-fns';
@@ -8,6 +9,7 @@ import { id as idLocale } from 'date-fns/locale';
 
 export default function BannersPage() {
   const [banners, setBanners] = useState([]);
+  const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedBanner, setSelectedBanner] = useState(null);
@@ -18,20 +20,33 @@ export default function BannersPage() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    fetchBanners();
+    fetchData();
   }, []);
 
-  const fetchBanners = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await bannersAPI.list();
-      setBanners(res.data.data || []);
+      const [bannersRes, companiesRes] = await Promise.all([
+        bannersAPI.list(),
+        companiesAPI.list().catch(() => ({ data: { data: [] } }))
+      ]);
+      setBanners(bannersRes.data.data || []);
+      setCompanies(companiesRes.data.data || []);
     } catch (err) {
       window.dispatchEvent(new CustomEvent('show-toast', {
         detail: { id: Date.now(), msg: err.message, type: 'error' }
       }));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchBanners = async () => {
+    try {
+      const res = await bannersAPI.list();
+      setBanners(res.data.data || []);
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -96,6 +111,15 @@ export default function BannersPage() {
 
   const [previewImage, setPreviewImage] = useState(null);
 
+  // Helper untuk mendapatkan nama perusahaan dari ID
+  const getCompanyNames = (companyIds) => {
+    if (!companyIds || companyIds.length === 0) return [];
+    return companyIds.map(id => {
+      const c = companies.find(comp => comp.id === id);
+      return c ? (c.nama_pt || c.name) : 'Unknown';
+    });
+  };
+
   return (
     <div className="space-y-6 animate-fadeIn pb-12">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -133,56 +157,63 @@ export default function BannersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
-                {banners.map((banner) => (
-                  <tr key={banner.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
-                    <td className="py-4 px-6">
-                      <div className="w-24 h-14 rounded-lg bg-slate-100 dark:bg-slate-800 overflow-hidden cursor-pointer hover:ring-2 hover:ring-indigo-500 transition-all" onClick={() => setPreviewImage(banner.imageUrl)}>
-                        <img src={banner.imageUrl} alt={banner.name} className="w-full h-full object-cover" />
-                      </div>
-                    </td>
-                    <td className="py-4 px-6 font-medium text-slate-900 dark:text-white">
-                      {banner.name}
-                    </td>
-                    <td className="py-4 px-6 text-sm text-slate-600 dark:text-slate-400">
-                      {banner.targetCompanies && banner.targetCompanies.length > 0 ? (
-                        <span className="px-2 py-1 bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 rounded-md text-xs font-medium">
-                          {banner.targetCompanies.length} Perusahaan
+                {banners.map((banner) => {
+                  const targetNames = getCompanyNames(banner.targetCompanies);
+                  return (
+                    <tr key={banner.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
+                      <td className="py-4 px-6">
+                        <div className="w-24 h-14 rounded-lg bg-slate-100 dark:bg-slate-800 overflow-hidden cursor-pointer hover:ring-2 hover:ring-indigo-500 transition-all" onClick={() => setPreviewImage(banner.imageUrl)}>
+                          <img src={banner.imageUrl} alt={banner.name} className="w-full h-full object-cover" />
+                        </div>
+                      </td>
+                      <td className="py-4 px-6 font-medium text-slate-900 dark:text-white">
+                        {banner.name}
+                      </td>
+                      <td className="py-4 px-6 text-sm text-slate-600 dark:text-slate-400">
+                        {targetNames.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {targetNames.map((name, idx) => (
+                              <span key={idx} className="px-2 py-0.5 bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 rounded text-xs font-medium border border-indigo-100 dark:border-indigo-500/20 whitespace-nowrap">
+                                {name}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="px-2 py-1 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 rounded-md text-xs font-medium">
+                            Global
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-4 px-6 text-slate-500 dark:text-slate-400">
+                        {banner.linkUrl ? (
+                          <a href={banner.linkUrl} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline flex items-center gap-1">
+                            {banner.linkUrl.length > 25 ? banner.linkUrl.substring(0,25) + '...' : banner.linkUrl}
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        ) : '-'}
+                      </td>
+                      <td className="py-4 px-6">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${
+                          banner.isActive === 'true' 
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' 
+                          : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
+                        }`}>
+                          {banner.isActive === 'true' ? 'Aktif' : 'Tidak Aktif'}
                         </span>
-                      ) : (
-                        <span className="px-2 py-1 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 rounded-md text-xs font-medium">
-                          Global
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-4 px-6 text-slate-500 dark:text-slate-400">
-                      {banner.linkUrl ? (
-                        <a href={banner.linkUrl} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline flex items-center gap-1">
-                          {banner.linkUrl.length > 25 ? banner.linkUrl.substring(0,25) + '...' : banner.linkUrl}
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      ) : '-'}
-                    </td>
-                    <td className="py-4 px-6">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${
-                        banner.isActive === 'true' 
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' 
-                        : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
-                      }`}>
-                        {banner.isActive === 'true' ? 'Aktif' : 'Tidak Aktif'}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 text-right">
-                      <div className="flex justify-end gap-2">
-                        <button onClick={() => handleOpenEdit(banner)} className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Edit">
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => handleDeleteConfirm(banner)} className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" title="Hapus">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="py-4 px-6 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button onClick={() => handleOpenEdit(banner)} className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Edit">
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => handleDeleteConfirm(banner)} className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" title="Hapus">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -195,6 +226,7 @@ export default function BannersPage() {
         banner={selectedBanner}
         onSave={handleSave}
         loading={isSaving}
+        companies={companies}
       />
 
       <Confirm
@@ -207,16 +239,17 @@ export default function BannersPage() {
         loading={isDeleting}
       />
 
-      {/* Full Screen Image Preview Modal */}
-      {previewImage && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4" onClick={() => setPreviewImage(null)}>
+      {/* Full Screen Image Preview Modal using createPortal to ensure it's on top of everything */}
+      {previewImage && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 p-4" onClick={() => setPreviewImage(null)}>
           <div className="relative max-w-5xl w-full max-h-[90vh] flex items-center justify-center">
             <img src={previewImage} alt="Full Screen Preview" className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl" />
-            <button className="absolute -top-4 -right-4 p-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-full shadow-lg hover:scale-110 transition-transform" onClick={() => setPreviewImage(null)}>
+            <button className="absolute -top-4 -right-4 p-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-full shadow-lg hover:scale-110 transition-transform" onClick={(e) => { e.stopPropagation(); setPreviewImage(null); }}>
                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
