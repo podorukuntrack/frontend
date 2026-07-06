@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Modal } from '../../components/ui';
+import { Modal, Spinner } from '../../components/ui';
 import { UploadCloud, X } from 'lucide-react';
 
 export default function BannerModal({ open, onClose, banner, onSave, loading, companies = [] }) {
