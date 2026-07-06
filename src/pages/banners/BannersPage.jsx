@@ -50,16 +50,16 @@ export default function BannersPage() {
     setConfirmOpen(true);
   };
 
-  const handleSave = async (data) => {
+  const handleSave = async (data, config = {}) => {
     try {
       setIsSaving(true);
       if (selectedBanner) {
-        await bannersAPI.update(selectedBanner.id, data);
+        await bannersAPI.update(selectedBanner.id, data, config);
         window.dispatchEvent(new CustomEvent('show-toast', {
           detail: { id: Date.now(), msg: 'Banner berhasil diperbarui', type: 'success' }
         }));
       } else {
-        await bannersAPI.create(data);
+        await bannersAPI.create(data, config);
         window.dispatchEvent(new CustomEvent('show-toast', {
           detail: { id: Date.now(), msg: 'Banner berhasil ditambahkan', type: 'success' }
         }));
@@ -93,6 +93,8 @@ export default function BannersPage() {
       setIsDeleting(false);
     }
   };
+
+  const [previewImage, setPreviewImage] = useState(null);
 
   return (
     <div className="space-y-6 animate-fadeIn pb-12">
@@ -134,7 +136,7 @@ export default function BannersPage() {
                 {banners.map((banner) => (
                   <tr key={banner.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
                     <td className="py-4 px-6">
-                      <div className="w-24 h-14 rounded-lg bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                      <div className="w-24 h-14 rounded-lg bg-slate-100 dark:bg-slate-800 overflow-hidden cursor-pointer hover:ring-2 hover:ring-indigo-500 transition-all" onClick={() => setPreviewImage(banner.imageUrl)}>
                         <img src={banner.imageUrl} alt={banner.name} className="w-full h-full object-cover" />
                       </div>
                     </td>
@@ -204,6 +206,18 @@ export default function BannersPage() {
         confirmLabel="Hapus"
         loading={isDeleting}
       />
+
+      {/* Full Screen Image Preview Modal */}
+      {previewImage && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4" onClick={() => setPreviewImage(null)}>
+          <div className="relative max-w-5xl w-full max-h-[90vh] flex items-center justify-center">
+            <img src={previewImage} alt="Full Screen Preview" className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl" />
+            <button className="absolute -top-4 -right-4 p-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-full shadow-lg hover:scale-110 transition-transform" onClick={() => setPreviewImage(null)}>
+               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -132,11 +132,13 @@ export const retentionsAPI = {
 export const bannersAPI = {
   list: (params) => api.get('/banners', { params }),
   get: (id) => api.get(`/banners/${id}`),
-  create: (data) => api.post('/banners', data, {
-    headers: { 'Content-Type': 'multipart/form-data' }
+  create: (data, config = {}) => api.post('/banners', data, {
+    ...config,
+    headers: { ...config?.headers, 'Content-Type': 'multipart/form-data' }
   }),
-  update: (id, data) => api.put(`/banners/${id}`, data, {
-    headers: { 'Content-Type': 'multipart/form-data' }
+  update: (id, data, config = {}) => api.put(`/banners/${id}`, data, {
+    ...config,
+    headers: { ...config?.headers, 'Content-Type': 'multipart/form-data' }
   }),
   delete: (id) => api.delete(`/banners/${id}`),
 };

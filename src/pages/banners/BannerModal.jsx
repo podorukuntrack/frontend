@@ -82,7 +82,9 @@ export default function BannerModal({ open, onClose, banner, onSave, loading }) 
     );
   };
 
-  const handleSubmit = (e) => {
+  const [uploadProgress, setUploadProgress] = useState(0);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!banner && !file) {
@@ -102,12 +104,33 @@ export default function BannerModal({ open, onClose, banner, onSave, loading }) 
       payload.append('file', file);
     }
     
-    onSave(payload);
+    setUploadProgress(0);
+    const config = {
+      onUploadProgress: (progressEvent) => {
+        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        setUploadProgress(percentCompleted);
+      }
+    };
+
+    try {
+      await onSave(payload, config);
+    } finally {
+      setUploadProgress(0);
+    }
   };
 
   return (
     <Modal open={open} onClose={onClose} title={banner ? "Edit Banner" : "Tambah Banner"} size="md">
       <form onSubmit={handleSubmit} className="space-y-4">
+        {loading && uploadProgress > 0 && (
+          <div className="w-full mb-4">
+            <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5 overflow-hidden">
+              <div className="bg-indigo-600 h-2.5 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
+            </div>
+            <p className="text-xs text-slate-500 mt-1 text-right">{uploadProgress}% diunggah...</p>
+          </div>
+        )}
+        
         <div>
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
             Nama Banner <span className="text-rose-500">*</span>
