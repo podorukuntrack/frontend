@@ -50,10 +50,6 @@ export default function CustomDatePicker({ value, onChange, disabled, placeholde
         timeFormat="HH:mm"
         locale={id}
         portalId="root-portal"
-        showMonthDropdown
-        showYearDropdown
-        dropdownMode="select"
-        fixedHeight
         className="input w-full pl-10 cursor-pointer disabled:cursor-not-allowed"
         wrapperClassName="w-full"
         {...props}

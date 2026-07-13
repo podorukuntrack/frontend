@@ -86,10 +86,6 @@ export default function DateTimePickerModal({ isOpen, onClose, onSave, initialVa
                 onChange={handleDateSelect}
                 inline
                 locale={id}
-                showMonthDropdown
-                showYearDropdown
-                dropdownMode="select"
-                fixedHeight
                 calendarClassName="!border-0 !bg-transparent shadow-none"
               />
             </div>
