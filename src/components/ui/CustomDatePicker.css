@@ -73,10 +73,9 @@
 .react-datepicker {
   width: max-content;
   min-width: 260px;
-  display: flex !important;
 }
 .react-datepicker__month-container {
-  /* Removed width: 100% to allow time container to sit side-by-side */
+  /* Default block layout */
 }
 
 /* Dark mode overrides for time container */
@@ -108,11 +107,21 @@
   opacity: 0.3;
 }
 
-/* Hide redundant month text since we have dropdowns */
-.react-datepicker__current-month {
+/* Hide redundant month text only if we have dropdowns, but we removed them so we show it */
+/* .react-datepicker__current-month {
   display: none !important;
-}
+} */
 .react-datepicker__header__dropdown {
   margin-top: 5px;
   margin-bottom: 5px;
+}
+
+/* Fix triangle color for dark mode */
+.dark .react-datepicker__triangle::before {
+  border-bottom-color: #334155 !important;
+  border-top-color: #334155 !important;
+}
+.dark .react-datepicker__triangle::after {
+  border-bottom-color: #0f172a !important;
+  border-top-color: #1e293b !important;
 }
