@@ -7,6 +7,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { Trash2, Pencil, Plus, Calendar as CalIcon, Clock } from 'lucide-react';
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import "../../../components/ui/CustomDatePicker.css";
 import id from "date-fns/locale/id";
 import { differenceInDays } from "date-fns";
 
@@ -148,17 +149,26 @@ export default function TimelineTab({ unit, project, onUpdate }) {
             
             <div className="space-y-1.5">
                <label className="label">Periode Pengerjaan</label>
-               <div className="relative z-[100] w-full">
+               <div className="relative z-[100] w-full custom-datepicker-container">
                  <DatePicker
                    selectsRange={true}
                    startDate={form.start_date ? new Date(form.start_date) : null}
                    endDate={form.end_date ? new Date(form.end_date) : null}
                    onChange={(update) => {
                      const [start, end] = update;
+                     
+                     const formatLocal = (d) => {
+                       if (!d) return '';
+                       const yyyy = d.getFullYear();
+                       const mm = String(d.getMonth() + 1).padStart(2, '0');
+                       const dd = String(d.getDate()).padStart(2, '0');
+                       return `${yyyy}-${mm}-${dd}`;
+                     };
+
                      setForm({
                        ...form,
-                       start_date: start ? start.toISOString().split('T')[0] : '',
-                       end_date: end ? end.toISOString().split('T')[0] : ''
+                       start_date: formatLocal(start),
+                       end_date: formatLocal(end)
                      });
                    }}
                    locale={id}
