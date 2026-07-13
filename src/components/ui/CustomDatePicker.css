@@ -72,7 +72,6 @@
 /* Stabilize width */
 .react-datepicker {
   width: max-content;
-  min-width: 260px;
 }
 .react-datepicker__month-container {
   /* Default block layout */
