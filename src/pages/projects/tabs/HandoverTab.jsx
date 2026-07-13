@@ -4,7 +4,7 @@ import { PageLoader, Modal, Confirm, Lightbox } from '../../../components/ui';
 import CustomDatePicker from '../../../components/ui/CustomDatePicker';
 import DateTimePickerModal from '../../../components/ui/DateTimePickerModal';
 import { useToast } from '../../../hooks/useToast';
-import { extractError, formatDate } from '../../../utils/helpers';
+import { extractError, formatDate, formatDateTime } from '../../../utils/helpers';
 import { useAuth } from '../../../context/AuthContext';
 import {
   Key, Plus, Pencil, Trash2, CheckCircle, Clock, AlertTriangle,
@@ -550,7 +550,7 @@ export default function HandoverTab({ unit, onHandover }) {
                 <Clock className="w-4 h-4 text-slate-400" />
                 <span>
                   {form.scheduled_date 
-                    ? formatDate(form.scheduled_date, true) 
+                    ? formatDateTime(form.scheduled_date) 
                     : <span className="text-slate-400">Pilih Tanggal dan Jam</span>}
                 </span>
               </div>
