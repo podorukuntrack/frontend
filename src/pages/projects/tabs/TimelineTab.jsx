@@ -4,8 +4,11 @@ import { PageLoader, Modal, Confirm } from '../../../components/ui';
 import { useToast } from '../../../hooks/useToast';
 import { extractError, formatDate } from '../../../utils/helpers';
 import { useAuth } from '../../../context/AuthContext';
-import { Trash2, Pencil, Plus, Calendar as CalIcon } from 'lucide-react';
-import { CustomDatePicker } from '../../../components/ui';
+import { Trash2, Pencil, Plus, Calendar as CalIcon, Clock } from 'lucide-react';
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import id from "date-fns/locale/id";
+import { differenceInDays } from "date-fns";
 
 export default function TimelineTab({ unit, project, onUpdate }) {
   const { isRole } = useAuth();
@@ -56,7 +59,7 @@ export default function TimelineTab({ unit, project, onUpdate }) {
         await timelinesAPI.update(modal.data.id, payload);
         toast('Timeline berhasil diperbarui', 'success');
       }
-      setModal({ open: false });
+      setModal({ open: false, mode: 'create', data: null });
       loadData();
       if (onUpdate) onUpdate();
     } catch (err) {
@@ -136,34 +139,48 @@ export default function TimelineTab({ unit, project, onUpdate }) {
       )}
 
       {/* Modal */}
-      <Modal open={modal.open} onClose={() => setModal({ open: false })} title={modal.mode === 'create' ? 'Tambah Timeline' : 'Edit Timeline'}>
+      <Modal open={modal.open} onClose={() => setModal({ open: false, mode: 'create', data: null })} title={modal.mode === 'create' ? 'Tambah Timeline' : 'Edit Timeline'}>
          <form onSubmit={handleSave} className="space-y-4">
             <div className="space-y-1.5">
                <label className="label">Nama Tugas (Estimasi)</label>
                <input className="input" required value={form.task_name} onChange={e => setForm({...form, task_name: e.target.value})} placeholder="Contoh: Pengecoran Pondasi" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-               <div className="space-y-1.5">
-                  <label className="label">Tanggal Mulai</label>
-                  <div className="z-[100]">
-                    <CustomDatePicker 
-                      value={form.start_date} 
-                      onChange={v => setForm({...form, start_date: v})} 
-                    />
-                  </div>
+            
+            <div className="space-y-1.5">
+               <label className="label">Periode Pengerjaan</label>
+               <div className="relative z-[100] w-full">
+                 <DatePicker
+                   selectsRange={true}
+                   startDate={form.start_date ? new Date(form.start_date) : null}
+                   endDate={form.end_date ? new Date(form.end_date) : null}
+                   onChange={(update) => {
+                     const [start, end] = update;
+                     setForm({
+                       ...form,
+                       start_date: start ? start.toISOString().split('T')[0] : '',
+                       end_date: end ? end.toISOString().split('T')[0] : ''
+                     });
+                   }}
+                   locale={id}
+                   dateFormat="dd/MM/yyyy"
+                   placeholderText="Pilih Tanggal Mulai - Selesai"
+                   className="input w-full pl-10 cursor-pointer"
+                   wrapperClassName="w-full"
+                 />
+                 <CalIcon className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                </div>
-               <div className="space-y-1.5">
-                  <label className="label">Tanggal Selesai</label>
-                  <div className="z-[100]">
-                    <CustomDatePicker 
-                      value={form.end_date} 
-                      onChange={v => setForm({...form, end_date: v})} 
-                    />
-                  </div>
-               </div>
+               {form.start_date && form.end_date && (
+                 <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-1 mt-1.5 bg-indigo-50 dark:bg-indigo-500/10 w-fit px-2.5 py-1 rounded-md">
+                   <Clock className="w-3.5 h-3.5" />
+                   Estimasi Waktu: {differenceInDays(new Date(form.end_date), new Date(form.start_date)) + 1} Hari
+                 </p>
+               )}
             </div>
+
             <div className="flex justify-end pt-4">
-               <button type="submit" className="btn-primary" disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan'}</button>
+               <button type="submit" className="btn-primary" disabled={saving || !form.start_date || !form.end_date}>
+                 {saving ? 'Menyimpan...' : 'Simpan'}
+               </button>
             </div>
          </form>
       </Modal>

@@ -55,7 +55,7 @@ export default function DateTimePickerModal({ isOpen, onClose, onSave, initialVa
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Pilih Tanggal & Waktu" size="sm">
+    <Modal open={isOpen} onClose={onClose} title="Pilih Tanggal & Waktu" size="sm">
       <div className="flex flex-col items-center">
         
         {/* Navigation Tabs */}
