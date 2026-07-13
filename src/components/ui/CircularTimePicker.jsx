@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 export default function CircularTimePicker({ initialHour = 0, initialMinute = 0, onTimeChange, mode = 'hour', onModeChange }) {
   const [hour, setHour] = useState(initialHour);
   const [minute, setMinute] = useState(initialMinute);
+  const [isDragging, setIsDragging] = useState(false);
   const clockRef = useRef(null);
 
   useEffect(() => {
@@ -55,7 +56,6 @@ export default function CircularTimePicker({ initialHour = 0, initialMinute = 0,
       }
       setHour(selectedHour);
       onTimeChange && onTimeChange(selectedHour, minute);
-      setTimeout(() => onModeChange && onModeChange('minute'), 300);
     } else {
       let selectedMinute = Math.round(angle / 6) % 60;
       setMinute(selectedMinute);
@@ -64,13 +64,46 @@ export default function CircularTimePicker({ initialHour = 0, initialMinute = 0,
   };
 
   const handleMouseDown = (e) => {
+    setIsDragging(true);
     handleClockInteract(e.clientX, e.clientY);
   };
 
+  const handleMouseMove = (e) => {
+    if (isDragging) {
+      handleClockInteract(e.clientX, e.clientY);
+    }
+  };
+
+  const handleMouseUp = () => {
+    if (isDragging) {
+      setIsDragging(false);
+      if (mode === 'hour') {
+        setTimeout(() => onModeChange && onModeChange('minute'), 300);
+      }
+    }
+  };
+
   const handleTouchStart = (e) => {
-    e.preventDefault(); 
+    // touch-none class handles scroll prevention, but we can also preventDefault if needed
+    setIsDragging(true);
     const touch = e.touches[0];
     handleClockInteract(touch.clientX, touch.clientY);
+  };
+
+  const handleTouchMove = (e) => {
+    if (isDragging) {
+      const touch = e.touches[0];
+      handleClockInteract(touch.clientX, touch.clientY);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (isDragging) {
+      setIsDragging(false);
+      if (mode === 'hour') {
+        setTimeout(() => onModeChange && onModeChange('minute'), 300);
+      }
+    }
   };
 
   const renderHours = () => {
@@ -123,12 +156,17 @@ export default function CircularTimePicker({ initialHour = 0, initialMinute = 0,
         ref={clockRef}
         className="relative w-[260px] h-[260px] rounded-full bg-slate-100 dark:bg-slate-800/50 flex items-center justify-center cursor-pointer touch-none shadow-inner"
         onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
         onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
         <div className="absolute w-2 h-2 rounded-full bg-indigo-600 z-10" />
         
         <div 
-          className="absolute left-1/2 top-1/2 bg-indigo-500 origin-left transition-transform duration-300 ease-[cubic-bezier(0.4,0.0,0.2,1)] pointer-events-none"
+          className={`absolute left-1/2 top-1/2 bg-indigo-500 origin-left pointer-events-none ${!isDragging ? 'transition-transform duration-300 ease-[cubic-bezier(0.4,0.0,0.2,1)]' : ''}`}
           style={getHandStyle(mode === 'hour' ? hour : minute, mode === 'minute')}
         >
           <div className="absolute -right-3 -top-[11px] w-6 h-6 rounded-full border-[6px] border-indigo-500 bg-transparent" />
