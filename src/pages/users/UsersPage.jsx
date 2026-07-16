@@ -49,23 +49,14 @@ export default function UsersPage() {
     const fetchUsers = async () => {
       setLoading(true);
       try {
-        const useLargeFetch = isRole('admin') || isRole('super_admin');
-        const fetchLimit = useLargeFetch ? 1000 : LIMIT;
         const r = await usersAPI.list({
-          page: useLargeFetch ? 1 : page,
-          limit: fetchLimit,
+          page: page,
+          limit: LIMIT,
           search: search.trim() || undefined,
         });
         if (cancelled) return;
-        // Admin sees only customers in own company, others see all (except filtered by role later)
-        if (isRole('super_admin')) {
-          // Backend already excludes customers for super_admin
-          setUsers(r.data.data || []);
-          setTotal(r.data.meta?.total ?? (r.data.data || []).length);
-        } else {
-          setUsers(r.data.data || []);
-          setTotal(r.data.meta?.total ?? 0);
-        }
+        setUsers(r.data.data || []);
+        setTotal(r.data.meta?.total ?? 0);
       } catch (err) {
         if (!cancelled) toast(extractError(err), 'error');
       } finally {
