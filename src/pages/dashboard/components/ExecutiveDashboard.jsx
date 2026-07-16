@@ -117,7 +117,7 @@ export default function ExecutiveDashboard() {
       metricPath: "cash-in",
     },
     {
-      label: "Total Y",
+      label: "Total yang Belum Dibayar",
       value: formatCurrency(stats?.finance?.total_piutang ?? 0),
       icon: Landmark,
       color: "text-rose-600 dark:text-rose-400",
