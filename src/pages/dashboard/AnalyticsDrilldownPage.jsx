@@ -4,7 +4,11 @@ import { dashboardAPI } from "../../api/services";
 import { useAuth } from "../../context/AuthContext";
 import { PageLoader } from "../../components/ui";
 import { extractError, formatCurrency, formatDate } from "../../utils/helpers";
-import { ArrowLeft, TrendingUp, Wallet, Landmark, Home, Users, Search } from "lucide-react";
+import { ArrowLeft, TrendingUp, Wallet, Landmark, Home, Users, Search, Building2, CalendarRange } from "lucide-react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { id } from "date-fns/locale";
+import { companiesAPI } from "../../api/services";
 
 const metricConfig = {
   revenue: {
@@ -22,7 +26,7 @@ const metricConfig = {
     bg: "bg-emerald-50 dark:bg-emerald-500/10",
   },
   piutang: {
-    title: "Detail Piutang",
+    title: "Detail Sisa Tagihan / Piutang",
     desc: "Daftar unit dengan sisa tagihan atau KPR yang belum cair.",
     icon: Landmark,
     color: "text-amber-600 dark:text-amber-400",
@@ -47,18 +51,52 @@ const metricConfig = {
 export default function AnalyticsDrilldownPage() {
   const { metric } = useParams();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const companyId = searchParams.get("companyId");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlCompanyId = searchParams.get("companyId");
+  const urlStartDate = searchParams.get("startDate");
+  const urlEndDate = searchParams.get("endDate");
+  
+  // Use URL params if present, otherwise fallback to sessionStorage
+  const companyId = urlCompanyId ?? (sessionStorage.getItem("exec_companyId") || "");
+  const startDate = urlStartDate ?? (sessionStorage.getItem("exec_startDate") || "");
+  const endDate = urlEndDate ?? (sessionStorage.getItem("exec_endDate") || "");
+  
   const { isRole } = useAuth();
   
   const [data, setData] = useState([]);
+  const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   
+  const [hoverDate, setHoverDate] = useState(null);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [filterTipePembayaran, setFilterTipePembayaran] = useState("");
   const [filterStatusPembangunan, setFilterStatusPembangunan] = useState("");
   const [filterStatusPenjualan, setFilterStatusPenjualan] = useState("");
+
+  // Update query params function
+  const updateFilter = (key, value) => {
+    // Save to sessionStorage
+    sessionStorage.setItem(`exec_${key}`, value);
+    
+    // Update URL params
+    const newParams = new URLSearchParams(searchParams);
+    if (value) {
+      newParams.set(key, value);
+    } else {
+      newParams.delete(key);
+    }
+    setSearchParams(newParams);
+  };
+
+  useEffect(() => {
+    if (isRole("owner", "super_admin")) {
+      companiesAPI.list()
+        .then(res => setCompanies(res.data.data))
+        .catch(console.error);
+    }
+  }, [isRole]);
 
   useEffect(() => {
     if (!metricConfig[metric]) {
@@ -66,10 +104,19 @@ export default function AnalyticsDrilldownPage() {
       return;
     }
 
+    // Prevent fetching if only one date is selected
+    if ((startDate && !endDate) || (!startDate && endDate)) return;
+
     const fetchData = async () => {
       setLoading(true);
       try {
-        const params = companyId ? { companyId } : {};
+        const params = {};
+        if (companyId) params.companyId = companyId;
+        if (startDate && endDate) {
+          params.startDate = startDate;
+          params.endDate = endDate;
+        }
+        
         const res = await dashboardAPI.drilldown(params);
         
         const allData = res.data.data;
@@ -90,7 +137,7 @@ export default function AnalyticsDrilldownPage() {
     };
     
     fetchData();
-  }, [metric, companyId, navigate, isRole]);
+  }, [metric, companyId, startDate, endDate, navigate, isRole]);
 
   const cfg = metricConfig[metric];
 
@@ -175,6 +222,92 @@ export default function AnalyticsDrilldownPage() {
               </p>
             </div>
           </div>
+        </div>
+        
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* DATE RANGE FILTER */}
+          <div className="flex items-center bg-white dark:bg-slate-800 p-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm h-[42px] relative z-20">
+            <CalendarRange className="w-4 h-4 text-slate-400 ml-2 absolute left-2 pointer-events-none" />
+            <DatePicker
+              selectsRange={true}
+              startDate={startDate ? new Date(startDate) : null}
+              endDate={endDate ? new Date(endDate) : null}
+              onChange={(update) => {
+                let [start, end] = update;
+                
+                // Hack to support backward selection
+                if (start && !end && startDate && !endDate) {
+                   const oldStart = new Date(startDate);
+                   if (start < oldStart) {
+                      end = oldStart; // Swap them
+                   }
+                }
+                
+                if (start) {
+                  const s = new Date(start.getTime() - (start.getTimezoneOffset() * 60000));
+                  updateFilter("startDate", s.toISOString().split('T')[0]);
+                } else updateFilter("startDate", "");
+                
+                if (end) {
+                  const e = new Date(end.getTime() - (end.getTimezoneOffset() * 60000));
+                  updateFilter("endDate", e.toISOString().split('T')[0]);
+                } else updateFilter("endDate", "");
+              }}
+              isClearable={true}
+              placeholderText="Pilih rentang tanggal..."
+              className="bg-transparent border-none text-sm font-medium text-slate-700 dark:text-slate-200 focus:ring-0 outline-none w-[220px] cursor-pointer pl-8"
+              locale={id}
+              dateFormat="dd MMM yyyy"
+              maxDate={new Date()}
+              renderDayContents={(day, date) => {
+                return (
+                  <div 
+                    onMouseEnter={() => {
+                      if (startDate && !endDate) {
+                        setHoverDate(date);
+                      }
+                    }}
+                    className="w-full h-full leading-8"
+                  >
+                    {day}
+                  </div>
+                );
+              }}
+              dayClassName={(date) => {
+                if (startDate && !endDate && hoverDate) {
+                  const s = new Date(startDate);
+                  s.setHours(0, 0, 0, 0);
+                  const h = new Date(hoverDate);
+                  h.setHours(0, 0, 0, 0);
+                  const d = new Date(date);
+                  d.setHours(0, 0, 0, 0);
+                  
+                  // Highlight backwards
+                  if (h < s && d >= h && d <= s) {
+                    return "react-datepicker__day--in-selecting-range"; 
+                  }
+                }
+                return "";
+              }}
+            />
+          </div>
+
+          {/* COMPANY FILTER (ONLY OWNER/SUPER_ADMIN) */}
+          {isRole("owner", "super_admin") && (
+            <div className="flex items-center bg-white dark:bg-slate-800 p-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm h-[42px] relative z-20">
+              <Building2 className="w-4 h-4 text-slate-400 ml-2 absolute left-2 pointer-events-none" />
+              <select 
+                className="bg-transparent border-none text-sm font-medium text-slate-700 dark:text-slate-200 focus:ring-0 outline-none pr-8 cursor-pointer w-full sm:w-48 pl-8"
+                value={companyId}
+                onChange={(e) => updateFilter("companyId", e.target.value)}
+              >
+                <option value="" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">Semua Perusahaan</option>
+                {companies.map(c => (
+                  <option key={c.id} value={c.id} className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">{c.nama_pt}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       </div>
 

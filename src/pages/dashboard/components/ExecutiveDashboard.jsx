@@ -9,6 +9,8 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -21,7 +23,11 @@ import {
   Home,
   Building2,
   Users,
+  CalendarRange,
 } from "lucide-react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { id } from "date-fns/locale";
 import { useTheme } from "../../../hooks/useTheme";
 
 const COLORS = ["var(--color-primary, #3b82f6)", "#64748b", "#94a3b8", "#cbd5e1", "#e2e8f0"];
@@ -35,7 +41,21 @@ export default function ExecutiveDashboard() {
   const [error, setError] = useState("");
   
   const [companies, setCompanies] = useState([]);
-  const [selectedCompanyId, setSelectedCompanyId] = useState("");
+  
+  // Persist state in sessionStorage
+  const [selectedCompanyId, setSelectedCompanyId] = useState(() => sessionStorage.getItem("exec_companyId") || "");
+  const [startDate, setStartDate] = useState(() => sessionStorage.getItem("exec_startDate") || "");
+  const [endDate, setEndDate] = useState(() => sessionStorage.getItem("exec_endDate") || "");
+  const [hoverDate, setHoverDate] = useState(null);
+
+  useEffect(() => {
+    sessionStorage.setItem("exec_companyId", selectedCompanyId);
+  }, [selectedCompanyId]);
+
+  useEffect(() => {
+    sessionStorage.setItem("exec_startDate", startDate);
+    sessionStorage.setItem("exec_endDate", endDate);
+  }, [startDate, endDate]);
 
   useEffect(() => {
     if (isRole("owner", "super_admin")) {
@@ -46,15 +66,31 @@ export default function ExecutiveDashboard() {
   }, [isRole]);
 
   useEffect(() => {
-    setLoading(true);
-    const params = selectedCompanyId ? { companyId: selectedCompanyId } : {};
+    // Prevent fetching if only one date is selected in the range picker
+    if ((startDate && !endDate) || (!startDate && endDate)) return;
+
+    const fetchDashboard = async () => {
+      setLoading(true);
+      try {
+        const params = {};
+        if (selectedCompanyId) params.companyId = selectedCompanyId;
+        if (startDate && endDate) {
+          params.startDate = startDate;
+          params.endDate = endDate;
+        }
+
+        const res = await dashboardAPI.executive(params);
+        setStats(res.data.data);
+        setError("");
+      } catch (err) {
+        setError(extractError(err));
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    dashboardAPI
-      .executive(params)
-      .then((res) => setStats(res.data.data))
-      .catch((err) => setError(extractError(err)))
-      .finally(() => setLoading(false));
-  }, [selectedCompanyId]);
+    fetchDashboard();
+  }, [selectedCompanyId, startDate, endDate, isRole]);
 
   if (loading) return <DashboardSkeleton />;
   if (error)
@@ -81,7 +117,7 @@ export default function ExecutiveDashboard() {
       metricPath: "cash-in",
     },
     {
-      label: "Total Piutang",
+      label: "Total Y",
       value: formatCurrency(stats?.finance?.total_piutang ?? 0),
       icon: Landmark,
       color: "text-rose-600 dark:text-rose-400",
@@ -148,22 +184,92 @@ export default function ExecutiveDashboard() {
           </p>
         </div>
         
-        {/* COMPANY FILTER (ONLY OWNER/SUPER_ADMIN) */}
-        {isRole("owner", "super_admin") && (
-          <div className="flex items-center gap-2 bg-white dark:bg-slate-800 p-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-            <Building2 className="w-4 h-4 text-slate-400 ml-2" />
-            <select 
-              className="bg-transparent border-none text-sm font-medium text-slate-700 dark:text-slate-200 focus:ring-0 outline-none pr-8 cursor-pointer w-full sm:w-48"
-              value={selectedCompanyId}
-              onChange={(e) => setSelectedCompanyId(e.target.value)}
-            >
-              <option value="">Semua Perusahaan</option>
-              {companies.map(c => (
-                <option key={c.id} value={c.id}>{c.nama_pt}</option>
-              ))}
-            </select>
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* DATE RANGE FILTER */}
+          <div className="flex items-center bg-white dark:bg-slate-800 p-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm h-[42px] relative z-20">
+            <CalendarRange className="w-4 h-4 text-slate-400 ml-2 absolute left-2 pointer-events-none" />
+            <DatePicker
+              selectsRange={true}
+              startDate={startDate ? new Date(startDate) : null}
+              endDate={endDate ? new Date(endDate) : null}
+              onChange={(update) => {
+                let [start, end] = update;
+                
+                // Hack to support backward selection (e.g. clicking 9 then 1 -> becomes 1 to 9)
+                if (start && !end && startDate && !endDate) {
+                   const oldStart = new Date(startDate);
+                   if (start < oldStart) {
+                      end = oldStart; // Swap them
+                   }
+                }
+                
+                // Add timezone offset to prevent picking previous day due to UTC conversion
+                if (start) {
+                  const s = new Date(start.getTime() - (start.getTimezoneOffset() * 60000));
+                  setStartDate(s.toISOString().split('T')[0]);
+                } else setStartDate("");
+                
+                if (end) {
+                  const e = new Date(end.getTime() - (end.getTimezoneOffset() * 60000));
+                  setEndDate(e.toISOString().split('T')[0]);
+                } else setEndDate("");
+              }}
+              isClearable={true}
+              placeholderText="Pilih rentang tanggal..."
+              className="bg-transparent border-none text-sm font-medium text-slate-700 dark:text-slate-200 focus:ring-0 outline-none w-[220px] cursor-pointer pl-8"
+              locale={id}
+              dateFormat="dd MMM yyyy"
+              maxDate={new Date()}
+              renderDayContents={(day, date) => {
+                return (
+                  <div 
+                    onMouseEnter={() => {
+                      if (startDate && !endDate) {
+                        setHoverDate(date);
+                      }
+                    }}
+                    className="w-full h-full leading-8"
+                  >
+                    {day}
+                  </div>
+                );
+              }}
+              dayClassName={(date) => {
+                if (startDate && !endDate && hoverDate) {
+                  const s = new Date(startDate);
+                  s.setHours(0, 0, 0, 0);
+                  const h = new Date(hoverDate);
+                  h.setHours(0, 0, 0, 0);
+                  const d = new Date(date);
+                  d.setHours(0, 0, 0, 0);
+                  
+                  // Highlight backwards
+                  if (h < s && d >= h && d <= s) {
+                    return "react-datepicker__day--in-selecting-range"; 
+                  }
+                }
+                return "";
+              }}
+            />
           </div>
-        )}
+
+          {/* COMPANY FILTER (ONLY OWNER/SUPER_ADMIN) */}
+          {isRole("owner", "super_admin") && (
+            <div className="flex items-center bg-white dark:bg-slate-800 p-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm h-[42px] relative z-20">
+              <Building2 className="w-4 h-4 text-slate-400 ml-2 absolute left-2 pointer-events-none" />
+              <select 
+                className="bg-transparent border-none text-sm font-medium text-slate-700 dark:text-slate-200 focus:ring-0 outline-none pr-8 cursor-pointer w-full sm:w-48 pl-8"
+                value={selectedCompanyId}
+                onChange={(e) => setSelectedCompanyId(e.target.value)}
+              >
+                <option value="" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">Semua Perusahaan</option>
+                {companies.map(c => (
+                  <option key={c.id} value={c.id} className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">{c.nama_pt}</option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* DASHBOARD LAYOUT HIERARCHY */}
@@ -210,8 +316,11 @@ export default function ExecutiveDashboard() {
                 key={s.label} 
                 onClick={() => {
                   if (s.metricPath) {
-                    const query = selectedCompanyId ? `?companyId=${selectedCompanyId}` : '';
-                    navigate(`/analytics/${s.metricPath}${query}`);
+                    const queryParams = new URLSearchParams();
+                    if (selectedCompanyId) queryParams.set("companyId", selectedCompanyId);
+                    if (startDate) queryParams.set("startDate", startDate);
+                    if (endDate) queryParams.set("endDate", endDate);
+                    navigate(`/analytics/${s.metricPath}?${queryParams.toString()}`);
                   }
                 }}
                 className={`card-hover p-5 border ${s.borderColor} bg-white dark:bg-slate-900 rounded-2xl relative overflow-hidden group cursor-pointer shadow-sm hover:shadow-md transition-all duration-300`}
@@ -247,8 +356,11 @@ export default function ExecutiveDashboard() {
                 key={s.label} 
                 onClick={() => {
                   if (s.metricPath) {
-                    const query = selectedCompanyId ? `?companyId=${selectedCompanyId}` : '';
-                    navigate(`/analytics/${s.metricPath}${query}`);
+                    const queryParams = new URLSearchParams();
+                    if (selectedCompanyId) queryParams.set("companyId", selectedCompanyId);
+                    if (startDate) queryParams.set("startDate", startDate);
+                    if (endDate) queryParams.set("endDate", endDate);
+                    navigate(`/analytics/${s.metricPath}?${queryParams.toString()}`);
                   }
                 }}
                 className={`card-hover p-6 flex-1 border ${s.borderColor} bg-white dark:bg-slate-900 rounded-2xl relative overflow-hidden group cursor-pointer flex flex-col justify-center shadow-sm hover:shadow-md transition-all duration-300`}
@@ -272,6 +384,79 @@ export default function ExecutiveDashboard() {
               </div>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* SALES TREND LINE CHART */}
+      <div className="card p-6 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl flex flex-col shadow-sm">
+        <div className="flex items-center gap-2 mb-2">
+          <TrendingUp className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
+          <h3 className="font-bold text-slate-900 dark:text-white text-lg">Tren Uang Masuk (Cash In) Harian</h3>
+        </div>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Berdasarkan tanggal masuknya uang di riwayat pembayaran (Status Verified).</p>
+        
+        <div className="w-full h-[300px]">
+          {stats?.sales_trend && stats.sales_trend.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={stats.sales_trend}
+                margin={{ top: 5, right: 20, left: 20, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#334155' : '#e2e8f0'} />
+                <XAxis 
+                  dataKey="date" 
+                  tickFormatter={(val) => {
+                    const d = new Date(val);
+                    return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+                  }}
+                  tick={{ fill: theme === 'dark' ? '#94a3b8' : '#475569', fontSize: 12 }}
+                  axisLine={false}
+                  tickLine={false}
+                  dy={10}
+                />
+                <YAxis 
+                  tickFormatter={(val) => {
+                    if (val >= 1000000000) return `Rp ${(val / 1000000000).toFixed(1)} M`;
+                    if (val >= 1000000) return `Rp ${(val / 1000000).toFixed(0)} Jt`;
+                    return `Rp ${val}`;
+                  }}
+                  tick={{ fill: theme === 'dark' ? '#94a3b8' : '#475569', fontSize: 12 }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={80}
+                />
+                <RechartsTooltip 
+                  cursor={{ stroke: theme === 'dark' ? '#334155' : '#e2e8f0', strokeWidth: 2, strokeDasharray: '5 5' }}
+                  content={({ active, payload, label }) => {
+                    if (active && payload && payload.length) {
+                      const dateStr = new Date(label).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                      return (
+                        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3 rounded-xl shadow-lg">
+                          <p className="font-semibold text-slate-500 dark:text-slate-400 mb-1">{dateStr}</p>
+                          <p className="font-bold text-emerald-600 dark:text-emerald-400 text-lg">
+                            {formatCurrency(payload[0].value)}
+                          </p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="revenue" 
+                  stroke="var(--color-primary, #3b82f6)" 
+                  strokeWidth={4}
+                  dot={{ r: 4, strokeWidth: 2, fill: 'white' }}
+                  activeDot={{ r: 6, strokeWidth: 0, fill: 'var(--color-primary, #3b82f6)' }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-full flex items-center justify-center text-slate-400">
+              Belum ada data pembayaran pada rentang tanggal ini.
+            </div>
+          )}
         </div>
       </div>
 
