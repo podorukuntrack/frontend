@@ -117,6 +117,7 @@ export default function UsersPage() {
       const payload = { ...form };
       if (modal.mode === 'edit' && !payload.password) delete payload.password;
       if (!payload.company_id) delete payload.company_id;
+      if (!payload.role) delete payload.role;
 
       if (modal.mode === 'create') {
         await usersAPI.create(payload);
