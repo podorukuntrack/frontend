@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import DatePicker from "react-datepicker";
 import id from "date-fns/locale/id";
 import { Modal } from './index'; // assuming Modal is exported from index

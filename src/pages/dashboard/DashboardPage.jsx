@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { dashboardAPI } from "../../api/services";
+import { useAuth } from "../../context/AuthContext";
+import ExecutiveDashboard from "./components/ExecutiveDashboard";
 import { DashboardSkeleton } from "../../components/ui";
 import { extractError, formatCurrency } from "../../utils/helpers";
 import {
@@ -16,14 +18,22 @@ import {
 } from "lucide-react";
 import { useTheme } from "../../hooks/useTheme";
 
+import { useNavigate } from "react-router-dom";
+
 const COLORS = ["#10b981", "#3b82f6", "#94a3b8"]; // Selesai, Dalam Pembangunan, Belum Mulai
 
 export default function DashboardPage() {
   const { theme } = useTheme();
+  const { isRole } = useAuth();
+  const navigate = useNavigate();
 
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  if (isRole('direksi', 'owner')) {
+    return <ExecutiveDashboard />;
+  }
 
   useEffect(() => {
     dashboardAPI
@@ -57,6 +67,7 @@ export default function DashboardPage() {
       color: "text-emerald-600 dark:text-emerald-400",
       bg: "bg-emerald-50 dark:bg-emerald-500/10",
       sub: `+ ${formatCurrency(stats?.financial?.revenue_this_month ?? 0)} bulan ini`,
+      metricPath: "revenue",
     },
     {
       label: "Unit Terjual",
@@ -65,6 +76,7 @@ export default function DashboardPage() {
       color: "text-indigo-600 dark:text-indigo-400",
       bg: "bg-indigo-50 dark:bg-indigo-500/10",
       sub: `dari ${stats?.units?.total ?? 0} total unit tersedia`,
+      metricPath: "occupancy",
     },
     {
       label: "Proyek Aktif",
@@ -73,6 +85,7 @@ export default function DashboardPage() {
       color: "text-blue-600 dark:text-blue-400",
       bg: "bg-blue-50 dark:bg-blue-500/10",
       sub: `dari ${stats?.projects?.total ?? 0} total proyek`,
+      path: "/projects",
     },
   ];
 
@@ -100,7 +113,14 @@ export default function DashboardPage() {
       {/* BENTO STAT CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {statCards.map((s) => (
-          <div key={s.label} className="card-hover p-6 flex flex-col justify-between border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/50 rounded-2xl relative overflow-hidden group">
+          <div 
+            key={s.label} 
+            onClick={() => {
+              if (s.metricPath) navigate(`/analytics/${s.metricPath}`);
+              else if (s.path) navigate(s.path);
+            }}
+            className="card-hover p-6 flex flex-col justify-between border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/50 rounded-2xl relative overflow-hidden group cursor-pointer"
+          >
             {/* Dekorasi Background */}
             <div className={`absolute -right-6 -top-6 w-24 h-24 rounded-full ${s.bg} opacity-50 group-hover:scale-[2] transition-transform duration-700 ease-out`} />
             

@@ -3,7 +3,8 @@ import { companiesAPI, documentationAPI } from '../../api/services';
 import { PageLoader, EmptyState, Modal, Lightbox } from '../../components/ui';
 import { useToast } from '../../hooks/useToast';
 import { formatDate, extractError } from '../../utils/helpers';
-import { Building2, Plus, Pencil, MapPin, Camera } from 'lucide-react';
+import { Building2, Plus, Pencil, MapPin, Camera, Trash2 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 const EMPTY_FORM = { nama_pt: '', kode_pt: '', alamat: '', logo_url: '', theme_color: '#4f46e5' };
 
@@ -11,6 +12,8 @@ export default function CompaniesPage() {
   const { toast } = useToast();
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deleteModal, setDeleteModal] = useState({ open: false, companyId: null });
+  const { isRole } = useAuth();
   const [modal, setModal] = useState({ open: false, mode: 'create', data: null });
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -128,6 +131,19 @@ export default function CompaniesPage() {
     }
   };
 
+  const handleDelete = async () => {
+    console.log('Delete triggered for companyId', deleteModal.companyId);
+    try {
+      await companiesAPI.delete(deleteModal.companyId);
+      toast('Perusahaan berhasil dihapus', 'success');
+      load();
+    } catch (err) {
+      toast(extractError(err), 'error');
+    } finally {
+      setDeleteModal({ open: false, companyId: null });
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* HEADER */}
@@ -202,9 +218,12 @@ export default function CompaniesPage() {
                           <Building2 className="w-6 h-6 text-indigo-400" />
                         )}
                       </div>
-                      <button onClick={() => openEdit(c)} className="btn-ghost !p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Pencil className="w-4 h-4 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400" />
-                      </button>
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => openEdit(c)} className="btn-ghost !p-1.5">
+                          <Pencil className="w-4 h-4 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400" />
+                        </button>
+                        {isRole('super_admin') && (<button onClick={() => setDeleteModal({ open: true, companyId: c.id })} className="btn-ghost !p-1.5 !text-red-500 hover:!bg-red-50 dark:hover:!bg-red-900/20"><Trash2 className="w-4 h-4" /></button>)}
+                      </div>
                     </div>
                     
                     <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-1.5 leading-tight">{c.nama_pt}</h3>
@@ -231,6 +250,17 @@ export default function CompaniesPage() {
           })}
         </div>
       )}
+
+      {/* DELETE CONFIRMATION MODAL */}
+      <Modal open={deleteModal.open} onClose={() => setDeleteModal({ open: false, companyId: null })} title="Konfirmasi Hapus">
+        <div className="space-y-4">
+          <p>Apakah Anda yakin ingin menghapus perusahaan ini? Pastikan data di dalam perusahaan sudah bersih.</p>
+          <div className="flex justify-end gap-2 pt-2">
+            <button className="btn-secondary" onClick={() => setDeleteModal({ open: false, companyId: null })}>Batal</button>
+            <button className="btn-danger" onClick={handleDelete}>Hapus</button>
+          </div>
+        </div>
+      </Modal>
 
       {/* MODAL */}
       <Modal open={modal.open} onClose={() => setModal({ open: false })} title={modal.mode === 'create' ? 'Tambah Perusahaan' : 'Edit Perusahaan'}>

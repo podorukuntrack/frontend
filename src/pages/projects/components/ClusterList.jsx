@@ -124,7 +124,7 @@ export default function ClusterList({ project }) {
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Cluster di {project.nama_proyek}</h1>
             <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{total} cluster terdaftar</p>
           </div>
-          {isRole("super_admin", "admin") && (
+          {isRole('admin') && (
             <button className="btn-primary whitespace-nowrap" onClick={openCreate}>
               <Plus className="w-4 h-4 mr-1" />
               Tambah Cluster
@@ -152,7 +152,7 @@ export default function ClusterList({ project }) {
           icon={Layers}
           title="Belum ada cluster"
           description={search ? "Hasil pencarian tidak ditemukan." : `Tambahkan cluster ke proyek ${project.nama_proyek}.`}
-          action={isRole('super_admin', 'admin') && <button className="btn-primary mt-2" onClick={openCreate}><Plus className="w-4 h-4 mr-1" />Tambah Cluster</button>}
+          action={isRole('admin') && <button className="btn-primary mt-2" onClick={openCreate}><Plus className="w-4 h-4 mr-1" />Tambah Cluster</button>}
         />
       ) : (
         <>
@@ -164,7 +164,7 @@ export default function ClusterList({ project }) {
                     <span className="inline-flex px-2.5 py-1 rounded-md text-[10px] uppercase tracking-wider font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20">
                       {project.nama_proyek}
                     </span>
-                    {isRole("super_admin", "admin") && (
+                    {isRole('admin') && (
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button onClick={(e) => openEdit(c, e)} className="btn-ghost !p-1.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400">
                           <Pencil className="w-4 h-4" />

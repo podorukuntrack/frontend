@@ -226,7 +226,7 @@ export default function UnitList({ cluster, project }) {
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Unit di {cluster.nama_cluster}</h1>
             <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{units.length} unit terdaftar dari kapasitas {kapasitasCluster}</p>
           </div>
-          {isRole("super_admin", "admin") && (
+          {isRole('admin') && (
             <button className="btn-primary whitespace-nowrap" onClick={() => setAddModal(true)}>
               <Plus className="w-4 h-4 mr-1" /> Tambah Unit
             </button>
@@ -310,7 +310,7 @@ export default function UnitList({ cluster, project }) {
                        <button className="btn-ghost !p-2 inline-flex mr-1 text-slate-400 group-hover:text-indigo-600">
                           <Eye className="w-4 h-4" />
                        </button>
-                      {isRole("super_admin", "admin") && (
+                      {isRole('admin') && (
                         <>
                           <button onClick={(e) => openEdit(u, e)} className="btn-ghost !p-2 inline-flex" title="Edit Unit">
                             <Pencil className="w-4 h-4 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400" />

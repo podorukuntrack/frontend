@@ -33,6 +33,15 @@ api.interceptors.response.use(
       return Promise.reject(err);
     }
 
+    // ✅ Tangani 429 Rate Limit secara elegan
+    if (err.response?.status === 429) {
+      window.dispatchEvent(new CustomEvent('show-toast', { 
+        detail: { id: "rate_limit", msg: "Sistem sedang sibuk sinkronisasi data. Mohon tunggu beberapa detik...", type: 'error' } 
+      }));
+      // Resolve promise gracefully with empty data instead of rejecting to prevent UI freeze
+      return Promise.resolve({ data: { success: false, data: [] } });
+    }
+
     if (err.response?.status === 401 && !original._retry) {
       original._retry = true;
       try {

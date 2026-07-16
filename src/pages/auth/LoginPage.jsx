@@ -26,7 +26,7 @@ export default function LoginPage() {
     setError(null);
     try {
       const user = await login(form.email, form.password);
-      navigate(user.role === 'customer' ? '/units' : '/');
+      window.location.href = user.role === 'customer' ? '/units' : '/';
     } catch (err) {
       console.error('Login error:', err); // tambah ini untuk debug
 

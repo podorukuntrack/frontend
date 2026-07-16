@@ -1,5 +1,6 @@
 import Sidebar from './Sidebar';
 import { useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 const pageTitles = {
   '/': 'Dashboard',
@@ -15,6 +16,8 @@ const pageTitles = {
 
 export default function AppLayout({ children }) {
   const location = useLocation();
+  const { user } = useAuth();
+  const greeting = user ? `Selamat datang, ${user.nama || user.name}` : 'Selamat datang';
 
   const currentTitle =
     pageTitles[location.pathname] || 'Podorukun';
@@ -31,7 +34,7 @@ export default function AppLayout({ children }) {
         {/* TOPBAR */}
         <div className="sticky top-0 z-30 h-[72px] shadow-sm flex items-center px-6 md:px-8" style={{ backgroundColor: 'var(--color-primary, #87070c)' }}>
           <h1 className="text-white text-xl font-semibold tracking-tight">
-            {currentTitle}
+            {greeting}
           </h1>
         </div>
 

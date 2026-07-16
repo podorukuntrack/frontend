@@ -23,7 +23,7 @@ export const companiesAPI = {
   list: () => api.get('/companies'),
   get: (id) => api.get(`/companies/${id}`),
   create: (data) => api.post('/companies', data),
-  update: (id, data) => api.patch(`/companies/${id}`, data),
+  delete: (id) => api.delete(`/companies/${id}`),
 };
 
 // PROJECTS
@@ -94,6 +94,8 @@ export const documentationAPI = {
 // DASHBOARD
 export const dashboardAPI = {
   stats: () => api.get('/dashboard/stats'),
+  executive: (params) => api.get('/dashboard/executive', { params }),
+  drilldown: (params) => api.get('/dashboard/drilldown', { params })
 };
 
 // TIMELINES

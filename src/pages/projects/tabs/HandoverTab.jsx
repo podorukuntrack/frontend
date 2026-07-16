@@ -70,7 +70,7 @@ export default function HandoverTab({ unit, onHandover }) {
   // Handover aktif (belum selesai/gagal) — hanya boleh 1
   const activeHandover = handovers.find(h => !['selesai', 'completed', 'gagal'].includes(h.status));
   // Boleh buat baru jika tidak ada aktif DAN belum ada yang selesai
-  const canCreate = isRole('super_admin', 'admin') && !activeHandover && !hasCompleted;
+  const canCreate = isRole('admin') && !activeHandover && !hasCompleted;
 
   const loadData = async () => {
     setLoading(true);
@@ -337,7 +337,7 @@ export default function HandoverTab({ unit, onHandover }) {
                   </div>
 
                   {/* Edit & Delete — edit hanya untuk aktif, hapus bisa untuk semua (admin) */}
-                  {isRole('super_admin', 'admin') && (
+                  {isRole('admin') && (
                     <div className="flex gap-2 shrink-0">
                       {isActive && (
                         <button
@@ -427,7 +427,7 @@ export default function HandoverTab({ unit, onHandover }) {
                 )}
 
                 {/* 3. Jadwal disepakati → admin konfirmasi hasil hari H */}
-                {h.status === 'dijadwalkan' && isRole('super_admin', 'admin') && (
+                {h.status === 'dijadwalkan' && isRole('admin') && (
                   <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
                     <div className="flex gap-3 mb-3">
                       <UserCheck className="w-5 h-5 text-indigo-500 shrink-0" />
@@ -473,7 +473,7 @@ export default function HandoverTab({ unit, onHandover }) {
                         <p className="text-xs text-red-700/80 dark:text-red-500 mt-0.5">Buat jadwal serah terima baru untuk melanjutkan proses.</p>
                       </div>
                     </div>
-                    {isRole('super_admin', 'admin') && !activeHandover && (
+                    {isRole('admin') && !activeHandover && (
                       <button
                         onClick={() => { setForm({ scheduled_date: '', notes: '' }); setModal({ open: true, mode: 'create', data: null }); }}
                         className="btn-primary text-xs px-3 py-1.5 h-auto shrink-0"

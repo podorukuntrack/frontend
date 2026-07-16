@@ -18,14 +18,14 @@ import logo from "../../assets/podorukun-logo.png";
 import { useTheme } from "../../hooks/useTheme";
 
 const navItems = [
-  { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ["super_admin","admin"], match: ["/"] },
-  { to: "/companies", icon: Building2, label: "Perusahaan", roles: ["super_admin"], match: ["/companies"] },
+  { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ["super_admin", "owner", "admin", "direksi"], match: ["/"] },
+  { to: "/companies", icon: Building2, label: "Perusahaan", roles: ["super_admin", "owner"], match: ["/companies"] },
   { to: "/banners", icon: ImageIcon, label: "Banner Iklan", roles: ["super_admin"], match: ["/banners"] },
-  { to: "/projects", icon: FolderKanban, label: "Proyek", roles: ["super_admin","admin"], match: ["/projects"] },
+  { to: "/projects", icon: FolderKanban, label: "Proyek", roles: ["super_admin", "owner", "admin", "direksi"], match: ["/projects"] },
 ];
 
 const settingsItems = [
-  { to: "/users", icon: Users, label: "Pengguna", roles: ["super_admin","admin"], match: ["/users"] },
+  { to: "/users", icon: Users, label: "Pengguna", roles: ["super_admin", "owner", "admin", "direksi"], match: ["/users"] },
 ];
 
 export default function Sidebar() {
@@ -45,8 +45,28 @@ export default function Sidebar() {
     navigate("/login");
   };
 
-  const visibleNavItems = navItems.filter((item) => isRole(...item.roles));
-  const visibleSettingsItems = settingsItems.filter((item) => isRole(...item.roles));
+  // Determine visible items based on role
+  let visibleItems = [];
+  if (isRole('owner', 'direksi')) {
+    // Owner & Direksi: only Dashboard and Proyek
+    visibleItems = navItems.filter(item =>
+      ['/', '/projects'].includes(item.to) && isRole(...item.roles)
+    );
+  } else if (isRole('super_admin')) {
+    // Super Admin: Banner Iklan, Perusahaan, Pengguna (merged) - no Dashboard/Project
+    visibleItems = [
+      ...navItems.filter(item =>
+        ['/companies', '/banners'].includes(item.to) && isRole(...item.roles)
+      ),
+      ...settingsItems.filter(item => isRole(...item.roles))
+    ];
+  } else if (isRole('admin')) {
+    // Admin: Proyek & Pengguna (merged)
+    visibleItems = [
+      ...navItems.filter(item => item.to === '/projects' && isRole(...item.roles)),
+      ...settingsItems.filter(item => isRole(...item.roles))
+    ];
+  }
 
   const isItemActive = (item) =>
     item.match.some((path) =>
@@ -82,31 +102,20 @@ export default function Sidebar() {
             Monitoring Sistem
           </p>
         </div>
-        <img 
-          src={user?.company?.logoUrl || logo} 
-          alt="Company Logo" 
-          className="h-[36px] w-[36px] object-contain shrink-0" 
-        />
+        <img src={user?.company?.logoUrl || logo} alt="Company Logo" className="h-[36px] w-[36px] object-contain shrink-0" />
       </div>
 
       {/* NAVIGATION */}
       <nav className="flex-1 overflow-y-auto pb-6">
         <div className="mb-8">
           <p className="podorukun-sidebar-section">Menu</p>
-          <div className="mt-5 space-y-3">{renderNavItems(visibleNavItems)}</div>
-        </div>
-        <div>
-          <p className="podorukun-sidebar-section">Pengaturan</p>
-          <div className="mt-5 space-y-3">{renderNavItems(visibleSettingsItems)}</div>
+          <div className="mt-5 space-y-3">{renderNavItems(visibleItems)}</div>
         </div>
       </nav>
 
       {/* DARK MODE TOGGLE */}
-      <button
-        onClick={toggleTheme}
-        className="podorukun-sidebar-link mt-auto mb-3 relative overflow-hidden group"
-      >
-        <span className="absolute inset-0 bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 opacity-0 group-hover:opacity-20 transition-opacity duration-500"></span>
+      <button onClick={toggleTheme} className="podorukun-sidebar-link mt-auto mb-3 relative overflow-hidden group">
+        <span className="absolute inset-0 bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 opacity-0 group-hover:opacity-20 transition-opacity duration-500"/>
         {theme === "light" ? (
           <>
             <Moon className="h-[18px] w-[18px] transform transition-transform duration-500 group-hover:rotate-180" strokeWidth={2.2} />
@@ -123,9 +132,7 @@ export default function Sidebar() {
       {/* LOGOUT */}
       <button onClick={handleLogout} className="podorukun-logout">
         <span>Keluar</span>
-        <span className="podorukun-logout-icon">
-          <LogOut className="h-5 w-5" strokeWidth={2.3} />
-        </span>
+        <span className="podorukun-logout-icon"><LogOut className="h-5 w-5" strokeWidth={2.3} /></span>
       </button>
     </div>
   );

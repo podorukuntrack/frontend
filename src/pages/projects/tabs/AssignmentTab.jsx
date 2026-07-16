@@ -207,7 +207,7 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
           <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
              <UserCheck className="w-5 h-5 text-indigo-600 dark:text-indigo-400" /> Detail Penugasan / Kepemilikan
           </h3>
-          {isRole('super_admin', 'admin') && (
+          {isRole('admin') && (
             <div className="flex flex-wrap gap-2 w-full sm:w-auto">
               <button onClick={handleDelete} className="btn-secondary !bg-rose-50 !text-rose-600 hover:!bg-rose-100 border-none text-sm px-3 py-1.5 h-auto flex-1 sm:flex-none justify-center" disabled={saving}>
                 <Trash2 className="w-4 h-4 mr-1" /> Batalkan Penugasan
@@ -259,11 +259,23 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
            </div>
            {assignment.pembayaran?.keterangan_kpr && (
               <div className="md:col-span-2 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800 text-sm text-slate-600 dark:text-slate-400">
-                <span className="font-semibold block mb-1">Keterangan / Bank KPR:</span>
+                <span className="font-semibold block mb-1">Keterangan / Catatan:</span>
                 {assignment.pembayaran?.keterangan_kpr}
               </div>
            )}
         </div>
+      </div>
+    );
+  }
+
+  if (!isRole('admin') && !assignment) {
+    return (
+      <div className="text-center py-12 px-4 bg-white dark:bg-slate-800 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
+        <UserCheck className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+        <p className="text-slate-500 font-medium mb-1">Belum ada penugasan customer</p>
+        <p className="text-sm text-slate-400">
+          Unit ini belum dimiliki atau ditugaskan kepada siapa pun.
+        </p>
       </div>
     );
   }
@@ -277,7 +289,7 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
         </h3>
         {assignment && (
            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-             {isRole('super_admin', 'admin') && (
+             {isRole('admin') && (
                <button type="button" onClick={handleDelete} className="btn-secondary !bg-rose-50 !text-rose-600 hover:!bg-rose-100 border-none text-sm px-3 py-1.5 h-auto flex-1 sm:flex-none justify-center" disabled={saving}>
                  <Trash2 className="w-4 h-4 mr-1" /> Batalkan Penugasan
                </button>
@@ -455,12 +467,10 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
                         />
                       </div>
                   )}
-                  {form.tipe_pembayaran === 'kredit_kpr' && (
-                    <div className="md:col-span-2">
-                      <label className="label">Keterangan / Bank KPR</label>
-                      <textarea className="input" rows="2" value={form.keterangan_kpr} onChange={e => setForm({...form, keterangan_kpr: e.target.value})} placeholder="Catatan..."></textarea>
-                    </div>
-                  )}
+                  <div className="md:col-span-2">
+                    <label className="label">Keterangan / Catatan</label>
+                    <textarea className="input" rows="2" value={form.keterangan_kpr} onChange={e => setForm({...form, keterangan_kpr: e.target.value})} placeholder="Catatan..."></textarea>
+                  </div>
                 </div>
               </div>
             </div>

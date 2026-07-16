@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export default function CircularTimePicker({ initialHour = 0, initialMinute = 0, onTimeChange, mode = 'hour', onModeChange }) {
   const [hour, setHour] = useState(initialHour);

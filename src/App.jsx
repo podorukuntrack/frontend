@@ -18,6 +18,7 @@ const ProjectsPage = lazy(() => import("./pages/projects/ProjectsPage"));
 const UsersPage = lazy(() => import("./pages/users/UsersPage"));
 const CompaniesPage = lazy(() => import("./pages/companies/CompaniesPage"));
 const BannersPage = lazy(() => import("./pages/banners/BannersPage"));
+const AnalyticsDrilldownPage = lazy(() => import("./pages/dashboard/AnalyticsDrilldownPage"));
 
 // Halaman Error & Proteksi
 const UnauthorizedPage = lazy(() => import("./pages/UnauthorizedPage"));
@@ -117,9 +118,35 @@ function AppRoutes() {
       <Route
         path="/"
         element={
-          <PrivateRoute roles={["super_admin", "admin"]}>
+          <PrivateRoute roles={["super_admin", "owner", "admin", "direksi"]}>
+            {(() => {
+              const { user } = useAuth();
+              if (!user) return null;
+              switch (user.role) {
+                case 'super_admin':
+                  return <Navigate to="/users" replace />;
+                case 'admin':
+                  return <Navigate to="/projects" replace />;
+                case 'owner':
+                case 'direksi':
+                  return (
+                    <AppLayout>
+                      <DashboardPage />
+                    </AppLayout>
+                  );
+                default:
+                  return null;
+              }
+            })()}
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/analytics/:metric"
+        element={
+          <PrivateRoute roles={["super_admin", "owner", "admin", "direksi"]}>
             <AppLayout>
-              <DashboardPage />
+              <AnalyticsDrilldownPage />
             </AppLayout>
           </PrivateRoute>
         }
@@ -127,7 +154,7 @@ function AppRoutes() {
       <Route
         path="/companies"
         element={
-          <PrivateRoute roles={["super_admin"]}>
+          <PrivateRoute roles={["super_admin", "owner"]}>
             <AppLayout>
               <CompaniesPage />
             </AppLayout>
@@ -147,7 +174,7 @@ function AppRoutes() {
       <Route
         path="/projects/*"
         element={
-          <PrivateRoute roles={["super_admin", "admin"]}>
+          <PrivateRoute roles={["super_admin", "owner", "admin", "direksi"]}>
             <AppLayout>
               <ProjectsPage />
             </AppLayout>
@@ -157,7 +184,7 @@ function AppRoutes() {
       <Route
         path="/users"
         element={
-          <PrivateRoute roles={["super_admin", "admin"]}>
+          <PrivateRoute roles={["super_admin", "owner", "admin", "direksi"]}>
             <AppLayout>
               <UsersPage />
             </AppLayout>

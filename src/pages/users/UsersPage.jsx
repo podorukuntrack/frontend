@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { usersAPI, companiesAPI } from '../../api/services';
+import { usersAPI, companiesAPI, assignmentsAPI } from '../../api/services';
 import { PageLoader, EmptyState, SearchInput, Modal, Confirm, Pagination, Avatar, Select } from '../../components/ui';
 import { useToast } from '../../hooks/useToast';
 import { getStatusColor, getStatusLabel, formatDate, extractError } from '../../utils/helpers';
@@ -11,7 +11,7 @@ const EMPTY_FORM = {
   email: '',
   password: '',
   nomor_telepon: '',
-  role: 'customer',
+  role: '',
   company_id: '',
   status: 'active',
 };
@@ -30,6 +30,8 @@ export default function UsersPage() {
   const [total, setTotal] = useState(0);
   // tick dipakai untuk force-refetch setelah save/delete tanpa mengubah page/search
   const [tick, setTick] = useState(0);
+  // additional UI states
+  const [roleConfirm, setRoleConfirm] = useState({ open: false, userId: null, newRole: '', oldRole: '', userName: '', companyId: '' });
 
   const [modal, setModal] = useState({ open: false, mode: 'create', data: null });
   const [confirm, setConfirm] = useState({ open: false, id: null });
@@ -47,14 +49,23 @@ export default function UsersPage() {
     const fetchUsers = async () => {
       setLoading(true);
       try {
+        const useLargeFetch = isRole('admin') || isRole('super_admin');
+        const fetchLimit = useLargeFetch ? 1000 : LIMIT;
         const r = await usersAPI.list({
-          page,
-          limit: LIMIT,
+          page: useLargeFetch ? 1 : page,
+          limit: fetchLimit,
           search: search.trim() || undefined,
         });
         if (cancelled) return;
-        setUsers(r.data.data || []);
-        setTotal(r.data.meta?.total ?? 0);
+        // Admin sees only customers in own company, others see all (except filtered by role later)
+        if (isRole('super_admin')) {
+          // Backend already excludes customers for super_admin
+          setUsers(r.data.data || []);
+          setTotal(r.data.meta?.total ?? (r.data.data || []).length);
+        } else {
+          setUsers(r.data.data || []);
+          setTotal(r.data.meta?.total ?? 0);
+        }
       } catch (err) {
         if (!cancelled) toast(extractError(err), 'error');
       } finally {
@@ -123,6 +134,28 @@ export default function UsersPage() {
     }
   };
 
+  const confirmRoleUpdate = async () => {
+    if (['admin', 'direksi'].includes(roleConfirm.newRole) && !roleConfirm.companyId) {
+      toast('Pilih perusahaan terlebih dahulu', 'error');
+      return;
+    }
+    setSaving(true);
+    try {
+      const payload = { role: roleConfirm.newRole };
+      if (['admin', 'direksi'].includes(roleConfirm.newRole)) {
+        payload.company_id = roleConfirm.companyId;
+      }
+      await usersAPI.update(roleConfirm.userId, payload);
+      toast('Role pengguna berhasil diperbarui', 'success');
+      setRoleConfirm({ open: false, userId: null, newRole: '', oldRole: '', userName: '', companyId: '' });
+      refetch();
+    } catch (err) {
+      toast(extractError(err), 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleDelete = async () => {
     setSaving(true);
     try {
@@ -138,14 +171,16 @@ export default function UsersPage() {
   };
 
   // ─── Options ──────────────────────────────────────────────────────────────
-  const roleOptions = [
-    ...(isRole('super_admin')
-      ? [{ value: 'super_admin', label: 'Super Admin' }, { value: 'admin', label: 'Admin' }]
-      : []),
-    { value: 'customer', label: 'Customer' },
-  ];
+  const roleOptions = isRole('super_admin')
+    ? [
+        { value: 'super_admin', label: 'Super Admin' }, 
+        { value: 'owner', label: 'Owner' },
+        { value: 'direksi', label: 'Direksi' },
+        { value: 'admin', label: 'Admin' }
+      ]
+    : [{ value: 'customer', label: 'Customer' }];
   const companyOptions = companies.map(c => ({ value: c.id, label: c.nama_pt }));
-  const roleColors = { super_admin: 'badge-red', admin: 'badge-blue', customer: 'badge-gray' };
+  const roleColors = { super_admin: 'badge-red', owner: 'badge-purple', direksi: 'badge-orange', admin: 'badge-blue', customer: 'badge-gray' };
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
@@ -179,7 +214,11 @@ export default function UsersPage() {
       {loading ? (
         <PageLoader />
       ) : users.length === 0 ? (
-        <EmptyState icon={Users} title="Belum ada pengguna" description="Hasil pencarian tidak ditemukan." />
+        <EmptyState
+          icon={Users}
+          title={isRole('admin') ? 'Tidak ada customer di perusahaan Anda' : 'Belum ada pengguna'}
+          description={isRole('admin') ? 'Tidak ada pelanggan yang memiliki unit di perusahaan Anda.' : 'Hasil pencarian tidak ditemukan.'}
+        />
       ) : (
         <div className="card">
           <div className="overflow-x-auto w-full">
@@ -189,8 +228,7 @@ export default function UsersPage() {
                   <th className="px-6 py-4 font-semibold">Data Pengguna</th>
                   <th className="px-6 py-4 font-semibold">Akses / Role</th>
                   <th className="px-6 py-4 font-semibold">No. Telepon</th>
-                  <th className="px-6 py-4 font-semibold">Perusahaan</th>
-                  <th className="px-6 py-4 font-semibold">Status</th>
+                  { !isRole('admin') && <th className="px-6 py-4 font-semibold">Perusahaan</th> }
                   <th className="px-6 py-4 font-semibold">Tanggal Bergabung</th>
                   <th className="px-6 py-4 font-semibold text-right">Aksi</th>
                 </tr>
@@ -215,21 +253,37 @@ export default function UsersPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`badge ${roleColors[u.role] || 'badge-gray'}`}>
-                        {getStatusLabel(u.role)}
-                      </span>
+                      {isRole('super_admin') ? (
+                        <select
+                          key={`role-${u.id}-${u.role}-${tick}`}
+                          className="text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 px-2.5 py-1.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          defaultValue={u.role}
+                          disabled={u.id === me?.id}
+                          onChange={(e) => {
+                            const newRole = e.target.value;
+                            if (newRole !== u.role) {
+                              setRoleConfirm({ open: true, userId: u.id, newRole, oldRole: u.role, userName: u.nama, companyId: u.company_id || '' });
+                            }
+                          }}
+                        >
+                          {roleOptions.map(opt => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className={`badge ${roleColors[u.role] || 'badge-gray'}`}>
+                          {getStatusLabel(u.role)}
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-slate-600 dark:text-slate-300 font-medium">
                       {u.nomor_telepon || '-'}
                     </td>
-                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
-                      {u.company_id ? companies.find(c => c.id === u.company_id)?.nama_pt || '-' : '-'}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`badge ${getStatusColor(u.status)}`}>
-                        {getStatusLabel(u.status)}
-                      </span>
-                    </td>
+                    { !isRole('admin') && (
+                      <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
+                        {u.company_id ? companies.find(c => c.id === u.company_id)?.kode_pt || '-' : '-'}
+                      </td>
+                    ) }
                     <td className="px-6 py-4 text-slate-500 dark:text-slate-400 text-xs font-medium">
                       {formatDate(u.created_at)}
                     </td>
@@ -325,36 +379,27 @@ export default function UsersPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="label">Role Akses</label>
-              <Select
-                value={form.role}
-                onChange={v => setForm(f => ({ ...f, role: v }))}
-                options={roleOptions}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="label">Status Akun</label>
-              <select
-                className="input"
-                value={form.status}
-                onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
-              >
-                <option value="active">Aktif</option>
-                <option value="inactive">Nonaktif</option>
-              </select>
-            </div>
+          <div className="grid grid-cols-1 gap-4">
+            {isRole('super_admin') && modal.mode === 'create' && (
+              <div className="space-y-1.5">
+                <label className="label">Role Akses</label>
+                <Select
+                  value={form.role}
+                  onChange={v => setForm(f => ({ ...f, role: v }))}
+                  options={roleOptions}
+                />
+              </div>
+            )}
           </div>
 
-          {isRole('super_admin') && (
+          {isRole('super_admin') && modal.mode === 'create' && ['direksi', 'admin'].includes(form.role) && (
             <div className="space-y-1.5">
               <label className="label">Afiliasi Perusahaan</label>
               <Select
                 value={form.company_id}
                 onChange={v => setForm(f => ({ ...f, company_id: v }))}
                 options={companyOptions}
-                placeholder="Tidak ada (Akses Semua Sistem)"
+                placeholder="Pilih Perusahaan"
               />
             </div>
           )}
@@ -384,6 +429,62 @@ export default function UsersPage() {
         description="Data pengguna akan dihapus permanen. PERHATIAN: Jika ini adalah akun customer, SELURUH data penugasan, riwayat pembayaran, progress, dan dokumen yang menempel pada unit customer ini juga akan direset dan dihapus secara permanen!"
         loading={saving}
       />
+      {/* Confirm Role Change */}
+      <Modal
+        open={roleConfirm.open}
+        onClose={() => {
+          setRoleConfirm({ open: false, userId: null, newRole: '', oldRole: '', userName: '', companyId: '' });
+          setTick(t => t + 1);
+        }}
+        title="Konfirmasi Perubahan Role"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-slate-600 dark:text-slate-300">
+            Apakah Anda yakin ingin mengubah role akses <strong className="text-slate-900 dark:text-white">{roleConfirm.userName}</strong>?
+          </p>
+          <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+            <span className={`badge ${roleColors[roleConfirm.oldRole] || 'badge-gray'}`}>
+              {getStatusLabel(roleConfirm.oldRole)}
+            </span>
+            <span className="text-slate-400">→</span>
+            <span className={`badge ${roleColors[roleConfirm.newRole] || 'badge-gray'}`}>
+              {getStatusLabel(roleConfirm.newRole)}
+            </span>
+          </div>
+          {['admin', 'direksi'].includes(roleConfirm.newRole) && (
+            <div className="space-y-1.5">
+              <label className="label">Afiliasi Perusahaan</label>
+              <select
+                className="input"
+                value={roleConfirm.companyId}
+                onChange={(e) => setRoleConfirm(prev => ({ ...prev, companyId: e.target.value }))}
+                required
+              >
+                <option value="">Pilih Perusahaan</option>
+                {companies.map(c => (
+                  <option key={c.id} value={c.id}>{c.nama_pt}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <button 
+              className="btn-secondary" 
+              onClick={() => {
+                setRoleConfirm({ open: false, userId: null, newRole: '', oldRole: '', userName: '', companyId: '' });
+                setTick(t => t + 1);
+              }} 
+              disabled={saving}
+            >
+              Batal
+            </button>
+            <button className="btn-primary" onClick={confirmRoleUpdate} disabled={saving}>
+              {saving ? 'Menyimpan...' : 'Ya, Ubah Role'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

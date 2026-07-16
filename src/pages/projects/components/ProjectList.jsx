@@ -139,7 +139,7 @@ export default function ProjectList() {
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Daftar Proyek</h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Kelola portofolio dan status proyek properti Anda</p>
         </div>
-        {isRole('super_admin', 'admin') && (
+        {isRole('admin') && (
           <button className="btn-primary whitespace-nowrap" onClick={openCreate}>
             <Plus className="w-4 h-4 mr-1.5" /> Tambah Proyek
           </button>
@@ -209,7 +209,7 @@ export default function ProjectList() {
                       <span className={`badge`} style={{ backgroundColor: `${theme}15`, color: theme, border: `1px solid ${theme}25` }}>
                         {getStatusLabel(p.status)}
                       </span>
-                      {isRole('super_admin', 'admin') && (
+                      {isRole('admin') && (
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 dark:bg-slate-900/80 rounded-lg p-1 shadow-sm border border-slate-100 dark:border-slate-800">
                           <button onClick={(e) => openEdit(p, e)} className="btn-ghost !p-1.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"><Pencil className="w-4 h-4" /></button>
                           <button onClick={(e) => { e.stopPropagation(); setConfirm({ open: true, id: p.id }); }} className="btn-ghost !p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400"><Trash2 className="w-4 h-4" /></button>

@@ -1,4 +1,3 @@
-import React from 'react';
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import id from "date-fns/locale/id";
@@ -52,6 +51,7 @@ export default function CustomDatePicker({ value, onChange, disabled, placeholde
         portalId="root-portal"
         className="input w-full pl-10 cursor-pointer disabled:cursor-not-allowed"
         wrapperClassName="w-full"
+        fixedHeight
         {...props}
       />
       <Calendar className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />

@@ -150,7 +150,7 @@ export default function UnitDetailPanel({ unit, cluster, project }) {
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 cursor-pointer"
                       onClick={() => setLightbox({ url: currentUnit.image_url || currentUnit.imageUrl, type: 'image', name: `Unit ${currentUnit.nomor_unit}` })}
                     />
-                    {isRole('super_admin', 'admin') && (
+                    {isRole('admin') && (
                       <label className="absolute top-2 right-2 bg-black/70 hover:bg-black/90 p-1.5 rounded-lg cursor-pointer transition-colors text-white" title="Ubah Foto">
                         <Pencil className="w-3.5 h-3.5" />
                         <input
@@ -165,7 +165,7 @@ export default function UnitDetailPanel({ unit, cluster, project }) {
                 ) : (
                   <div className="flex flex-col items-center justify-center text-slate-400 p-2 text-center">
                     <Home className="w-6 h-6 mb-1 text-slate-300 dark:text-slate-700" />
-                    {isRole('super_admin', 'admin') ? (
+                    {isRole('admin') ? (
                       <label className="text-[11px] text-indigo-600 dark:text-indigo-400 font-bold hover:underline cursor-pointer">
                         Unggah Foto
                         <input

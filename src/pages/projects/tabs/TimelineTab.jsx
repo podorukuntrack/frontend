@@ -93,7 +93,7 @@ export default function TimelineTab({ unit, project, onUpdate }) {
         <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
            <CalIcon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" /> Estimasi Pengerjaan
         </h3>
-        {isRole('super_admin', 'admin') && (
+        {isRole('admin') && (
           <button 
             className="btn-primary text-sm px-3 py-1.5 h-auto"
             onClick={() => {
@@ -124,7 +124,7 @@ export default function TimelineTab({ unit, project, onUpdate }) {
                   </div>
                 <div className="flex items-center gap-4">
                    <span className="badge bg-amber-100 text-amber-700">{t.status}</span>
-                   {isRole('super_admin', 'admin') && (
+                   {isRole('admin') && (
                       <div className="flex gap-2">
                          <button onClick={() => {
                             setForm({ task_name: t.taskName, start_date: t.startDate?.split('T')[0], end_date: t.endDate?.split('T')[0], status: t.status });

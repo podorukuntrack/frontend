@@ -214,9 +214,11 @@ export default function ComplaintManager({ retention, isRole, unitId }) {
         <h5 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
           <Wrench className="w-4 h-4 text-rose-500" /> Riwayat Keluhan & Perbaikan
         </h5>
-        <button onClick={openCreate} className="btn-secondary text-xs px-3 py-1.5 h-auto border border-slate-200">
-          <Plus className="w-3.5 h-3.5 mr-1" /> Tambah Keluhan
-        </button>
+        {isRole('admin') && (
+          <button onClick={openCreate} className="btn-secondary text-xs px-3 py-1.5 h-auto border border-slate-200">
+            <Plus className="w-3.5 h-3.5 mr-1" /> Tambah Keluhan
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -244,10 +246,12 @@ export default function ComplaintManager({ retention, isRole, unitId }) {
                   <p className="text-[10px] text-slate-400 mt-1">Dicatat pada: {formatDate(c.created_at ?? c.createdAt)}</p>
                 </div>
                 <div className="flex gap-1 shrink-0 ml-4">
-                  <button onClick={() => openEdit(c)} className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors">
-                    <Pencil className="w-3.5 h-3.5" />
-                  </button>
-                  {isRole('super_admin', 'admin') && (
+                  {isRole('admin') && (
+                    <button onClick={() => openEdit(c)} className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors">
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  {isRole('admin') && (
                     <button onClick={() => setConfirm({ open: true, id: c.id })} className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors">
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -265,7 +269,7 @@ export default function ComplaintManager({ retention, isRole, unitId }) {
                           <button type="button" onClick={() => setLightbox({ url, type: 'image', name: `Foto Keluhan ${i+1}` })} className="block aspect-video rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-black/5 w-full text-left">
                             <img src={url} alt={`Before ${i+1}`} className="w-full h-full object-cover hover:scale-105 transition-transform" />
                           </button>
-                          {isRole('super_admin', 'admin') && (
+                          {isRole('admin') && (
                             <button
                               type="button"
                               onClick={() => handleDeletePhoto(c.id, 'before', url)}
@@ -290,7 +294,7 @@ export default function ComplaintManager({ retention, isRole, unitId }) {
                           <button type="button" onClick={() => setLightbox({ url, type: 'image', name: `Foto Perbaikan ${i+1}` })} className="block aspect-video rounded-lg overflow-hidden border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-900/10 w-full text-left">
                             <img src={url} alt={`After ${i+1}`} className="w-full h-full object-cover hover:scale-105 transition-transform" />
                           </button>
-                          {isRole('super_admin', 'admin') && (
+                          {isRole('admin') && (
                             <button
                               type="button"
                               onClick={() => handleDeletePhoto(c.id, 'after', url)}
@@ -366,7 +370,7 @@ export default function ComplaintManager({ retention, isRole, unitId }) {
                         <button type="button" onClick={() => setLightbox({ url, type: 'image', name: `Foto Sebelum ${i+1}` })} className="block aspect-square rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 w-full text-left">
                           <img src={url} alt={`Before ${i+1}`} className="w-full h-full object-cover hover:scale-105 transition-transform" />
                         </button>
-                        {isRole('super_admin', 'admin') && modal.data?.id && (
+                        {isRole('admin') && modal.data?.id && (
                           <button
                             type="button"
                             onClick={() => handleDeletePhoto(modal.data.id, 'before', url)}
@@ -408,7 +412,7 @@ export default function ComplaintManager({ retention, isRole, unitId }) {
                         <button type="button" onClick={() => setLightbox({ url, type: 'image', name: `Foto Sesudah ${i+1}` })} className="block aspect-square rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 w-full text-left">
                           <img src={url} alt={`After ${i+1}`} className="w-full h-full object-cover hover:scale-105 transition-transform" />
                         </button>
-                        {isRole('super_admin', 'admin') && modal.data?.id && (
+                        {isRole('admin') && modal.data?.id && (
                           <button
                             type="button"
                             onClick={() => handleDeletePhoto(modal.data.id, 'after', url)}

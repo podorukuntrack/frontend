@@ -150,7 +150,7 @@ export default function RetentionTab({ unit }) {
         <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
           <ShieldCheck className="w-5 h-5 text-indigo-600 dark:text-indigo-400" /> Garansi / Retensi
         </h3>
-        {isRole('super_admin', 'admin') && (
+        {isRole('admin') && (
           <button className="btn-primary text-sm px-3 py-1.5 h-auto" onClick={openCreate}>
             <Plus className="w-4 h-4 mr-1" /> Tambah Garansi
           </button>
@@ -203,7 +203,7 @@ export default function RetentionTab({ unit }) {
                         </span>
                       </div>
                     </div>
-                    {isRole('super_admin', 'admin') && (
+                    {isRole('admin') && (
                       <div className="flex gap-2">
                         <button onClick={() => openEdit(r)} className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors">
                           <Pencil className="w-4 h-4" />

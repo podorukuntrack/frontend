@@ -455,7 +455,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                           <span className="badge bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400">
                             +{pct}%
                           </span>
-                          {isRole("admin", "super_admin") && (
+                          {isRole('admin') && (
                             <>
                               <button
                                 onClick={() => handleOpenEditBuild(p)}
@@ -521,7 +521,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                                         </div>
                                       )}
                                     </button>
-                                    {isRole("admin", "super_admin") && (
+                                    {isRole('admin') && (
                                       <button
                                         type="button"
                                         onClick={() => handleDeleteDoc(d.id)}
@@ -544,7 +544,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
               )}
             </div>
 
-            {isRole("admin", "super_admin") && fisikPct < 100 && (
+            {isRole('admin') && fisikPct < 100 && (
               <button
                 className="btn-primary w-full mt-auto"
                 onClick={() => {
@@ -672,7 +672,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                       <p className="font-bold text-slate-900 dark:text-white text-base">
                         {formatCurrency(p.jumlah_bayar)}
                       </p>
-                      {isRole("admin", "super_admin") && (
+                      {isRole('admin') && (
                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                            <button
                              onClick={() => handleOpenEditPayment(p)}
@@ -719,7 +719,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
               )}
             </div>
 
-            {isRole("admin", "super_admin") &&
+            {isRole('admin') &&
               sisaTagihan > 0 && (
                 <button
                   className="btn-primary !bg-emerald-600 hover:!bg-emerald-700 w-full mt-auto"
