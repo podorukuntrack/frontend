@@ -95,17 +95,25 @@ export default function HandoverTab({ unit, onHandover }) {
   }, [unit.id]);
 
   // ── Simpan (create / edit jadwal) ──────────────────────────────
-  const handleSave = async (e) => {
+    const handleSave = async (e) => {
     e.preventDefault();
     if (!form.scheduled_date) { toast('Tanggal jadwal wajib diisi', 'error'); return; }
     setSaving(true);
     try {
+      const isEdit = modal.mode === 'edit';
+      const oldDate = isEdit ? getScheduledDate(modal.data) : null;
+      const dateChanged = isEdit && oldDate && new Date(form.scheduled_date).getTime() !== new Date(oldDate).getTime();
+      
+      let newStatus = isEdit ? modal.data.status : 'menunggu_respon_customer';
+      if (dateChanged || (isEdit && modal.data.status === 'menunggu_konfirmasi_admin')) {
+        newStatus = 'menunggu_respon_customer';
+      }
+
       const payload = {
         unitId: unit.id,
         scheduledDate: new Date(form.scheduled_date).toISOString(),
         notes: form.notes || null,
-        // Reset status ke menunggu_respon_customer saat create / edit jadwal
-        status: modal.mode === 'create' ? 'menunggu_respon_customer' : modal.data.status,
+        status: newStatus,
         proposedDate: null,
       };
 
