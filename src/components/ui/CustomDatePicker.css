@@ -124,3 +124,27 @@
   border-bottom-color: #0f172a !important;
   border-top-color: #1e293b !important;
 }
+
+/* Disabled days */
+.react-datepicker__day--disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  background-color: transparent !important;
+  color: #94a3b8 !important; 
+}
+.dark .react-datepicker__day--disabled {
+  opacity: 0.2;
+  color: #64748b !important; 
+}
+
+/* Remove today highlight & fix keyboard-selected bug across months */
+.react-datepicker__day--today {
+  font-weight: normal !important;
+}
+.react-datepicker__day--keyboard-selected:not(.react-datepicker__day--selected),
+.react-datepicker__month-text--keyboard-selected:not(.react-datepicker__month-text--selected),
+.react-datepicker__quarter-text--keyboard-selected:not(.react-datepicker__quarter-text--selected),
+.react-datepicker__year-text--keyboard-selected:not(.react-datepicker__year-text--selected) {
+  background-color: transparent !important;
+  color: inherit !important;
+}
