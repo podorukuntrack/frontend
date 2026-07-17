@@ -260,11 +260,13 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
                           <td className="text-slate-500 py-1 align-top pt-2">Pengingat KPR</td>
                           <td className="text-right pt-2">
                             <div className="flex flex-wrap justify-end gap-1.5">
-                              {assignment.pembayaran.reminder_kpr_dates.map((date, idx) => {
-                                const diffDays = Math.ceil((new Date(assignment.pembayaran.jatuh_tempo_kpr).getTime() - new Date(date).getTime()) / (1000 * 3600 * 24));
+                              {assignment.pembayaran.reminder_kpr_dates.map((r, idx) => {
+                                const dateStr = typeof r === 'string' ? r : r.date;
+                                if (!dateStr) return null;
+                                const diffDays = Math.ceil((new Date(assignment.pembayaran.jatuh_tempo_kpr).getTime() - new Date(dateStr).getTime()) / (1000 * 3600 * 24));
                                 return (
                                   <span key={idx} className="bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded text-[11px] font-semibold border border-indigo-200 dark:border-indigo-500/30">
-                                    H-{diffDays} ({formatDate(date)})
+                                    H-{diffDays} ({formatDate(dateStr)})
                                   </span>
                                 )
                               })}
