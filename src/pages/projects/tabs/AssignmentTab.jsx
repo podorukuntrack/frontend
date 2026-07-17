@@ -6,6 +6,7 @@ import { extractError, formatCurrency, formatDate } from '../../../utils/helpers
 import { useAuth } from '../../../context/AuthContext';
 import { UserCheck, Pencil, Trash2, Search, Check, ChevronDown, User } from 'lucide-react';
 import { CustomDatePicker } from '../../../components/ui';
+import CustomMultiDatePicker from '../../../components/ui/CustomMultiDatePicker';
 
 export default function AssignmentTab({ unit, project, onAssigned }) {
   const { isRole } = useAuth();
@@ -462,66 +463,37 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
                     </div>
                   )}
                   {form.tipe_pembayaran === 'kredit_kpr' && (
-                      <div className="space-y-4">
-                        <div>
-                          <label className="label">Tanggal Jatuh Tempo (KPR)</label>
-                          <CustomDatePicker
-                            value={form.jatuh_tempo_kpr}
-                            onChange={(val) => {
-                              let newReminders = form.reminder_kpr_dates || [];
-                              if (val) {
-                                const dueTime = new Date(val).getTime();
-                                newReminders = newReminders.filter(d => new Date(d).getTime() < dueTime);
-                              }
-                              setForm({...form, jatuh_tempo_kpr: val, reminder_kpr_dates: newReminders});
-                            }}
-                            placeholder="Pilih Tanggal Jatuh Tempo"
-                          />
-                        </div>
-                        
-                        {form.jatuh_tempo_kpr && (
-                          <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
-                            <label className="label">Pengingat Jatuh Tempo (KPR)</label>
+                      <div>
+                        <label className="label">Tanggal Jatuh Tempo (KPR)</label>
+                        <CustomDatePicker
+                          value={form.jatuh_tempo_kpr}
+                          onChange={(val) => {
+                            let newReminders = form.reminder_kpr_dates || [];
+                            if (val) {
+                              const dueTime = new Date(val).getTime();
+                              newReminders = newReminders.filter(d => new Date(d).getTime() < dueTime);
+                            }
+                            setForm({...form, jatuh_tempo_kpr: val, reminder_kpr_dates: newReminders});
+                          }}
+                          placeholder="Pilih Tanggal Jatuh Tempo"
+                        />
+                      </div>
+                  )}
+                  {form.tipe_pembayaran === 'kredit_kpr' && form.jatuh_tempo_kpr && (
+                      <div className="md:col-span-2 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+                        <label className="label">Pengingat Jatuh Tempo (KPR)</label>
                             <p className="text-xs text-slate-500 mb-2">Tambahkan tanggal pengingat (sebelum hari-H). Notifikasi akan dikirim ke customer pada tanggal tersebut.</p>
                             
-                            <div className="flex items-center gap-2 mb-3">
-                              <input 
-                                type="date" 
-                                id="reminder-input"
-                                className="input flex-1"
-                                min={new Date().toISOString().split("T")[0]}
-                                max={new Date(new Date(form.jatuh_tempo_kpr).getTime() - 86400000).toISOString().split("T")[0]}
-                              />
-                              <button 
-                                type="button" 
-                                className="btn-secondary whitespace-nowrap"
-                                onClick={() => {
-                                  const input = document.getElementById('reminder-input');
-                                  if (!input.value) return;
-                                  
-                                  const selDate = new Date(input.value);
-                                  const dueDate = new Date(form.jatuh_tempo_kpr);
-                                  const today = new Date();
-                                  today.setHours(0, 0, 0, 0);
-                                  
-                                  if (selDate >= dueDate) {
-                                    toast('Tanggal pengingat harus sebelum tanggal jatuh tempo', 'error');
-                                    return;
-                                  }
-                                  if (selDate < today) {
-                                    toast('Tanggal pengingat tidak boleh di masa lalu', 'error');
-                                    return;
-                                  }
-                                  
-                                  const dateStr = input.value;
-                                  if (!(form.reminder_kpr_dates || []).includes(dateStr)) {
-                                    setForm({ ...form, reminder_kpr_dates: [...(form.reminder_kpr_dates || []), dateStr].sort() });
-                                  }
-                                  input.value = '';
+                            <div className="mb-3">
+                              <CustomMultiDatePicker
+                                selectedDates={form.reminder_kpr_dates || []}
+                                onChange={(dates) => {
+                                  setForm({ ...form, reminder_kpr_dates: dates.sort() });
                                 }}
-                              >
-                                Tambah
-                              </button>
+                                minDate={new Date()}
+                                maxDate={new Date(new Date(form.jatuh_tempo_kpr).getTime() - 86400000)}
+                                placeholder="Pilih beberapa tanggal..."
+                              />
                             </div>
                             
                             {(form.reminder_kpr_dates || []).length > 0 ? (
@@ -551,7 +523,6 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
                               <p className="text-xs text-slate-400 italic">Belum ada tanggal pengingat yang ditambahkan.</p>
                             )}
                           </div>
-                        )}
                       </div>
                   )}
                   <div className="md:col-span-2">
