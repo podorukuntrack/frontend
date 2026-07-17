@@ -124,9 +124,7 @@ function AppRoutes() {
               if (!user) return null;
               switch (user.role) {
                 case 'super_admin':
-                  return <Navigate to="/users" replace />;
                 case 'admin':
-                  return <Navigate to="/projects" replace />;
                 case 'owner':
                 case 'direksi':
                   return (

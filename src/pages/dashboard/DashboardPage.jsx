@@ -31,7 +31,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  if (isRole('direksi', 'owner')) {
+  if (isRole('direksi', 'owner', 'super_admin', 'admin')) {
     return <ExecutiveDashboard />;
   }
 
