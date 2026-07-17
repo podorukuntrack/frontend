@@ -22,8 +22,8 @@ api.interceptors.response.use(
   async (err) => {
     const original = err.config;
 
-    // Handle global server errors
-    if (err.response?.status >= 500) {
+    // Handle global server errors OR Network Down
+    if (err.response?.status >= 500 || err.code === 'ERR_NETWORK') {
       navigateRef.current?.("/server-error");
       return Promise.reject(err);
     }
