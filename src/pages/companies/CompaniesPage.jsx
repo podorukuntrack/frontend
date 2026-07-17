@@ -180,11 +180,13 @@ export default function CompaniesPage() {
                   e.currentTarget.style.boxShadow = `0 20px 40px -8px ${theme}60`;
                   e.currentTarget.style.transform = 'translateY(-6px)';
                   e.currentTarget.style.borderColor = `${theme}40`;
+                  e.currentTarget.style.borderTopColor = theme;
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.boxShadow = `0 10px 30px -10px ${theme}40`;
                   e.currentTarget.style.transform = 'translateY(0)';
                   e.currentTarget.style.borderColor = '';
+                  e.currentTarget.style.borderTopColor = theme;
                 }}
               >
                 {/* Large Background Watermark */}
