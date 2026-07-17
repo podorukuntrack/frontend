@@ -25,7 +25,7 @@ export default function ProjectList() {
   const queryClient = useQueryClient();
 
   const { data: projects = [], isLoading: loading } = useQuery({
-    queryKey: ['projects'],
+    queryKey: ['projects', user?.companyId || user?.id || 'all'],
     queryFn: async () => {
       const r = await projectsAPI.list();
       return r.data?.data || [];
