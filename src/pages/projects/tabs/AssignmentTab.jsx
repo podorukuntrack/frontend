@@ -31,6 +31,7 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
     harga_total: 0,
     dp: 0,
     jatuh_tempo_kpr: '',
+    reminder_kpr_dates: [],
     tenor_bulan: 0,
     keterangan_kpr: '',
     status_kepemilikan: 'active'
@@ -114,6 +115,7 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
   }, [searchTerm, isOpen]);
 
   const startEdit = () => {
+    const defaultReminders = (assignment.pembayaran?.reminder_kpr_dates || []).map(r => typeof r === 'string' ? r : r.date).filter(Boolean);
     setForm({
       user_id: assignment.user?.id || assignment.user_id,
       tanggal_pembelian: assignment.tanggal_pembelian?.split("T")[0] || "",
@@ -121,6 +123,7 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
       harga_total: assignment.pembayaran?.harga_total || 0,
       dp: assignment.pembayaran?.dp || 0,
       jatuh_tempo_kpr: assignment.pembayaran?.jatuh_tempo_kpr || '',
+      reminder_kpr_dates: defaultReminders,
       tenor_bulan: assignment.pembayaran?.tenor_bulan || 0,
       keterangan_kpr: assignment.pembayaran?.keterangan_kpr || "",
       status_kepemilikan: assignment.status_kepemilikan || 'active'
@@ -161,6 +164,7 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
         harga_total: Number(form.harga_total),
         dp: form.tipe_pembayaran === 'kredit_kpr' ? Number(form.dp) : 0,
         jatuh_tempo_kpr: form.tipe_pembayaran === 'kredit_kpr' ? form.jatuh_tempo_kpr : null,
+        reminder_kpr_dates: form.tipe_pembayaran === 'kredit_kpr' ? form.reminder_kpr_dates : [],
         tenor_bulan: form.tipe_pembayaran === 'cash_cicil' ? Number(form.tenor_bulan) : 0,
         keterangan_kpr: form.keterangan_kpr,
         status_kepemilikan: form.status_kepemilikan
@@ -458,13 +462,96 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
                     </div>
                   )}
                   {form.tipe_pembayaran === 'kredit_kpr' && (
-                      <div>
-                        <label className="label">Tanggal Jatuh Tempo (KPR)</label>
-                        <CustomDatePicker
-                          value={form.jatuh_tempo_kpr}
-                          onChange={(val) => setForm({...form, jatuh_tempo_kpr: val})}
-                          placeholder="Pilih Tanggal Jatuh Tempo"
-                        />
+                      <div className="space-y-4">
+                        <div>
+                          <label className="label">Tanggal Jatuh Tempo (KPR)</label>
+                          <CustomDatePicker
+                            value={form.jatuh_tempo_kpr}
+                            onChange={(val) => {
+                              let newReminders = form.reminder_kpr_dates || [];
+                              if (val) {
+                                const dueTime = new Date(val).getTime();
+                                newReminders = newReminders.filter(d => new Date(d).getTime() < dueTime);
+                              }
+                              setForm({...form, jatuh_tempo_kpr: val, reminder_kpr_dates: newReminders});
+                            }}
+                            placeholder="Pilih Tanggal Jatuh Tempo"
+                          />
+                        </div>
+                        
+                        {form.jatuh_tempo_kpr && (
+                          <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+                            <label className="label">Pengingat Jatuh Tempo (KPR)</label>
+                            <p className="text-xs text-slate-500 mb-2">Tambahkan tanggal pengingat (sebelum hari-H). Notifikasi akan dikirim ke customer pada tanggal tersebut.</p>
+                            
+                            <div className="flex items-center gap-2 mb-3">
+                              <input 
+                                type="date" 
+                                id="reminder-input"
+                                className="input flex-1"
+                                min={new Date().toISOString().split("T")[0]}
+                                max={new Date(new Date(form.jatuh_tempo_kpr).getTime() - 86400000).toISOString().split("T")[0]}
+                              />
+                              <button 
+                                type="button" 
+                                className="btn-secondary whitespace-nowrap"
+                                onClick={() => {
+                                  const input = document.getElementById('reminder-input');
+                                  if (!input.value) return;
+                                  
+                                  const selDate = new Date(input.value);
+                                  const dueDate = new Date(form.jatuh_tempo_kpr);
+                                  const today = new Date();
+                                  today.setHours(0, 0, 0, 0);
+                                  
+                                  if (selDate >= dueDate) {
+                                    toast('Tanggal pengingat harus sebelum tanggal jatuh tempo', 'error');
+                                    return;
+                                  }
+                                  if (selDate < today) {
+                                    toast('Tanggal pengingat tidak boleh di masa lalu', 'error');
+                                    return;
+                                  }
+                                  
+                                  const dateStr = input.value;
+                                  if (!(form.reminder_kpr_dates || []).includes(dateStr)) {
+                                    setForm({ ...form, reminder_kpr_dates: [...(form.reminder_kpr_dates || []), dateStr].sort() });
+                                  }
+                                  input.value = '';
+                                }}
+                              >
+                                Tambah
+                              </button>
+                            </div>
+                            
+                            {(form.reminder_kpr_dates || []).length > 0 ? (
+                              <div className="flex flex-wrap gap-2 mt-2">
+                                {(form.reminder_kpr_dates || []).map((date, idx) => {
+                                  const diffDays = Math.ceil((new Date(form.jatuh_tempo_kpr).getTime() - new Date(date).getTime()) / (1000 * 3600 * 24));
+                                  return (
+                                    <div key={idx} className="flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 px-3 py-1.5 rounded-full text-xs font-semibold border border-indigo-200 dark:border-indigo-500/30">
+                                      <span>H-{diffDays} ({formatDate(date)})</span>
+                                      <button 
+                                        type="button"
+                                        className="hover:bg-indigo-200 dark:hover:bg-indigo-500/50 p-0.5 rounded-full"
+                                        onClick={() => {
+                                          setForm({
+                                            ...form,
+                                            reminder_kpr_dates: form.reminder_kpr_dates.filter(d => d !== date)
+                                          });
+                                        }}
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            ) : (
+                              <p className="text-xs text-slate-400 italic">Belum ada tanggal pengingat yang ditambahkan.</p>
+                            )}
+                          </div>
+                        )}
                       </div>
                   )}
                   <div className="md:col-span-2">
