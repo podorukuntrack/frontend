@@ -523,7 +523,6 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
                               <p className="text-xs text-slate-400 italic">Belum ada tanggal pengingat yang ditambahkan.</p>
                             )}
                           </div>
-                      </div>
                   )}
                   <div className="md:col-span-2">
                     <label className="label">Keterangan / Catatan</label>
