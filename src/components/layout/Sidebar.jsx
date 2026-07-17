@@ -53,10 +53,10 @@ export default function Sidebar() {
       ['/', '/projects'].includes(item.to) && isRole(...item.roles)
     );
   } else if (isRole('super_admin')) {
-    // Super Admin: Dashboard, Proyek, Perusahaan, Banner Iklan, Pengguna
+    // Super Admin: Dashboard, Perusahaan, Banner Iklan, Pengguna
     visibleItems = [
       ...navItems.filter(item =>
-        ['/', '/projects', '/companies', '/banners'].includes(item.to) && isRole(...item.roles)
+        ['/', '/companies', '/banners'].includes(item.to) && isRole(...item.roles)
       ),
       ...settingsItems.filter(item => isRole(...item.roles))
     ];
