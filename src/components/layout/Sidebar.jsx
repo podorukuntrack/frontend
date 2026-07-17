@@ -53,17 +53,17 @@ export default function Sidebar() {
       ['/', '/projects'].includes(item.to) && isRole(...item.roles)
     );
   } else if (isRole('super_admin')) {
-    // Super Admin: Banner Iklan, Perusahaan, Pengguna (merged) - no Dashboard/Project
+    // Super Admin: Dashboard, Proyek, Perusahaan, Banner Iklan, Pengguna
     visibleItems = [
       ...navItems.filter(item =>
-        ['/companies', '/banners'].includes(item.to) && isRole(...item.roles)
+        ['/', '/projects', '/companies', '/banners'].includes(item.to) && isRole(...item.roles)
       ),
       ...settingsItems.filter(item => isRole(...item.roles))
     ];
   } else if (isRole('admin')) {
-    // Admin: Proyek & Pengguna (merged)
+    // Admin: Dashboard, Proyek & Pengguna
     visibleItems = [
-      ...navItems.filter(item => item.to === '/projects' && isRole(...item.roles)),
+      ...navItems.filter(item => ['/', '/projects'].includes(item.to) && isRole(...item.roles)),
       ...settingsItems.filter(item => isRole(...item.roles))
     ];
   }
