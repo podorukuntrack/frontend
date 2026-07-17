@@ -28,8 +28,8 @@ export default function UnitList({ cluster, project }) {
     queryKey: ['units', cluster.id],
     queryFn: async () => {
       const [rUnits, rAsg] = await Promise.all([
-        unitsAPI.list({ limit: 2000 }),
-        assignmentsAPI.list({ limit: 2000 })
+        unitsAPI.list({ limit: 2000, cluster_id: cluster.id }),
+        assignmentsAPI.list({ limit: 2000, cluster_id: cluster.id })
       ]);
       const clusterUnits = (rUnits.data?.data || []).filter(u => String(u.cluster_id) === String(cluster.id) || String(u.cluster?.id) === String(cluster.id));
       const uniqueUnits = Array.from(new Map(clusterUnits.map(u => [u.id, u])).values());
