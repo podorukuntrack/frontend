@@ -96,7 +96,7 @@ export default function ExecutiveDashboard() {
   if (error)
     return (
       <div className="text-rose-500 text-sm font-medium p-4 bg-rose-50 dark:bg-rose-500/10 rounded-xl border border-rose-100 dark:border-rose-900/50">
-        {error}
+        {typeof error === 'object' ? (error.description || error.title) : error}
       </div>
     );
 
