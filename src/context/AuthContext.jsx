@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { authAPI } from '../api/services';
 
 const AuthContext = createContext(null);
@@ -19,6 +20,7 @@ const getInitialUser = () => {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(getInitialUser);
   const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const fetchMe = async () => {
@@ -78,6 +80,7 @@ export function AuthProvider({ children }) {
     // Clear persisted user and cookies
     localStorage.removeItem('user');
     setUser(null);
+    queryClient.clear();
     // Remove HttpOnly cookies by setting expired dates (browser will honor Set-Cookie from server, but we also attempt client-side clear for safety)
     document.cookie = 'accessToken=; Max-Age=0; path=/;';
     document.cookie = 'refreshToken=; Max-Age=0; path=/;';
