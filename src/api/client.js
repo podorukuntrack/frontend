@@ -22,8 +22,12 @@ api.interceptors.response.use(
   async (err) => {
     const original = err.config;
 
-    // Handle global server errors OR Network Down
-    if (err.response?.status >= 500 || err.code === 'ERR_NETWORK') {
+    // Handle global server errors OR Network Down (Maintenance / Offline)
+    // 500 is kept local so components can render their own error states without looping
+    const status = err.response?.status;
+    const isMaintenance = status === 502 || status === 503 || status === 504 || err.code === 'ERR_NETWORK';
+    
+    if (isMaintenance && window.location.pathname !== '/server-error') {
       navigateRef.current?.("/server-error");
       return Promise.reject(err);
     }

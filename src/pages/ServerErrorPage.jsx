@@ -5,33 +5,39 @@ import api from '../api/client';
 
 export default function ServerErrorPage() {
   const navigate = useNavigate();
-  const [isChecking, setIsChecking] = useState(true);
+  const [isChecking, setIsChecking] = useState(false);
+  const [isHealthy, setIsHealthy] = useState(false);
 
-  const checkHealthAndGoBack = async () => {
+  const checkHealth = async () => {
     setIsChecking(true);
     try {
       // Get base URL without /api/v1 to hit the /health endpoint
       const healthUrl = api.defaults.baseURL.replace('/api/v1', '/health');
       const res = await fetch(healthUrl);
       if (res.ok) {
-        // Jika sudah sehat, kembali ke halaman sebelumnya
-        if (window.history.length > 2) {
-          navigate(-1);
-        } else {
-          navigate('/');
-        }
+        setIsHealthy(true);
       } else {
-        setIsChecking(false);
+        setIsHealthy(false);
       }
     } catch (err) {
+      setIsHealthy(false);
+    } finally {
       setIsChecking(false);
     }
   };
 
   useEffect(() => {
-    checkHealthAndGoBack();
+    checkHealth();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleGoBack = () => {
+    if (window.history.length > 2) {
+      navigate(-1);
+    } else {
+      navigate('/');
+    }
+  };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950 text-center px-6 animate-fadeIn transition-colors duration-200">
@@ -46,23 +52,38 @@ export default function ServerErrorPage() {
       </div>
       
       <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white mb-3 tracking-tight">
-        {isChecking ? "Mengecek Koneksi..." : "500 - Gangguan Server"}
+        {isChecking 
+          ? "Mengecek Koneksi..." 
+          : isHealthy 
+            ? "Server Telah Online!" 
+            : "500 - Gangguan Server"}
       </h1>
       <p className="text-slate-500 dark:text-slate-400 text-base max-w-md mb-10 leading-relaxed font-medium">
         {isChecking 
           ? "Sistem sedang mencoba terhubung kembali ke server. Mohon tunggu sebentar." 
-          : "Oops! Sepertinya sistem kami sedang mengalami kendala atau sedang dalam pemeliharaan. Silakan coba lagi dalam beberapa saat."}
+          : isHealthy 
+            ? "Koneksi ke server telah berhasil dipulihkan. Anda dapat kembali menggunakan aplikasi."
+            : "Oops! Sepertinya sistem kami sedang mengalami kendala atau sedang dalam pemeliharaan. Silakan coba lagi dalam beberapa saat."}
       </p>
       
       <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
-        <button 
-          onClick={checkHealthAndGoBack} 
-          disabled={isChecking}
-          className="btn-primary w-full sm:w-auto justify-center py-2.5 px-5 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <RefreshCcw className={`w-4 h-4 mr-1.5 ${isChecking ? 'animate-spin' : ''}`} /> 
-          Coba Lagi
-        </button>
+        {isHealthy ? (
+          <button 
+            onClick={handleGoBack}
+            className="btn-primary w-full sm:w-auto justify-center py-2.5 px-5"
+          >
+            Kembali ke Aplikasi
+          </button>
+        ) : (
+          <button 
+            onClick={checkHealth} 
+            disabled={isChecking}
+            className="btn-primary w-full sm:w-auto justify-center py-2.5 px-5 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <RefreshCcw className={`w-4 h-4 mr-1.5 ${isChecking ? 'animate-spin' : ''}`} /> 
+            Coba Lagi
+          </button>
+        )}
         <button onClick={() => navigate('/')} className="btn-secondary w-full sm:w-auto justify-center py-2.5 px-5">
           <Home className="w-4 h-4 mr-1.5" /> Beranda Utama
         </button>
