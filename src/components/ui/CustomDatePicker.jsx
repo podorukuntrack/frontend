@@ -10,6 +10,14 @@ export default function CustomDatePicker({ value, onChange, disabled, placeholde
     if (showTimeSelect) {
       selectedDate = new Date(value);
     } else {
+      /**
+       * DATE PARSING FIX FOR TIMEZONE OFFSETS
+       * When passing a string like "2023-10-01" to new Date(), JS parses it as UTC.
+       * If the user is in UTC+7, this becomes "2023-09-30 17:00:00" in local time,
+       * causing the date picker to highlight the wrong day (one day behind).
+       * By manually splitting the string and using new Date(Y, M, D), it forces
+       * the JS engine to treat the numbers as local time, preventing the off-by-one error.
+       */
       const parts = value.split('-');
       if (parts.length >= 3) {
         selectedDate = new Date(parts[0], parts[1] - 1, parts[2]);

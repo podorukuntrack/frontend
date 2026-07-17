@@ -56,7 +56,13 @@ export default function AnalyticsDrilldownPage() {
   const urlStartDate = searchParams.get("startDate");
   const urlEndDate = searchParams.get("endDate");
   
-  // Use URL params if present, otherwise fallback to sessionStorage
+  /**
+   * STATE SYNCHRONIZATION (URL <-> SessionStorage)
+   * To ensure filters persist when navigating between the Executive Dashboard
+   * and the Analytics Drilldown page, we use a two-way fallback.
+   * Priority 1: URL Parameters (allows shareable links)
+   * Priority 2: SessionStorage (fallback if URL is clean but user navigated internally)
+   */
   const companyId = urlCompanyId ?? (sessionStorage.getItem("exec_companyId") || "");
   const startDate = urlStartDate ?? (sessionStorage.getItem("exec_startDate") || "");
   const endDate = urlEndDate ?? (sessionStorage.getItem("exec_endDate") || "");
@@ -75,7 +81,12 @@ export default function AnalyticsDrilldownPage() {
   const [filterStatusPembangunan, setFilterStatusPembangunan] = useState("");
   const [filterStatusPenjualan, setFilterStatusPenjualan] = useState("");
 
-  // Update query params function
+  /**
+   * Updates a filter value in both SessionStorage and URL Query Parameters.
+   * This guarantees cross-page state persistence without requiring a complex Redux/Zustand store.
+   * @param {string} key - The filter key (e.g., 'startDate')
+   * @param {string} value - The new filter value
+   */
   const updateFilter = (key, value) => {
     // Save to sessionStorage
     sessionStorage.setItem(`exec_${key}`, value);
@@ -235,7 +246,13 @@ export default function AnalyticsDrilldownPage() {
               onChange={(update) => {
                 let [start, end] = update;
                 
-                // Hack to support backward selection
+                /**
+                 * BACKWARD SELECTION HACK
+                 * react-datepicker in range mode struggles when a user clicks a later date first, 
+                 * then clicks an earlier date (intending to form a range backward).
+                 * We detect if a start date is already picked (but no end date), and if the new
+                 * click is *before* the old start date, we swap them to form a valid range.
+                 */
                 if (start && !end && startDate && !endDate) {
                    const oldStart = new Date(startDate);
                    if (start < oldStart) {
@@ -243,6 +260,13 @@ export default function AnalyticsDrilldownPage() {
                    }
                 }
                 
+                /**
+                 * TIMEZONE OFFSET HACK
+                 * When parsing the selected Date object to an ISO string, it converts to UTC.
+                 * This can shift the date backward by 1 day if the user is in a timezone like UTC+7.
+                 * We manually subtract the timezone offset before converting to ISO string
+                 * to ensure the local date matches the YYYY-MM-DD string exactly.
+                 */
                 if (start) {
                   const s = new Date(start.getTime() - (start.getTimezoneOffset() * 60000));
                   updateFilter("startDate", s.toISOString().split('T')[0]);

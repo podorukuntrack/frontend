@@ -194,8 +194,13 @@ export default function ExecutiveDashboard() {
               endDate={endDate ? new Date(endDate) : null}
               onChange={(update) => {
                 let [start, end] = update;
-                
-                // Hack to support backward selection (e.g. clicking 9 then 1 -> becomes 1 to 9)
+                /**
+                 * BACKWARD SELECTION HACK
+                 * react-datepicker in range mode struggles when a user clicks a later date first, 
+                 * then clicks an earlier date (intending to form a range backward).
+                 * We detect if a start date is already picked (but no end date), and if the new
+                 * click is *before* the old start date, we swap them to form a valid range.
+                 */
                 if (start && !end && startDate && !endDate) {
                    const oldStart = new Date(startDate);
                    if (start < oldStart) {
@@ -203,7 +208,13 @@ export default function ExecutiveDashboard() {
                    }
                 }
                 
-                // Add timezone offset to prevent picking previous day due to UTC conversion
+                /**
+                 * TIMEZONE OFFSET HACK
+                 * When parsing the selected Date object to an ISO string, it converts to UTC.
+                 * This can shift the date backward by 1 day if the user is in a timezone like UTC+7.
+                 * We manually subtract the timezone offset before converting to ISO string
+                 * to ensure the local date matches the YYYY-MM-DD string exactly.
+                 */
                 if (start) {
                   const s = new Date(start.getTime() - (start.getTimezoneOffset() * 60000));
                   setStartDate(s.toISOString().split('T')[0]);

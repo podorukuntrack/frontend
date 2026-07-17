@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { usersAPI, companiesAPI, assignmentsAPI } from '../../api/services';
 import { PageLoader, EmptyState, SearchInput, Modal, Confirm, Pagination, Avatar, Select } from '../../components/ui';
 import { useToast } from '../../hooks/useToast';
@@ -163,15 +163,15 @@ export default function UsersPage() {
   };
 
   // ─── Options ──────────────────────────────────────────────────────────────
-  const roleOptions = isRole('super_admin')
+  const roleOptions = useMemo(() => isRole('super_admin')
     ? [
         { value: 'super_admin', label: 'Super Admin' }, 
         { value: 'owner', label: 'Owner' },
         { value: 'direksi', label: 'Direksi' },
         { value: 'admin', label: 'Admin' }
       ]
-    : [{ value: 'customer', label: 'Customer' }];
-  const companyOptions = companies.map(c => ({ value: c.id, label: c.nama_pt }));
+    : [{ value: 'customer', label: 'Customer' }], [isRole]);
+  const companyOptions = useMemo(() => companies.map(c => ({ value: c.id, label: c.nama_pt })), [companies]);
   const roleColors = { super_admin: 'badge-red', owner: 'badge-purple', direksi: 'badge-orange', admin: 'badge-blue', customer: 'badge-gray' };
 
   // ─── Render ───────────────────────────────────────────────────────────────

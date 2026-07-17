@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { companiesAPI, projectsAPI, documentationAPI } from '../../../api/services';
@@ -40,10 +40,13 @@ export default function ProjectList() {
       .catch((err) => toast(extractError(err), 'error'));
   }, [needsCompanyPicker, toast]);
   
-  const filtered = projects.filter(p =>
-    p.nama_proyek?.toLowerCase().includes(search.toLowerCase()) ||
-    p.lokasi?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = useMemo(() => {
+    const s = search.toLowerCase();
+    return projects.filter(p =>
+      p.nama_proyek?.toLowerCase().includes(s) ||
+      p.lokasi?.toLowerCase().includes(s)
+    );
+  }, [projects, search]);
 
   const handleLogoUpload = async (e) => {
     const file = e.target.files[0];

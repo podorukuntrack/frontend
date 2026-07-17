@@ -11,7 +11,7 @@ const api = axios.create({
 
 export const navigateRef = { current: null };
 
-// Request interceptor - No longer need to add Authorization header manually
+// Request interceptor
 api.interceptors.request.use((config) => {
   return config;
 });
@@ -22,18 +22,18 @@ api.interceptors.response.use(
   async (err) => {
     const original = err.config;
 
-    // ✅ Tambahkan ini — handle server error di level global
+    // Handle global server errors
     if (err.response?.status >= 500) {
       navigateRef.current?.("/server-error");
       return Promise.reject(err);
     }
-    // ✅ Tambahkan ini — skip interceptor untuk semua endpoint auth
+    // Skip interceptor for authentication endpoints to prevent redirect loops
     const isAuthEndpoint = original?.url?.includes("/auth/");
     if (isAuthEndpoint) {
       return Promise.reject(err);
     }
 
-    // ✅ Tangani 429 Rate Limit secara elegan
+    // Handle 429 Rate Limit gracefully
     if (err.response?.status === 429) {
       window.dispatchEvent(new CustomEvent('show-toast', { 
         detail: { id: "rate_limit", msg: "Sistem sedang sibuk sinkronisasi data. Mohon tunggu beberapa detik...", type: 'error' } 
@@ -50,6 +50,7 @@ api.interceptors.response.use(
       } catch {
         localStorage.removeItem("user");
         window.location.href = "/login";
+        return Promise.reject(err);
       }
     }
     return Promise.reject(err);

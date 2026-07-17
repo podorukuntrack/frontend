@@ -194,11 +194,11 @@ export function Modal({ open, onClose, title, children, size = 'md' }) {
     if (open) {
       document.addEventListener('keydown', handler);
       document.body.style.overflow = 'hidden'; // Mengunci scroll body
+      return () => {
+        document.removeEventListener('keydown', handler);
+        document.body.style.overflow = 'unset'; // Mengembalikan scroll
+      };
     }
-    return () => {
-      document.removeEventListener('keydown', handler);
-      document.body.style.overflow = 'unset'; // Mengembalikan scroll
-    };
   }, [open, onClose]);
 
   if (!open) return null;
@@ -358,11 +358,11 @@ export function Lightbox({ item, onClose }) {
     if (item) {
       document.addEventListener('keydown', handler);
       document.body.style.overflow = 'hidden';
+      return () => {
+        document.removeEventListener('keydown', handler);
+        document.body.style.overflow = 'unset';
+      };
     }
-    return () => {
-      document.removeEventListener('keydown', handler);
-      document.body.style.overflow = 'unset';
-    };
   }, [item, onClose]);
 
   if (!item) return null;

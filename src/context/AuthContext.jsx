@@ -4,6 +4,11 @@ import { authAPI } from '../api/services';
 
 const AuthContext = createContext(null);
 
+/**
+ * Retrieves the initial user state from localStorage.
+ * Handles parsing errors by clearing invalid data.
+ * @returns {Object|null} The user object or null if not found/invalid
+ */
 const getInitialUser = () => {
   const stored = localStorage.getItem('user');
 
@@ -17,6 +22,12 @@ const getInitialUser = () => {
   }
 };
 
+/**
+ * Provides authentication state and methods to the application context.
+ * 
+ * @param {Object} props
+ * @param {React.ReactNode} props.children - The child components wrapped by this provider
+ */
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(getInitialUser);
   const [loading, setLoading] = useState(false);
@@ -45,6 +56,11 @@ export function AuthProvider({ children }) {
     fetchMe();
   }, []);
 
+  /**
+   * Normalizes and persists the user session in state and localStorage.
+   * @param {Object} payload - The user data payload from API
+   * @returns {Object} Normalized user object
+   */
   const persistSession = (payload) => {
     if (!payload || !payload.user) {
       throw new Error('Invalid login response');
@@ -61,11 +77,20 @@ export function AuthProvider({ children }) {
     return normalizedUser;
   };
 
+  /**
+   * Logs a user in with credentials.
+   * @param {string} email
+   * @param {string} password
+   */
   const login = useCallback(async (email, password) => {
     const { data } = await authAPI.login({ email, password });
     return persistSession(data.data);
   }, []);
 
+  /**
+   * Registers a new customer user.
+   * @param {Object} formData
+   */
   const register = useCallback(async (formData) => {
     const { data } = await authAPI.register(formData);
     return persistSession(data.data);
@@ -81,14 +106,20 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('user');
     setUser(null);
     queryClient.clear();
-    // Remove HttpOnly cookies by setting expired dates (browser will honor Set-Cookie from server, but we also attempt client-side clear for safety)
+    // Server clears HttpOnly cookies via Set-Cookie headers.
+    // Client-side cookies are cleared just in case any non-HttpOnly tokens were set by mistake.
     document.cookie = 'accessToken=; Max-Age=0; path=/;';
     document.cookie = 'refreshToken=; Max-Age=0; path=/;';
     // Set a flag to avoid immediate token refresh loop
     window.__loggedOut = true;
-  }, []);
+  }, [queryClient]);
 
 
+  /**
+   * Checks if the currently logged-in user matches any of the provided roles.
+   * @param {...string} roles - The roles to check against
+   * @returns {boolean} True if user has one of the roles
+   */
   const isRole = useCallback((...roles) => {
     return user && roles.includes(user.role);
   }, [user]);
