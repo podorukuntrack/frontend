@@ -206,6 +206,15 @@ export default function ProjectList() {
                     )}
                     
                     <div className="flex items-center gap-2">
+                      {p.company && (p.company.kode_pt || p.company.nama_pt) && (
+                        <span className="badge font-bold uppercase" style={{ 
+                          backgroundColor: `${p.company.theme_color || '#4f46e5'}15`, 
+                          color: p.company.theme_color || '#4f46e5', 
+                          border: `1px solid ${p.company.theme_color || '#4f46e5'}25` 
+                        }}>
+                          {p.company.kode_pt || p.company.nama_pt.substring(0, 3)}
+                        </span>
+                      )}
                       <span className={`badge`} style={{ backgroundColor: `${theme}15`, color: theme, border: `1px solid ${theme}25` }}>
                         {getStatusLabel(p.status)}
                       </span>
