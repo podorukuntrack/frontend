@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { retentionsAPI, documentationAPI } from '../../../../api/services';
 import { Modal, Confirm, Lightbox } from '../../../../components/ui';
 import { useToast } from '../../../../hooks/useToast';
 import { extractError, formatDate } from '../../../../utils/helpers';
-import { Plus, Pencil, Trash2, Camera, CheckCircle, Image as ImageIcon, Wrench, AlertCircle, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, Camera, CheckCircle, Image as ImageIcon, Wrench, AlertCircle, X, ImagePlus, FileImage } from 'lucide-react';
 
 export default function ComplaintManager({ retention, isRole, unitId }) {
   const { toast } = useToast();
@@ -19,6 +19,9 @@ export default function ComplaintManager({ retention, isRole, unitId }) {
   const [photoBeforeFiles, setPhotoBeforeFiles] = useState([]);
   const [photoAfterFiles, setPhotoAfterFiles] = useState([]);
   const [lightbox, setLightbox] = useState(null);
+  
+  const fileInputBeforeRef = useRef(null);
+  const fileInputAfterRef = useRef(null);
 
 
   const loadComplaints = async () => {
@@ -391,15 +394,51 @@ export default function ComplaintManager({ retention, isRole, unitId }) {
                   </div>
                 )}
 
+                <div
+                  className="border-2 border-dashed border-slate-200 dark:border-slate-600 rounded-xl p-4 text-center hover:border-amber-400 dark:hover:border-amber-500 transition-colors cursor-pointer bg-amber-50/30 dark:bg-amber-900/10"
+                  onClick={() => fileInputBeforeRef.current?.click()}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const dropped = Array.from(e.dataTransfer.files);
+                    setPhotoBeforeFiles((prev) => [...prev, ...dropped]);
+                  }}
+                >
+                  <ImagePlus className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                  <p className="text-sm text-slate-500">Klik atau drag & drop gambar di sini</p>
+                  <p className="text-xs text-slate-400 mt-0.5">JPG, PNG, WEBP, GIF...</p>
+                </div>
                 <input
+                  ref={fileInputBeforeRef}
                   type="file"
-                  accept="image/*"
                   multiple
-                  onChange={e => setPhotoBeforeFiles(Array.from(e.target.files))}
-                  className="input text-sm p-1.5 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-amber-50 file:text-amber-700 dark:file:bg-amber-900/30 dark:file:text-amber-400 hover:file:bg-amber-100"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const selected = Array.from(e.target.files);
+                    setPhotoBeforeFiles((prev) => [...prev, ...selected]);
+                    e.target.value = "";
+                  }}
                 />
-                {(photoBeforeFiles.length > 0) && (
-                   <span className="flex items-center gap-1 text-xs text-slate-500"><Plus className="w-3 h-3" /> {photoBeforeFiles.length} foto baru siap diunggah</span>
+                {photoBeforeFiles.length > 0 && (
+                  <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                    {photoBeforeFiles.map((file, idx) => (
+                      <div key={idx} className="flex items-center justify-between bg-amber-50 dark:bg-amber-900/20 px-3 py-2 rounded-lg border border-amber-100 dark:border-amber-800">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FileImage className="w-4 h-4 text-amber-500 shrink-0" />
+                          <span className="text-xs text-slate-700 dark:text-slate-300 truncate">{file.name}</span>
+                          <span className="text-xs text-slate-400 shrink-0">({(file.size / 1024).toFixed(0)} KB)</span>
+                        </div>
+                        <button
+                          type="button"
+                          className="ml-2 text-slate-400 hover:text-rose-500 transition-colors shrink-0"
+                          onClick={() => setPhotoBeforeFiles((prev) => prev.filter((_, i) => i !== idx))}
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
 
@@ -433,15 +472,51 @@ export default function ComplaintManager({ retention, isRole, unitId }) {
                   </div>
                 )}
 
+                <div
+                  className="border-2 border-dashed border-slate-200 dark:border-slate-600 rounded-xl p-4 text-center hover:border-emerald-400 dark:hover:border-emerald-500 transition-colors cursor-pointer bg-emerald-50/30 dark:bg-emerald-900/10"
+                  onClick={() => fileInputAfterRef.current?.click()}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const dropped = Array.from(e.dataTransfer.files);
+                    setPhotoAfterFiles((prev) => [...prev, ...dropped]);
+                  }}
+                >
+                  <ImagePlus className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                  <p className="text-sm text-slate-500">Klik atau drag & drop gambar di sini</p>
+                  <p className="text-xs text-slate-400 mt-0.5">JPG, PNG, WEBP, GIF...</p>
+                </div>
                 <input
+                  ref={fileInputAfterRef}
                   type="file"
-                  accept="image/*"
                   multiple
-                  onChange={e => setPhotoAfterFiles(Array.from(e.target.files))}
-                  className="input text-sm p-1.5 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 dark:file:bg-emerald-900/30 dark:file:text-emerald-400 hover:file:bg-emerald-100"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const selected = Array.from(e.target.files);
+                    setPhotoAfterFiles((prev) => [...prev, ...selected]);
+                    e.target.value = "";
+                  }}
                 />
-                {(photoAfterFiles.length > 0) && (
-                   <span className="flex items-center gap-1 text-xs text-slate-500"><Plus className="w-3 h-3" /> {photoAfterFiles.length} foto baru siap diunggah</span>
+                {photoAfterFiles.length > 0 && (
+                  <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                    {photoAfterFiles.map((file, idx) => (
+                      <div key={idx} className="flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2 rounded-lg border border-emerald-100 dark:border-emerald-800">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FileImage className="w-4 h-4 text-emerald-500 shrink-0" />
+                          <span className="text-xs text-slate-700 dark:text-slate-300 truncate">{file.name}</span>
+                          <span className="text-xs text-slate-400 shrink-0">({(file.size / 1024).toFixed(0)} KB)</span>
+                        </div>
+                        <button
+                          type="button"
+                          className="ml-2 text-slate-400 hover:text-rose-500 transition-colors shrink-0"
+                          onClick={() => setPhotoAfterFiles((prev) => prev.filter((_, i) => i !== idx))}
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
 
