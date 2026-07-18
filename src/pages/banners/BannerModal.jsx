@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { Modal, Spinner } from '../../components/ui';
 import { UploadCloud, X } from 'lucide-react';
-
+import { useToast } from '../../hooks/useToast';
 export default function BannerModal({ open, onClose, banner, onSave, loading, companies = [] }) {
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     name: '',
     linkUrl: '',
@@ -73,7 +74,7 @@ export default function BannerModal({ open, onClose, banner, onSave, loading, co
     e.preventDefault();
     
     if (!banner && !file) {
-      alert("Silakan unggah gambar banner!");
+      toast("Silakan unggah gambar banner!", "error");
       return;
     }
 

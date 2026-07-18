@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { assignmentsAPI, usersAPI, documentationAPI } from '../../../api/services';
-import { PageLoader, Spinner } from '../../../components/ui';
+import { PageLoader, Spinner, Confirm } from '../../../components/ui';
 import { useToast } from '../../../hooks/useToast';
 import { extractError, formatCurrency, formatDate } from '../../../utils/helpers';
 import { useAuth } from '../../../context/AuthContext';
@@ -16,6 +16,9 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  
+  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   
   // Search state
   const [searchTerm, setSearchTerm] = useState('');
@@ -148,11 +151,15 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
     }
 
     if (assignment) {
-      if (!window.confirm("Apakah Anda yakin ingin menyimpan perubahan data penugasan ini?")) {
-        return;
-      }
+      setConfirmSaveOpen(true);
+      return;
     }
 
+    executeSave();
+  };
+
+  const executeSave = async () => {
+    setConfirmSaveOpen(false);
     setSaving(true);
     try {
       const payload = {
@@ -188,8 +195,12 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
     }
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm("Apakah Anda yakin ingin membatalkan/menghapus penugasan ini? Pastikan unit tidak memiliki riwayat pembayaran, dokumen serah terima, atau garansi.")) return;
+  const handleDelete = () => {
+    setConfirmDeleteOpen(true);
+  };
+
+  const executeDelete = async () => {
+    setConfirmDeleteOpen(false);
     setSaving(true);
     try {
       await assignmentsAPI.delete(assignment.id);
@@ -559,7 +570,25 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
                </button>
             </div>
          </form>
-      </div>
+       </div>
+      <Confirm
+        open={confirmSaveOpen}
+        onClose={() => setConfirmSaveOpen(false)}
+        onConfirm={executeSave}
+        title="Simpan Perubahan"
+        description="Apakah Anda yakin ingin menyimpan perubahan data penugasan ini?"
+        confirmLabel="Simpan"
+        loading={saving}
+      />
+      <Confirm
+        open={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        onConfirm={executeDelete}
+        title="Batalkan Penugasan"
+        description="Apakah Anda yakin ingin membatalkan/menghapus penugasan ini? Pastikan unit tidak memiliki riwayat pembayaran, dokumen serah terima, atau garansi."
+        confirmLabel="Hapus Penugasan"
+        loading={saving}
+      />
     </div>
   )
 }

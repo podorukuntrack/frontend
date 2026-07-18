@@ -13,6 +13,7 @@ export default function ComplaintManager({ retention, isRole, unitId }) {
   
   const [modal, setModal] = useState({ open: false, mode: 'create', data: null });
   const [confirm, setConfirm] = useState({ open: false, id: null });
+  const [confirmPhoto, setConfirmPhoto] = useState({ open: false, complaintId: null, type: null, url: null });
   
   const [form, setForm] = useState({ description: '', status: 'pending', photoBeforeUrls: [], photoAfterUrls: [] });
   const [photoBeforeFiles, setPhotoBeforeFiles] = useState([]);
@@ -140,8 +141,13 @@ export default function ComplaintManager({ retention, isRole, unitId }) {
     }
   };
 
-  const handleDeletePhoto = async (complaintId, type, urlToRemove) => {
-    if (!window.confirm("Apakah Anda yakin ingin menghapus foto ini?")) return;
+  const handleDeletePhotoClick = (complaintId, type, urlToRemove) => {
+    setConfirmPhoto({ open: true, complaintId, type, url: urlToRemove });
+  };
+
+  const executeDeletePhoto = async () => {
+    const { complaintId, type, url: urlToRemove } = confirmPhoto;
+    setConfirmPhoto({ open: false, complaintId: null, type: null, url: null });
     
     const comp = complaints.find(c => c.id === complaintId);
     if (!comp) return;
@@ -272,7 +278,7 @@ export default function ComplaintManager({ retention, isRole, unitId }) {
                           {isRole('admin') && (
                             <button
                               type="button"
-                              onClick={() => handleDeletePhoto(c.id, 'before', url)}
+                              onClick={() => handleDeletePhotoClick(c.id, 'before', url)}
                               className="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full opacity-0 group-hover/media:opacity-100 transition-opacity flex items-center justify-center"
                               title="Hapus"
                             >
@@ -297,7 +303,7 @@ export default function ComplaintManager({ retention, isRole, unitId }) {
                           {isRole('admin') && (
                             <button
                               type="button"
-                              onClick={() => handleDeletePhoto(c.id, 'after', url)}
+                              onClick={() => handleDeletePhotoClick(c.id, 'after', url)}
                               className="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full opacity-0 group-hover/media:opacity-100 transition-opacity flex items-center justify-center"
                               title="Hapus"
                             >
@@ -373,7 +379,7 @@ export default function ComplaintManager({ retention, isRole, unitId }) {
                         {isRole('admin') && modal.data?.id && (
                           <button
                             type="button"
-                            onClick={() => handleDeletePhoto(modal.data.id, 'before', url)}
+                            onClick={() => handleDeletePhotoClick(modal.data.id, 'before', url)}
                             className="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full opacity-0 group-hover/media:opacity-100 transition-opacity flex items-center justify-center"
                             title="Hapus"
                           >
@@ -415,7 +421,7 @@ export default function ComplaintManager({ retention, isRole, unitId }) {
                         {isRole('admin') && modal.data?.id && (
                           <button
                             type="button"
-                            onClick={() => handleDeletePhoto(modal.data.id, 'after', url)}
+                            onClick={() => handleDeletePhotoClick(modal.data.id, 'after', url)}
                             className="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full opacity-0 group-hover/media:opacity-100 transition-opacity flex items-center justify-center"
                             title="Hapus"
                           >
@@ -458,6 +464,14 @@ export default function ComplaintManager({ retention, isRole, unitId }) {
         title="Hapus Keluhan"
         description="Yakin ingin menghapus data keluhan ini beserta foto-fotonya? Tindakan ini tidak dapat dibatalkan."
         loading={saving}
+      />
+
+      <Confirm
+        open={confirmPhoto.open}
+        onClose={() => setConfirmPhoto({ open: false, complaintId: null, type: null, url: null })}
+        onConfirm={executeDeletePhoto}
+        title="Hapus Foto Keluhan"
+        description="Apakah Anda yakin ingin menghapus foto ini?"
       />
 
       {/* LIGHTBOX */}

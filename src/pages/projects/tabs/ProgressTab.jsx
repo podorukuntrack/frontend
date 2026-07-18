@@ -6,7 +6,7 @@ import {
   timelinesAPI,
   documentationAPI,
 } from "../../../api/services";
-import { PageLoader, Modal, ProgressBar, Lightbox } from "../../../components/ui";
+import { PageLoader, Modal, ProgressBar, Lightbox, Confirm } from "../../../components/ui";
 import { useToast } from "../../../hooks/useToast";
 import {
   formatDate,
@@ -61,6 +61,15 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
     originalPct: 0,
   });
   const [payModal, setPayModal] = useState({ open: false, mode: "view" });
+
+  const [confirmBuildOpen, setConfirmBuildOpen] = useState(false);
+  const [progressToDelete, setProgressToDelete] = useState(null);
+
+  const [confirmDocOpen, setConfirmDocOpen] = useState(false);
+  const [docToDelete, setDocToDelete] = useState(null);
+
+  const [confirmPayOpen, setConfirmPayOpen] = useState(false);
+  const [paymentToDelete, setPaymentToDelete] = useState(null);
 
   // Forms
   const [buildForm, setBuildForm] = useState(EMPTY_BUILD_FORM);
@@ -262,23 +271,37 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
     }
   };
 
-  const handleDeleteProgress = async (progressId) => {
-    if (!window.confirm("Apakah Anda yakin ingin menghapus progress fisik ini?")) return;
+  const handleDeleteProgressClick = (progressId) => {
+    setProgressToDelete(progressId);
+    setConfirmBuildOpen(true);
+  };
+
+  const executeDeleteProgress = async () => {
+    setConfirmBuildOpen(false);
+    if (!progressToDelete) return;
     try {
-      await progressAPI.delete(progressId);
+      await progressAPI.delete(progressToDelete);
       toast("Progress berhasil dihapus", "success");
       setRefreshKey((prev) => prev + 1);
       if (onUpdate) onUpdate();
     } catch (err) {
       toast(extractError(err), "error");
+    } finally {
+      setProgressToDelete(null);
     }
   };
 
   // --- Handler Delete Dokumentasi ---
-  const handleDeleteDoc = async (docId) => {
-    if (!window.confirm("Apakah Anda yakin ingin menghapus foto/dokumen ini?")) return;
+  const handleDeleteDocClick = (docId) => {
+    setDocToDelete(docId);
+    setConfirmDocOpen(true);
+  };
+
+  const executeDeleteDoc = async () => {
+    setConfirmDocOpen(false);
+    if (!docToDelete) return;
     try {
-      await documentationAPI.delete(docId);
+      await documentationAPI.delete(docToDelete);
       toast("Dokumen dihapus", "success");
       // Refresh docsMap
       const rDocs = await documentationAPI.list({ unitId: unit.id });
@@ -294,22 +317,32 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
       setDocsMap(dMap);
     } catch (err) {
       toast(extractError(err), "error");
+    } finally {
+      setDocToDelete(null);
     }
   };
 
-  const handleDeletePayment = async (paymentId) => {
+  const handleDeletePaymentClick = (paymentId) => {
     if (paymentId === "lunas-auto") {
-      window.alert("Pembayaran Cash Lunas otomatis terhapus jika Penugasannya dibatalkan. Silakan langsung ke Tab Assignment untuk Membatalkan Penugasan.");
+      toast("Pembayaran Cash Lunas otomatis terhapus jika Penugasannya dibatalkan. Silakan langsung ke Tab Assignment untuk Membatalkan Penugasan.", "info");
       return;
     }
-    if (!window.confirm("Apakah Anda yakin ingin menghapus riwayat pembayaran ini? Saldo total dibayar akan disesuaikan kembali.")) return;
+    setPaymentToDelete(paymentId);
+    setConfirmPayOpen(true);
+  };
+
+  const executeDeletePayment = async () => {
+    setConfirmPayOpen(false);
+    if (!paymentToDelete) return;
     try {
-      await assignmentsAPI.deletePayment(assignment.id, paymentId);
+      await assignmentsAPI.deletePayment(assignment.id, paymentToDelete);
       toast("Pembayaran berhasil dihapus", "success");
       setRefreshKey((prev) => prev + 1);
       if (onUpdate) onUpdate();
     } catch (err) {
       toast(extractError(err), "error");
+    } finally {
+      setPaymentToDelete(null);
     }
   };
 
@@ -465,7 +498,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                                 <Pencil className="w-3 h-3" />
                               </button>
                               <button
-                                onClick={() => handleDeleteProgress(p.id || p.progress_id)}
+                                onClick={() => handleDeleteProgressClick(p.id || p.progress_id)}
                                 className="p-1 rounded-md text-slate-400 hover:text-rose-600 bg-white dark:bg-slate-800 border border-slate-200 dark:bg-slate-600"
                                 title="Hapus"
                               >
@@ -524,7 +557,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                                     {isRole('admin') && (
                                       <button
                                         type="button"
-                                        onClick={() => handleDeleteDoc(d.id)}
+                                        onClick={() => handleDeleteDocClick(d.id)}
                                         className="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full opacity-0 group-hover/media:opacity-100 transition-opacity flex items-center justify-center"
                                         title="Hapus"
                                       >
@@ -682,7 +715,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                              <Pencil className="w-3 h-3" />
                            </button>
                            <button
-                             onClick={() => handleDeletePayment(p.id)}
+                             onClick={() => handleDeletePaymentClick(p.id)}
                              className="p-1 rounded-md text-slate-400 hover:text-rose-600 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600"
                              title="Hapus Pembayaran"
                            >
@@ -896,7 +929,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleDeleteDoc(d.id)}
+                              onClick={() => handleDeleteDocClick(d.id)}
                               className="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full opacity-0 group-hover/doc:opacity-100 transition-opacity flex items-center justify-center"
                               title="Hapus"
                             >
@@ -1066,6 +1099,28 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
 
       {/* LIGHTBOX */}
       <Lightbox item={lightbox} onClose={() => setLightbox(null)} />
+
+      <Confirm
+        open={confirmBuildOpen}
+        onClose={() => setConfirmBuildOpen(false)}
+        onConfirm={executeDeleteProgress}
+        title="Hapus Progress"
+        description="Apakah Anda yakin ingin menghapus progress fisik ini?"
+      />
+      <Confirm
+        open={confirmDocOpen}
+        onClose={() => setConfirmDocOpen(false)}
+        onConfirm={executeDeleteDoc}
+        title="Hapus Dokumen"
+        description="Apakah Anda yakin ingin menghapus foto/dokumen ini?"
+      />
+      <Confirm
+        open={confirmPayOpen}
+        onClose={() => setConfirmPayOpen(false)}
+        onConfirm={executeDeletePayment}
+        title="Hapus Pembayaran"
+        description="Apakah Anda yakin ingin menghapus riwayat pembayaran ini? Saldo total dibayar akan disesuaikan kembali."
+      />
     </div>
   );
 }
