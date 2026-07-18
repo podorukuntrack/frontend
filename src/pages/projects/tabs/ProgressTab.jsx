@@ -320,7 +320,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
       tanggal_bayar: p.tanggal_bayar?.split("T")[0] || "",
       catatan: p.catatan || "",
     });
-    setPayModal({ open: true, mode: "edit", editId: p.id, oldAmount: p.jumlah_bayar, existingUrl: p.bukti_pembayaran });
+    setPayModal({ open: true, mode: "edit", editId: p.id, oldAmount: Number(p.jumlah_bayar), existingUrl: p.bukti_pembayaran });
     setPayFile(null);
   };
 
