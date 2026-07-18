@@ -225,9 +225,6 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
           </h3>
           {isRole('admin') && (
             <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-              <button onClick={handleDelete} className="btn-secondary !bg-rose-50 !text-rose-600 hover:!bg-rose-100 border-none text-sm px-3 py-1.5 h-auto flex-1 sm:flex-none justify-center" disabled={saving}>
-                <Trash2 className="w-4 h-4 mr-1" /> Batalkan Penugasan
-              </button>
               <button onClick={startEdit} className="btn-secondary text-sm px-3 py-1.5 h-auto flex-1 sm:flex-none justify-center">
                 <Pencil className="w-4 h-4 mr-1" /> Edit Data
               </button>
