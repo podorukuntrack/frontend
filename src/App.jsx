@@ -70,6 +70,24 @@ const darkenHex = (hex, percent) => {
   }
 };
 
+function DashboardRoute() {
+  const { user } = useAuth();
+  if (!user) return null;
+  switch (user.role) {
+    case 'super_admin':
+    case 'admin':
+    case 'owner':
+    case 'direksi':
+      return (
+        <AppLayout>
+          <DashboardPage />
+        </AppLayout>
+      );
+    default:
+      return null;
+  }
+}
+
 function AppRoutes() {
   const { user } = useAuth();
 
@@ -119,23 +137,7 @@ function AppRoutes() {
         path="/"
         element={
           <PrivateRoute roles={["super_admin", "owner", "admin", "direksi"]}>
-            {(() => {
-              const { user } = useAuth();
-              if (!user) return null;
-              switch (user.role) {
-                case 'super_admin':
-                case 'admin':
-                case 'owner':
-                case 'direksi':
-                  return (
-                    <AppLayout>
-                      <DashboardPage />
-                    </AppLayout>
-                  );
-                default:
-                  return null;
-              }
-            })()}
+            <DashboardRoute />
           </PrivateRoute>
         }
       />
