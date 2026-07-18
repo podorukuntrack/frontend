@@ -67,10 +67,8 @@ export default function HandoverTab({ unit, onHandover }) {
 
   // Cek apakah sudah ada handover yang selesai
   const hasCompleted = handovers.some(h => h.status === 'selesai' || h.status === 'completed');
-  // Handover aktif (belum selesai/gagal) — hanya boleh 1
-  const activeHandover = handovers.find(h => !['selesai', 'completed', 'gagal'].includes(h.status));
-  // Boleh buat baru jika tidak ada aktif DAN belum ada yang selesai
-  const canCreate = isRole('admin') && !activeHandover && !hasCompleted;
+  // Hanya boleh ada 1 data serah terima (handover) per unit, tidak peduli statusnya
+  const canCreate = isRole('admin') && handovers.length === 0;
 
   const loadData = async () => {
     setLoading(true);
@@ -471,24 +469,16 @@ export default function HandoverTab({ unit, onHandover }) {
                   </div>
                 )}
 
-                {/* 5. Gagal → minta buat jadwal baru */}
+                {/* 5. Gagal → minta hapus untuk jadwal baru */}
                 {isGagal && (
                   <div className="p-3.5 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 flex items-center justify-between gap-3">
                     <div className="flex items-start gap-3">
                       <XCircle className="w-5 h-5 text-red-500 shrink-0" />
                       <div>
                         <p className="text-sm font-semibold text-red-800 dark:text-red-400">Serah Terima Gagal / Customer Tidak Hadir</p>
-                        <p className="text-xs text-red-700/80 dark:text-red-500 mt-0.5">Buat jadwal serah terima baru untuk melanjutkan proses.</p>
+                        <p className="text-xs text-red-700/80 dark:text-red-500 mt-0.5">Hapus data ini jika Anda ingin membuat jadwal serah terima baru.</p>
                       </div>
                     </div>
-                    {isRole('admin') && !activeHandover && (
-                      <button
-                        onClick={() => { setForm({ scheduled_date: '', notes: '' }); setModal({ open: true, mode: 'create', data: null }); }}
-                        className="btn-primary text-xs px-3 py-1.5 h-auto shrink-0"
-                      >
-                        <Plus className="w-3.5 h-3.5 mr-1" /> Jadwal Ulang
-                      </button>
-                    )}
                   </div>
                 )}
 

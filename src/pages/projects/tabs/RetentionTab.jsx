@@ -150,7 +150,7 @@ export default function RetentionTab({ unit }) {
         <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
           <ShieldCheck className="w-5 h-5 text-indigo-600 dark:text-indigo-400" /> Garansi / Retensi
         </h3>
-        {isRole('admin') && (
+        {isRole('admin') && retentions.length === 0 && (
           <button className="btn-primary text-sm px-3 py-1.5 h-auto" onClick={openCreate}>
             <Plus className="w-4 h-4 mr-1" /> Tambah Garansi
           </button>
