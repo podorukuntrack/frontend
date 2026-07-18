@@ -482,7 +482,7 @@ export default function HandoverTab({ unit, onHandover }) {
                       </div>
                     </div>
                     {isRole('admin') && !activeHandover && (
-                      <button onClick={openCreate} className="btn-secondary !bg-white hover:!bg-red-50 dark:!bg-slate-800 border-red-200 dark:border-red-800 text-xs px-3 py-1.5 h-auto">
+                      <button onClick={() => { setForm({ scheduled_date: '', notes: '' }); setModal({ open: true, mode: 'create', data: null }); }} className="btn-secondary !bg-white hover:!bg-red-50 dark:!bg-slate-800 border-red-200 dark:border-red-800 text-xs px-3 py-1.5 h-auto">
                         <RotateCcw className="w-3.5 h-3.5 mr-1" /> Jadwal Ulang
                       </button>
                     )}
