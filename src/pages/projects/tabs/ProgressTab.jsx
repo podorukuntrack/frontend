@@ -94,7 +94,10 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
   const hargaTotal = assignment?.pembayaran?.harga_total || 0;
   const tenorBulan = assignment?.pembayaran?.tenor_bulan || 0;
   const targetTagihan = isKpr ? dp : hargaTotal;
-  const totalDibayar = assignment?.pembayaran?.total_dibayar || 0;
+  const kprAmount = isKpr ? Math.max(0, hargaTotal - dp) : 0;
+  const totalDibayar = isKpr 
+    ? Math.max(0, (assignment?.pembayaran?.total_dibayar || 0) - kprAmount) 
+    : (assignment?.pembayaran?.total_dibayar || 0);
   const sisaTagihan = targetTagihan - totalDibayar;
 
   useEffect(() => {
