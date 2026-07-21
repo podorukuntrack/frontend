@@ -371,37 +371,13 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
 
     setSaving(true);
     try {
-      let uploadedUrls = [];
-      if (payFiles.length > 0) {
-        for (const file of payFiles) {
-          const fd = new FormData();
-          fd.append("unitId", unit.id);
-          fd.append("jenis", "foto");
-          fd.append("file", file);
-
-          try {
-            const rDocs = await documentationAPI.upload(fd);
-            const url = rDocs.data?.data?.url || rDocs.data?.data?.fileUrl || rDocs.data?.fileUrl;
-            if (url) uploadedUrls.push(url);
-          } catch (uploadErr) {
-            throw new Error(`Gagal mengunggah bukti pembayaran (${file.name}): ` + (uploadErr.response?.data?.message || uploadErr.message));
-          }
-        }
-
-        if (uploadedUrls.length === 0) {
-          throw new Error("Gagal mendapatkan URL bukti pembayaran");
-        }
-      }
-
       const payload = {
         jumlah_bayar: Number(payForm.jumlah_bayar),
         tanggal_bayar: new Date(payForm.tanggal_bayar).toISOString(),
         catatan: payForm.catatan,
       };
 
-      if (uploadedUrls.length > 0) {
-        payload.bukti_pembayaran = uploadedUrls;
-      }
+      let savedPaymentId = payModal.editId;
 
       if (payModal.mode === "edit") {
         const diff = payload.jumlah_bayar - payModal.oldAmount;
@@ -418,14 +394,66 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
           setSaving(false);
           return;
         }
-        await assignmentsAPI.createPayment(assignment.id, payload);
+        const res = await assignmentsAPI.createPayment(assignment.id, payload);
+        savedPaymentId = res.data?.data?.id || res.data?.id; // Depends on backend response format
         toast("Pembayaran berhasil dicatat", "success");
       }
 
       setPayModal({ open: false, mode: "view" });
+      const currentFiles = [...payFiles]; // clone files
       setPayFiles([]); // Reset files
       setRefreshKey((prev) => prev + 1);
       if (onUpdate) onUpdate(); // Sync parent data
+
+      // Background Upload Process
+      if (currentFiles.length > 0 && savedPaymentId) {
+        const toastId = `upload-pay-${savedPaymentId}`;
+        toast({ title: "Mengunggah Bukti Pembayaran", description: "Memulai unggahan..." }, "info", { id: toastId, progress: 0 });
+
+        (async () => {
+          try {
+            let uploadedUrls = [];
+            if (payModal.mode === "edit" && payModal.existingUrl) {
+              // Note: the backend schema replaces the old URLs entirely. 
+              // The UI tells the user that uploading new photos will replace existing ones.
+              // So we don't need to append to old URLs if they uploaded new ones.
+            }
+
+            for (let i = 0; i < currentFiles.length; i++) {
+              const file = currentFiles[i];
+              const fd = new FormData();
+              fd.append("unitId", unit.id);
+              fd.append("jenis", "foto");
+              fd.append("file", file);
+
+              const rDocs = await documentationAPI.upload(fd, {
+                onUploadProgress: (progressEvent) => {
+                  const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                  const overallProgress = Math.round(((i * 100) + percentCompleted) / currentFiles.length);
+                  toast(
+                    { title: "Mengunggah Bukti Pembayaran", description: `Mengunggah ${i + 1} dari ${currentFiles.length}...` },
+                    "info",
+                    { id: toastId, progress: overallProgress }
+                  );
+                }
+              });
+              
+              const url = rDocs.data?.data?.url || rDocs.data?.data?.fileUrl || rDocs.data?.fileUrl;
+              if (url) uploadedUrls.push(url);
+            }
+
+            if (uploadedUrls.length > 0) {
+              await assignmentsAPI.updatePayment(assignment.id, savedPaymentId, {
+                bukti_pembayaran: uploadedUrls
+              });
+              toast({ title: "Upload Selesai", description: "Semua bukti pembayaran berhasil diunggah" }, "success", { id: toastId });
+              setRefreshKey((prev) => prev + 1);
+            }
+          } catch (uploadErr) {
+            toast({ title: "Upload Gagal", description: extractError(uploadErr) }, "error", { id: toastId });
+          }
+        })();
+      }
     } catch (err) {
       toast(extractError(err), "error");
     } finally {
