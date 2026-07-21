@@ -4,7 +4,7 @@ import { dashboardAPI } from "../../api/services";
 import { useAuth } from "../../context/AuthContext";
 import { PageLoader } from "../../components/ui";
 import { extractError, formatCurrency, formatDate } from "../../utils/helpers";
-import { ArrowLeft, TrendingUp, Wallet, Landmark, Home, Users, Search, Building2, CalendarRange } from "lucide-react";
+import { ArrowLeft, TrendingUp, Wallet, Landmark, Home, Users, Search, Building2, CalendarRange, Filter, X } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { id } from "date-fns/locale";
@@ -81,7 +81,13 @@ export default function AnalyticsDrilldownPage() {
   const [filterStatusPembangunan, setFilterStatusPembangunan] = useState("");
   const [filterStatusPenjualan, setFilterStatusPenjualan] = useState("");
   const [filterStatusRetensi, setFilterStatusRetensi] = useState("");
+  const [filterProject, setFilterProject] = useState("");
+  const [filterCluster, setFilterCluster] = useState("");
+  const [showFilter, setShowFilter] = useState(false);
 
+  useEffect(() => {
+    setFilterCluster("");
+  }, [filterProject]);
   /**
    * Updates a filter value in both SessionStorage and URL Query Parameters.
    * This guarantees cross-page state persistence without requiring a complex Redux/Zustand store.
@@ -173,6 +179,8 @@ export default function AnalyticsDrilldownPage() {
     let buildMatch = true;
     let soldMatch = true;
     let retensiMatch = true;
+    let projectMatch = true;
+    let clusterMatch = true;
     
     if (filterTipePembayaran && metric !== 'occupancy' && metric !== 'customers') {
       typeMatch = row.tipe_pembayaran === filterTipePembayaran;
@@ -183,6 +191,12 @@ export default function AnalyticsDrilldownPage() {
     if (filterStatusPenjualan && metric === 'occupancy') {
       const isSoldStr = row.is_sold ? 'terjual' : 'tersedia';
       soldMatch = isSoldStr === filterStatusPenjualan;
+    }
+    if (filterProject && metric === 'occupancy') {
+      projectMatch = row.project_id === filterProject;
+    }
+    if (filterCluster && metric === 'occupancy') {
+      clusterMatch = row.cluster_id === filterCluster;
     }
     if (filterStatusRetensi && metric === 'occupancy') {
       let isHabis = false;
@@ -205,8 +219,32 @@ export default function AnalyticsDrilldownPage() {
       if (filterStatusRetensi === "belum_selesai" && (isHabis || isBelumAda)) retensiMatch = false;
     }
     
-    return searchMatch && typeMatch && buildMatch && soldMatch && retensiMatch;
+    return searchMatch && typeMatch && buildMatch && soldMatch && retensiMatch && projectMatch && clusterMatch;
   });
+
+  const availableProjects = Array.from(new Set(data.map(d => d.project_id)))
+    .filter(Boolean)
+    .map(id => {
+      const match = data.find(d => d.project_id === id);
+      return { id, name: match.nama_proyek };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  const availableClusters = filterProject 
+    ? Array.from(new Set(data.filter(d => d.project_id === filterProject).map(d => d.cluster_id)))
+        .filter(Boolean)
+        .map(id => {
+          const match = data.find(d => d.cluster_id === id);
+          return { id, name: match.nama_cluster };
+        })
+        .sort((a, b) => a.name.localeCompare(b.name))
+    : [];
+
+  const activeFiltersCount = (filterProject ? 1 : 0) + 
+                             (filterCluster ? 1 : 0) + 
+                             (filterStatusPenjualan ? 1 : 0) + 
+                             (filterStatusPembangunan ? 1 : 0) + 
+                             (filterStatusRetensi ? 1 : 0);
 
   const formatTipePembayaran = (tipe) => {
     if (!tipe) return "-";
@@ -393,66 +431,212 @@ export default function AnalyticsDrilldownPage() {
         )}
       </div>
 
-      <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col sm:flex-row gap-4 justify-between">
-        <div className="relative w-full sm:w-96">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input 
-            type="text" 
-            placeholder={metric === 'customers' ? "Cari customer atau perusahaan..." : "Cari unit, customer, atau proyek..."} 
-            className="input pl-9 w-full"
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-          />
-        </div>
-        
-        <div className="flex flex-wrap items-center gap-3">
-          {['revenue', 'cash-in', 'piutang'].includes(metric) && (
-            <select 
-              className="input text-sm w-full sm:w-48"
-              value={filterTipePembayaran}
-              onChange={e => setFilterTipePembayaran(e.target.value)}
-            >
-              <option value="">Semua Pembayaran</option>
-              <option value="cash_lunas">Cash Keras / Lunas</option>
-              <option value="cash_cicil">Cash Bertahap (In-House)</option>
-              <option value="kredit_kpr">Kredit KPR</option>
-            </select>
-          )}
-
-          {metric === 'occupancy' && (
-            <>
-              <select 
-                className="input text-sm w-full sm:w-56"
-                value={filterStatusPembangunan}
-                onChange={e => setFilterStatusPembangunan(e.target.value)}
-              >
-                <option value="">Semua Status Bangunan</option>
-                <option value="selesai">Selesai</option>
-                <option value="dalam_pembangunan">Dalam Pembangunan</option>
-                <option value="belum_mulai">Belum Mulai</option>
-              </select>
-              <select 
-                className="input text-sm w-full sm:w-40"
-                value={filterStatusPenjualan}
-                onChange={e => setFilterStatusPenjualan(e.target.value)}
-              >
-                <option value="">Status Penjualan</option>
-                <option value="terjual">Terjual</option>
-                <option value="tersedia">Belum Terjual</option>
-              </select>
+      <div className="flex flex-col gap-3">
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col sm:flex-row gap-4 justify-between">
+          <div className="relative w-full sm:w-96">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input 
+              type="text" 
+              placeholder={metric === 'customers' ? "Cari customer atau perusahaan..." : "Cari unit, customer, atau proyek..."} 
+              className="input pl-9 w-full"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-3 relative">
+            {['revenue', 'cash-in', 'piutang'].includes(metric) && (
               <select 
                 className="input text-sm w-full sm:w-48"
-                value={filterStatusRetensi}
-                onChange={e => setFilterStatusRetensi(e.target.value)}
+                value={filterTipePembayaran}
+                onChange={e => setFilterTipePembayaran(e.target.value)}
               >
-                <option value="">Semua Status Retensi</option>
-                <option value="belum_selesai">Dalam Masa Retensi</option>
-                <option value="sudah_selesai">Retensi Telah Habis</option>
-                <option value="belum_ada">Belum Ada Retensi</option>
+                <option value="">Semua Pembayaran</option>
+                <option value="cash_lunas">Cash Keras / Lunas</option>
+                <option value="cash_cicil">Cash Bertahap (In-House)</option>
+                <option value="kredit_kpr">Kredit KPR</option>
               </select>
-            </>
-          )}
+            )}
+
+            {metric === 'occupancy' && (
+              <>
+                <button 
+                  onClick={() => setShowFilter(!showFilter)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-semibold transition-all ${
+                    showFilter || activeFiltersCount > 0
+                      ? "bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-900/30 dark:border-indigo-700/50 dark:text-indigo-400" 
+                      : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700"
+                  }`}
+                >
+                  <Filter className="w-4 h-4" />
+                  Filter Lanjutan {activeFiltersCount > 0 && <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600 text-white text-[10px] ml-1">{activeFiltersCount}</span>}
+                </button>
+
+                {/* Popover Filter */}
+                {showFilter && (
+                  <div className="absolute top-full right-0 mt-2 w-[340px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 p-4">
+                    <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-700">
+                      <h3 className="font-bold text-slate-900 dark:text-white">Filter Spesifik</h3>
+                      <button onClick={() => setShowFilter(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Lokasi Project</label>
+                        <select 
+                          className="input text-sm w-full bg-slate-50 dark:bg-slate-900/50"
+                          value={filterProject}
+                          onChange={e => setFilterProject(e.target.value)}
+                        >
+                          <option value="">Semua Project</option>
+                          {availableProjects.map(p => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Pilih Cluster</label>
+                        <select 
+                          className="input text-sm w-full bg-slate-50 dark:bg-slate-900/50"
+                          value={filterCluster}
+                          onChange={e => setFilterCluster(e.target.value)}
+                          disabled={!filterProject}
+                        >
+                          <option value="">{filterProject ? "Semua Cluster" : "Pilih Project Dulu"}</option>
+                          {availableClusters.map(c => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="pt-3 border-t border-slate-100 dark:border-slate-700">
+                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Status Penjualan</label>
+                        <select 
+                          className="input text-sm w-full bg-slate-50 dark:bg-slate-900/50"
+                          value={filterStatusPenjualan}
+                          onChange={e => setFilterStatusPenjualan(e.target.value)}
+                        >
+                          <option value="">Semua Status Penjualan</option>
+                          <option value="terjual">Terjual</option>
+                          <option value="tersedia">Belum Terjual</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Status Pembangunan</label>
+                        <select 
+                          className="input text-sm w-full bg-slate-50 dark:bg-slate-900/50"
+                          value={filterStatusPembangunan}
+                          onChange={e => setFilterStatusPembangunan(e.target.value)}
+                        >
+                          <option value="">Semua Status Bangunan</option>
+                          <option value="selesai">Selesai</option>
+                          <option value="dalam_pembangunan">Dalam Pembangunan</option>
+                          <option value="belum_mulai">Belum Mulai</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Status Retensi</label>
+                        <select 
+                          className="input text-sm w-full bg-slate-50 dark:bg-slate-900/50"
+                          value={filterStatusRetensi}
+                          onChange={e => setFilterStatusRetensi(e.target.value)}
+                        >
+                          <option value="">Semua Status Retensi</option>
+                          <option value="belum_selesai">Dalam Masa Retensi</option>
+                          <option value="sudah_selesai">Retensi Telah Habis</option>
+                          <option value="belum_ada">Belum Ada Retensi</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-2">
+                      <button 
+                        onClick={() => {
+                          setFilterProject("");
+                          setFilterCluster("");
+                          setFilterStatusPenjualan("");
+                          setFilterStatusPembangunan("");
+                          setFilterStatusRetensi("");
+                        }}
+                        className="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                      >
+                        Reset
+                      </button>
+                      <button 
+                        onClick={() => setShowFilter(false)}
+                        className="px-4 py-2 text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
+                      >
+                        Terapkan
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
+
+        {/* Active Badges for Occupancy */}
+        {metric === 'occupancy' && activeFiltersCount > 0 && (
+          <div className="flex flex-wrap items-center gap-2 mb-2 px-1">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 mr-1 flex items-center gap-1">
+              <Filter className="w-3 h-3" /> Filter Aktif:
+            </span>
+            
+            {filterProject && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 text-xs font-bold border border-indigo-200 dark:border-indigo-800 shadow-sm transition-all">
+                Project: {availableProjects.find(p => p.id === filterProject)?.name || filterProject}
+                <button onClick={() => setFilterProject("")} className="hover:text-indigo-900 dark:hover:text-indigo-200 hover:bg-indigo-100 dark:hover:bg-indigo-800 p-0.5 rounded-full transition-colors"><X className="w-3 h-3" /></button>
+              </span>
+            )}
+            
+            {filterCluster && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 text-xs font-bold border border-indigo-200 dark:border-indigo-800 shadow-sm transition-all">
+                Cluster: {availableClusters.find(c => c.id === filterCluster)?.name || filterCluster}
+                <button onClick={() => setFilterCluster("")} className="hover:text-indigo-900 dark:hover:text-indigo-200 hover:bg-indigo-100 dark:hover:bg-indigo-800 p-0.5 rounded-full transition-colors"><X className="w-3 h-3" /></button>
+              </span>
+            )}
+            
+            {filterStatusPenjualan && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 text-xs font-bold border border-indigo-200 dark:border-indigo-800 shadow-sm transition-all">
+                Penjualan: {filterStatusPenjualan === 'terjual' ? 'Terjual' : 'Belum Terjual'}
+                <button onClick={() => setFilterStatusPenjualan("")} className="hover:text-indigo-900 dark:hover:text-indigo-200 hover:bg-indigo-100 dark:hover:bg-indigo-800 p-0.5 rounded-full transition-colors"><X className="w-3 h-3" /></button>
+              </span>
+            )}
+            
+            {filterStatusPembangunan && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 text-xs font-bold border border-indigo-200 dark:border-indigo-800 shadow-sm transition-all">
+                Bangunan: {filterStatusPembangunan.replace("_", " ").replace(/\b\w/g, l => l.toUpperCase())}
+                <button onClick={() => setFilterStatusPembangunan("")} className="hover:text-indigo-900 dark:hover:text-indigo-200 hover:bg-indigo-100 dark:hover:bg-indigo-800 p-0.5 rounded-full transition-colors"><X className="w-3 h-3" /></button>
+              </span>
+            )}
+            
+            {filterStatusRetensi && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 text-xs font-bold border border-indigo-200 dark:border-indigo-800 shadow-sm transition-all">
+                Retensi: {filterStatusRetensi.replace("_", " ").replace(/\b\w/g, l => l.toUpperCase())}
+                <button onClick={() => setFilterStatusRetensi("")} className="hover:text-indigo-900 dark:hover:text-indigo-200 hover:bg-indigo-100 dark:hover:bg-indigo-800 p-0.5 rounded-full transition-colors"><X className="w-3 h-3" /></button>
+              </span>
+            )}
+            
+            <button 
+              onClick={() => {
+                setFilterProject("");
+                setFilterCluster("");
+                setFilterStatusPenjualan("");
+                setFilterStatusPembangunan("");
+                setFilterStatusRetensi("");
+              }}
+              className="text-xs font-bold text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 underline ml-2 transition-colors"
+            >
+              Hapus Semua
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
