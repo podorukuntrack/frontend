@@ -75,6 +75,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
   const [buildForm, setBuildForm] = useState(EMPTY_BUILD_FORM);
   const [payForm, setPayForm] = useState(EMPTY_PAY_FORM);
   const [payFiles, setPayFiles] = useState([]);
+  const [existingPayUrls, setExistingPayUrls] = useState([]);
   const [saving, setSaving] = useState(false);
 
   // Dokumentasi (foto/file progress)
@@ -352,13 +353,24 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
 
   // --- Handlers Pembayaran ---
   const handleOpenEditPayment = (p) => {
+    let parsedUrls = [];
+    if (p.bukti_pembayaran) {
+      try {
+        parsedUrls = JSON.parse(p.bukti_pembayaran);
+        if (!Array.isArray(parsedUrls)) parsedUrls = [p.bukti_pembayaran];
+      } catch {
+        parsedUrls = [p.bukti_pembayaran];
+      }
+    }
+
     setPayForm({
       jumlah_bayar: p.jumlah_bayar ? Number(p.jumlah_bayar) : 0,
       tanggal_bayar: p.tanggal_bayar?.split("T")[0] || "",
       catatan: p.catatan || "",
     });
-    setPayModal({ open: true, mode: "edit", editId: p.id, oldAmount: Number(p.jumlah_bayar), existingUrl: p.bukti_pembayaran });
+    setPayModal({ open: true, mode: "edit", editId: p.id, oldAmount: Number(p.jumlah_bayar) });
     setPayFiles([]);
+    setExistingPayUrls(parsedUrls);
   };
 
   const handleSavePay = async (e) => {
@@ -380,6 +392,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
       let savedPaymentId = payModal.editId;
 
       if (payModal.mode === "edit") {
+        payload.bukti_pembayaran = existingPayUrls;
         const diff = payload.jumlah_bayar - payModal.oldAmount;
         if (diff > sisaTagihan) {
           toast(`Gagal: Maksimal penambahan pembayaran adalah ${formatCurrency(sisaTagihan)}`, "error");
@@ -401,7 +414,9 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
 
       setPayModal({ open: false, mode: "view" });
       const currentFiles = [...payFiles]; // clone files
+      const currentExistingUrls = [...existingPayUrls];
       setPayFiles([]); // Reset files
+      setExistingPayUrls([]);
       setRefreshKey((prev) => prev + 1);
       if (onUpdate) onUpdate(); // Sync parent data
 
@@ -413,11 +428,6 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
         (async () => {
           try {
             let uploadedUrls = [];
-            if (payModal.mode === "edit" && payModal.existingUrl) {
-              // Note: the backend schema replaces the old URLs entirely. 
-              // The UI tells the user that uploading new photos will replace existing ones.
-              // So we don't need to append to old URLs if they uploaded new ones.
-            }
 
             for (let i = 0; i < currentFiles.length; i++) {
               const file = currentFiles[i];
@@ -444,7 +454,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
 
             if (uploadedUrls.length > 0) {
               await assignmentsAPI.updatePayment(assignment.id, savedPaymentId, {
-                bukti_pembayaran: uploadedUrls
+                bukti_pembayaran: [...currentExistingUrls, ...uploadedUrls]
               });
               toast({ title: "Upload Selesai", description: "Semua bukti pembayaran berhasil diunggah" }, "success", { id: toastId });
               setRefreshKey((prev) => prev + 1);
@@ -741,7 +751,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                         {formatCurrency(p.jumlah_bayar)}
                       </p>
                       {isRole('admin') && (
-                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                         <div className="flex gap-1 transition-opacity">
                            <button
                              onClick={() => handleOpenEditPayment(p)}
                              className="p-1 rounded-md text-slate-400 hover:text-indigo-600 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600"
@@ -1114,34 +1124,34 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
 
           <div className="space-y-1.5">
             <label className="label">Bukti Pembayaran (Gambar) {payModal.mode === "create" && <span className="text-rose-500">*</span>}</label>
-            {payModal.mode === "edit" && payModal.existingUrl && (() => {
-              let existingUrls = [];
-              try {
-                existingUrls = JSON.parse(payModal.existingUrl);
-                if (!Array.isArray(existingUrls)) existingUrls = [payModal.existingUrl];
-              } catch {
-                existingUrls = [payModal.existingUrl];
-              }
-              return (
+            {payModal.mode === "edit" && existingPayUrls.length > 0 && (
                 <div className="mb-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
                   <p className="text-xs text-slate-500 mb-2">Bukti Pembayaran Saat Ini:</p>
                   <div className="flex flex-wrap gap-2">
-                    {existingUrls.map((url, i) => (
-                      <img 
-                        key={i}
-                        src={url} 
-                        alt={`Bukti ${i+1}`} 
-                        className="h-20 w-20 rounded border border-slate-300 dark:border-slate-600 object-cover cursor-pointer hover:ring-2 hover:ring-indigo-400"
-                        onClick={() => setLightbox({ url, type: 'image', name: `Bukti Pembayaran ${i+1}` })}
-                      />
+                    {existingPayUrls.map((url, i) => (
+                      <div key={i} className="relative group/img">
+                        <img 
+                          src={url} 
+                          alt={`Bukti ${i+1}`} 
+                          className="h-20 w-20 rounded border border-slate-300 dark:border-slate-600 object-cover cursor-pointer hover:ring-2 hover:ring-indigo-400"
+                          onClick={() => setLightbox({ url, type: 'image', name: `Bukti Pembayaran ${i+1}` })}
+                        />
+                        <button
+                          type="button"
+                          className="absolute -top-2 -right-2 bg-rose-500 text-white rounded-full p-1 shadow-sm hover:bg-rose-600 z-10"
+                          onClick={() => setExistingPayUrls(prev => prev.filter((_, idx) => idx !== i))}
+                          title="Hapus gambar ini"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
                     ))}
                   </div>
-                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 italic">
-                    *Mengunggah foto baru di bawah ini akan mengganti semua foto yang ada sebelumnya.
+                  <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-2 italic">
+                    *Bukti foto baru yang diunggah akan otomatis ditambahkan ke daftar di atas.
                   </p>
                 </div>
-              );
-            })()}
+            )}
             
             <div
               className="border-2 border-dashed border-slate-200 dark:border-slate-600 rounded-xl p-4 text-center hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors cursor-pointer"
