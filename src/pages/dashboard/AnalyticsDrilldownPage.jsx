@@ -80,6 +80,7 @@ export default function AnalyticsDrilldownPage() {
   const [filterTipePembayaran, setFilterTipePembayaran] = useState("");
   const [filterStatusPembangunan, setFilterStatusPembangunan] = useState("");
   const [filterStatusPenjualan, setFilterStatusPenjualan] = useState("");
+  const [filterStatusRetensi, setFilterStatusRetensi] = useState("");
 
   /**
    * Updates a filter value in both SessionStorage and URL Query Parameters.
@@ -171,6 +172,7 @@ export default function AnalyticsDrilldownPage() {
     let typeMatch = true;
     let buildMatch = true;
     let soldMatch = true;
+    let retensiMatch = true;
     
     if (filterTipePembayaran && metric !== 'occupancy' && metric !== 'customers') {
       typeMatch = row.tipe_pembayaran === filterTipePembayaran;
@@ -182,8 +184,28 @@ export default function AnalyticsDrilldownPage() {
       const isSoldStr = row.is_sold ? 'terjual' : 'tersedia';
       soldMatch = isSoldStr === filterStatusPenjualan;
     }
+    if (filterStatusRetensi && metric === 'occupancy') {
+      let isHabis = false;
+      let isBelumAda = false;
+      if (row.retention_due_date) {
+        const due = new Date(row.retention_due_date);
+        const now = new Date();
+        due.setHours(0,0,0,0);
+        now.setHours(0,0,0,0);
+        const diffDays = Math.round((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        if (diffDays < 0) {
+          isHabis = true;
+        }
+      } else {
+        isBelumAda = true;
+      }
+
+      if (filterStatusRetensi === "belum_ada" && !isBelumAda) retensiMatch = false;
+      if (filterStatusRetensi === "sudah_selesai" && (!isHabis || isBelumAda)) retensiMatch = false;
+      if (filterStatusRetensi === "belum_selesai" && (isHabis || isBelumAda)) retensiMatch = false;
+    }
     
-    return searchMatch && typeMatch && buildMatch && soldMatch;
+    return searchMatch && typeMatch && buildMatch && soldMatch && retensiMatch;
   });
 
   const formatTipePembayaran = (tipe) => {
@@ -400,7 +422,7 @@ export default function AnalyticsDrilldownPage() {
           {metric === 'occupancy' && (
             <>
               <select 
-                className="input text-sm w-full sm:w-48"
+                className="input text-sm w-full sm:w-56"
                 value={filterStatusPembangunan}
                 onChange={e => setFilterStatusPembangunan(e.target.value)}
               >
@@ -417,6 +439,16 @@ export default function AnalyticsDrilldownPage() {
                 <option value="">Status Penjualan</option>
                 <option value="terjual">Terjual</option>
                 <option value="tersedia">Belum Terjual</option>
+              </select>
+              <select 
+                className="input text-sm w-full sm:w-48"
+                value={filterStatusRetensi}
+                onChange={e => setFilterStatusRetensi(e.target.value)}
+              >
+                <option value="">Semua Status Retensi</option>
+                <option value="belum_selesai">Dalam Masa Retensi</option>
+                <option value="sudah_selesai">Retensi Telah Habis</option>
+                <option value="belum_ada">Belum Ada Retensi</option>
               </select>
             </>
           )}
