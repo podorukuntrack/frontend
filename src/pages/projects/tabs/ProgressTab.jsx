@@ -74,13 +74,14 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
   // Forms
   const [buildForm, setBuildForm] = useState(EMPTY_BUILD_FORM);
   const [payForm, setPayForm] = useState(EMPTY_PAY_FORM);
-  const [payFile, setPayFile] = useState(null);
+  const [payFiles, setPayFiles] = useState([]);
   const [saving, setSaving] = useState(false);
 
   // Dokumentasi (foto/file progress)
   const [docFiles, setDocFiles] = useState([]); // File[] yang dipilih untuk diupload
   const [docsMap, setDocsMap] = useState({}); // { progressId: [doc, ...] }
   const fileInputRef = useRef(null);
+  const payFileInputRef = useRef(null);
 
   // Lightbox
   const [lightbox, setLightbox] = useState(null); // { url, type: 'image'|'video', name }
@@ -357,34 +358,37 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
       catatan: p.catatan || "",
     });
     setPayModal({ open: true, mode: "edit", editId: p.id, oldAmount: Number(p.jumlah_bayar), existingUrl: p.bukti_pembayaran });
-    setPayFile(null);
+    setPayFiles([]);
   };
 
   const handleSavePay = async (e) => {
     e.preventDefault();
 
-    if (payModal.mode === "create" && !payFile) {
+    if (payModal.mode === "create" && payFiles.length === 0) {
       toast("Bukti pembayaran (gambar) wajib diunggah", "error");
       return;
     }
 
     setSaving(true);
     try {
-      let uploadedUrl = null;
-      if (payFile) {
-        const fd = new FormData();
-        fd.append("unitId", unit.id);
-        fd.append("jenis", "foto"); // sebagai foto
-        fd.append("file", payFile);
+      let uploadedUrls = [];
+      if (payFiles.length > 0) {
+        for (const file of payFiles) {
+          const fd = new FormData();
+          fd.append("unitId", unit.id);
+          fd.append("jenis", "foto");
+          fd.append("file", file);
 
-        try {
-          const rDocs = await documentationAPI.upload(fd);
-          uploadedUrl = rDocs.data?.data?.url || rDocs.data?.data?.fileUrl || rDocs.data?.fileUrl;
-        } catch (uploadErr) {
-          throw new Error("Gagal mengunggah bukti pembayaran: " + (uploadErr.response?.data?.message || uploadErr.message));
+          try {
+            const rDocs = await documentationAPI.upload(fd);
+            const url = rDocs.data?.data?.url || rDocs.data?.data?.fileUrl || rDocs.data?.fileUrl;
+            if (url) uploadedUrls.push(url);
+          } catch (uploadErr) {
+            throw new Error(`Gagal mengunggah bukti pembayaran (${file.name}): ` + (uploadErr.response?.data?.message || uploadErr.message));
+          }
         }
 
-        if (!uploadedUrl) {
+        if (uploadedUrls.length === 0) {
           throw new Error("Gagal mendapatkan URL bukti pembayaran");
         }
       }
@@ -395,8 +399,8 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
         catatan: payForm.catatan,
       };
 
-      if (uploadedUrl) {
-        payload.bukti_pembayaran = uploadedUrl;
+      if (uploadedUrls.length > 0) {
+        payload.bukti_pembayaran = uploadedUrls;
       }
 
       if (payModal.mode === "edit") {
@@ -419,7 +423,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
       }
 
       setPayModal({ open: false, mode: "view" });
-      setPayFile(null); // Reset file
+      setPayFiles([]); // Reset files
       setRefreshKey((prev) => prev + 1);
       if (onUpdate) onUpdate(); // Sync parent data
     } catch (err) {
@@ -742,14 +746,30 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                         "{p.catatan}"
                       </p>
                     )}
-                    {p.bukti_pembayaran && (
-                      <button 
-                        onClick={() => setLightbox({ url: p.bukti_pembayaran, type: 'image', name: 'Bukti Pembayaran' })}
-                        className="mt-2 text-xs text-indigo-600 flex items-center gap-1 hover:underline"
-                      >
-                        <FileImage className="w-3.5 h-3.5" /> Lihat Bukti
-                      </button>
-                    )}
+                    {p.bukti_pembayaran && (() => {
+                      let urls = [];
+                      try {
+                        urls = JSON.parse(p.bukti_pembayaran);
+                        if (!Array.isArray(urls)) urls = [p.bukti_pembayaran];
+                      } catch {
+                        urls = [p.bukti_pembayaran];
+                      }
+                      
+                      return (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {urls.map((url, i) => (
+                            <button 
+                              key={i}
+                              onClick={() => setLightbox({ url, type: 'image', name: 'Bukti Pembayaran' })}
+                              className="text-xs text-indigo-600 flex flex-col items-center justify-center gap-1 hover:bg-indigo-100 p-2 rounded bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 transition-colors"
+                            >
+                              <FileImage className="w-5 h-5" />
+                              <span>Lihat Bukti {urls.length > 1 ? i + 1 : ''}</span>
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </div>
                 ))
               )}
@@ -1066,26 +1086,82 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
 
           <div className="space-y-1.5">
             <label className="label">Bukti Pembayaran (Gambar) {payModal.mode === "create" && <span className="text-rose-500">*</span>}</label>
-            {payModal.mode === "edit" && payModal.existingUrl && (
-              <div className="mb-2 p-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-                <p className="text-xs text-slate-500 mb-2">Bukti Pembayaran Saat Ini:</p>
-                <img 
-                  src={payModal.existingUrl} 
-                  alt="Bukti Pembayaran" 
-                  className="h-24 w-auto rounded border border-slate-300 dark:border-slate-600 object-cover"
-                />
-                <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
-                  *Abaikan input file di bawah jika tidak ingin mengganti bukti pembayaran ini.
-                </p>
-              </div>
-            )}
+            {payModal.mode === "edit" && payModal.existingUrl && (() => {
+              let existingUrls = [];
+              try {
+                existingUrls = JSON.parse(payModal.existingUrl);
+                if (!Array.isArray(existingUrls)) existingUrls = [payModal.existingUrl];
+              } catch {
+                existingUrls = [payModal.existingUrl];
+              }
+              return (
+                <div className="mb-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                  <p className="text-xs text-slate-500 mb-2">Bukti Pembayaran Saat Ini:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {existingUrls.map((url, i) => (
+                      <img 
+                        key={i}
+                        src={url} 
+                        alt={`Bukti ${i+1}`} 
+                        className="h-20 w-20 rounded border border-slate-300 dark:border-slate-600 object-cover cursor-pointer hover:ring-2 hover:ring-indigo-400"
+                        onClick={() => setLightbox({ url, type: 'image', name: `Bukti Pembayaran ${i+1}` })}
+                      />
+                    ))}
+                  </div>
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 italic">
+                    *Mengunggah foto baru di bawah ini akan mengganti semua foto yang ada sebelumnya.
+                  </p>
+                </div>
+              );
+            })()}
+            
+            <div
+              className="border-2 border-dashed border-slate-200 dark:border-slate-600 rounded-xl p-4 text-center hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors cursor-pointer"
+              onClick={() => payFileInputRef.current?.click()}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const dropped = Array.from(e.dataTransfer.files);
+                setPayFiles((prev) => [...prev, ...dropped]);
+              }}
+            >
+              <ImagePlus className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+              <p className="text-sm text-slate-500">Klik atau drag & drop gambar di sini</p>
+              <p className="text-xs text-slate-400 mt-0.5">Mendukung multiple files</p>
+            </div>
+            
             <input
               type="file"
-              required={payModal.mode === "create"}
+              multiple
+              ref={payFileInputRef}
               accept="image/*"
-              className="input file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-emerald-900/30 dark:file:text-emerald-400"
-              onChange={(e) => setPayFile(e.target.files[0])}
+              className="hidden"
+              onChange={(e) => {
+                const selected = Array.from(e.target.files);
+                setPayFiles((prev) => [...prev, ...selected]);
+                e.target.value = "";
+              }}
             />
+            {payFiles.length > 0 && (
+              <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1 mt-2">
+                {payFiles.map((file, idx) => (
+                  <div key={idx} className="flex items-center justify-between bg-indigo-50 dark:bg-indigo-900/20 px-3 py-2 rounded-lg border border-indigo-100 dark:border-indigo-800">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileImage className="w-4 h-4 text-indigo-500 shrink-0" />
+                      <span className="text-xs text-slate-700 dark:text-slate-300 truncate">{file.name}</span>
+                      <span className="text-xs text-slate-400 shrink-0">({(file.size / 1024).toFixed(0)} KB)</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="ml-2 text-slate-400 hover:text-rose-500 transition-colors shrink-0"
+                      onClick={() => setPayFiles((prev) => prev.filter((_, i) => i !== idx))}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end pt-3">
