@@ -445,6 +445,7 @@ export default function AnalyticsDrilldownPage() {
                   {metric === 'piutang' && <th className="px-5 py-4 font-semibold text-right">Sisa Piutang</th>}
                   {metric === 'occupancy' && <th className="px-5 py-4 font-semibold">Status Pembangunan</th>}
                   {metric === 'occupancy' && <th className="px-5 py-4 font-semibold">Status Penjualan</th>}
+                  {metric === 'occupancy' && <th className="px-5 py-4 font-semibold">Retensi</th>}
                   <th className="px-5 py-4 font-semibold text-right">Aksi</th>
                 </tr>
               )}
@@ -569,6 +570,33 @@ export default function AnalyticsDrilldownPage() {
                         )}
                       </td>
                     )}
+                    
+                    {metric === 'occupancy' && (() => {
+                      let retentionText = "belum ada";
+                      let retentionClass = "text-slate-400 dark:text-slate-500 italic text-xs font-medium";
+                      if (row.retention_due_date) {
+                        const due = new Date(row.retention_due_date);
+                        const now = new Date();
+                        due.setHours(0,0,0,0);
+                        now.setHours(0,0,0,0);
+                        const diffDays = Math.round((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                        
+                        if (diffDays < 0) {
+                          retentionText = "retensi telah habis";
+                          retentionClass = "text-rose-600 dark:text-rose-400 font-bold text-xs";
+                        } else {
+                          retentionText = `${diffDays} Hari lagi`;
+                          retentionClass = "text-amber-600 dark:text-amber-400 font-bold text-xs";
+                        }
+                      }
+                      return (
+                        <td className="px-5 py-4">
+                          <span className={retentionClass}>
+                            {retentionText}
+                          </span>
+                        </td>
+                      );
+                    })()}
                     
                     <td className="px-5 py-4 text-right">
                       <button className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
