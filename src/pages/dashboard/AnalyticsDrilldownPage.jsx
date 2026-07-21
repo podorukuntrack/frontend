@@ -444,7 +444,7 @@ export default function AnalyticsDrilldownPage() {
             />
           </div>
           
-          <div className="flex flex-wrap items-center gap-3 relative">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 relative w-full sm:w-auto">
             {['revenue', 'cash-in', 'piutang'].includes(metric) && (
               <select 
                 className="input text-sm w-full sm:w-48"
@@ -462,7 +462,7 @@ export default function AnalyticsDrilldownPage() {
               <>
                 <button 
                   onClick={() => setShowFilter(!showFilter)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-semibold transition-all ${
+                  className={`flex items-center justify-center gap-2 px-4 py-2.5 sm:py-2 rounded-xl border text-sm font-semibold transition-all w-full sm:w-auto ${
                     showFilter || activeFiltersCount > 0
                       ? "bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-900/30 dark:border-indigo-700/50 dark:text-indigo-400" 
                       : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700"
@@ -474,7 +474,7 @@ export default function AnalyticsDrilldownPage() {
 
                 {/* Popover Filter */}
                 {showFilter && (
-                  <div className="absolute top-full right-0 mt-2 w-[340px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 p-4">
+                  <div className="absolute top-full right-0 mt-2 w-full sm:w-[340px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 p-4 sm:p-5 max-h-[80vh] overflow-y-auto">
                     <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-700">
                       <h3 className="font-bold text-slate-900 dark:text-white">Filter Spesifik</h3>
                       <button onClick={() => setShowFilter(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">

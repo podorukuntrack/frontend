@@ -163,7 +163,7 @@ export default function DashboardPage() {
           
           <div className="flex flex-col md:flex-row items-center w-full gap-4 md:gap-8 mt-2">
             <div className="h-[260px] md:h-[320px] relative w-full md:w-3/5 lg:w-2/3 flex-shrink-0">
-              <ResponsiveContainer width="99%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                 <PieChart>
                   <Pie
                     data={unitData}
