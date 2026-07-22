@@ -1,5 +1,6 @@
 import { Loader2, AlertTriangle, X, CheckCircle, Info, FileImage, RefreshCw } from 'lucide-react';
 import { utilsAPI } from '../../api/services.js';
+import { useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -354,6 +355,7 @@ export function Avatar({ name, size = 'md' }) {
 // 8. LIGHTBOX / MEDIA VIEWER
 // ==========================================
 export function Lightbox({ item, onClose }) {
+  const queryClient = useQueryClient();
   const [isRotating, setIsRotating] = useState(false);
   const [imgSrc, setImgSrc] = useState('');
   const [visualRotation, setVisualRotation] = useState(0);
@@ -416,6 +418,9 @@ export function Lightbox({ item, onClose }) {
       item.url = newUrlStr;
       
       showToast('Perubahan rotasi berhasil disimpan!');
+      
+      // Invalidate all React Query caches so parent components fetch the new URLs from the database
+      queryClient.invalidateQueries();
     } catch (err) {
       console.error('Failed to save image rotation', err);
       showToast('Gagal merotasi gambar. Silakan coba lagi.', 'error');
