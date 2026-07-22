@@ -145,3 +145,8 @@ export const bannersAPI = {
   }),
   delete: (id) => api.delete(`/banners/${id}`),
 };
+
+// UTILS
+export const utilsAPI = {
+  rotateImage: (data) => api.post('/utils/rotate-image', data),
+};

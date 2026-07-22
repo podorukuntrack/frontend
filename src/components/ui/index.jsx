@@ -1,4 +1,5 @@
-import { Loader2, AlertTriangle, X, CheckCircle, Info, FileImage } from 'lucide-react';
+import { Loader2, AlertTriangle, X, CheckCircle, Info, FileImage, RefreshCw } from 'lucide-react';
+import { utilsAPI } from '../../api/services.js';
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -353,6 +354,15 @@ export function Avatar({ name, size = 'md' }) {
 // 8. LIGHTBOX / MEDIA VIEWER
 // ==========================================
 export function Lightbox({ item, onClose }) {
+  const [isRotating, setIsRotating] = useState(false);
+  const [imgSrc, setImgSrc] = useState('');
+
+  useEffect(() => {
+    if (item?.url) {
+      setImgSrc(item.url);
+    }
+  }, [item]);
+
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose(); };
     if (item) {
@@ -366,26 +376,55 @@ export function Lightbox({ item, onClose }) {
   }, [item, onClose]);
 
   if (!item) return null;
-  const { url, type, name } = item;
+  const { type, name } = item;
+
+  const handleRotate = async (e, direction) => {
+    e.stopPropagation();
+    try {
+      setIsRotating(true);
+      await utilsAPI.rotateImage({ fileUrl: item.url, direction });
+      // Force reload image by appending timestamp
+      const newUrl = new URL(imgSrc, window.location.origin); // safe for relative/absolute
+      newUrl.searchParams.set('t', Date.now());
+      setImgSrc(newUrl.toString());
+    } catch (err) {
+      console.error('Failed to rotate image', err);
+      alert('Gagal merotasi gambar. Silakan coba lagi.');
+    } finally {
+      setIsRotating(false);
+    }
+  };
 
   return createPortal(
     <div
       className="fixed inset-0 z-[99999] bg-black/95 flex flex-col items-center justify-center p-4 backdrop-blur-sm"
       onClick={onClose}
     >
-      <button
-        className="absolute top-6 right-6 text-white/70 hover:text-white bg-white/10 hover:bg-rose-500 p-2 rounded-full transition-all"
-        onClick={onClose}
-        title="Tutup (Esc)"
-      >
-        <X className="w-6 h-6" strokeWidth={2.5} />
-      </button>
+      <div className="absolute top-6 right-6 flex gap-3">
+        {type === 'image' && (
+          <button
+            className="text-white/70 hover:text-white bg-white/10 hover:bg-indigo-500 p-2 rounded-full transition-all flex items-center justify-center disabled:opacity-50"
+            onClick={(e) => handleRotate(e, 'cw')}
+            title="Rotate Gambar"
+            disabled={isRotating}
+          >
+            {isRotating ? <Loader2 className="w-6 h-6 animate-spin" /> : <RefreshCw className="w-6 h-6" />}
+          </button>
+        )}
+        <button
+          className="text-white/70 hover:text-white bg-white/10 hover:bg-rose-500 p-2 rounded-full transition-all"
+          onClick={onClose}
+          title="Tutup (Esc)"
+        >
+          <X className="w-6 h-6" strokeWidth={2.5} />
+        </button>
+      </div>
       {name && <p className="text-white/80 font-medium text-sm mb-4 max-w-lg text-center truncate">{name}</p>}
       {type === 'image' ? (
         <img
-          src={url}
+          src={imgSrc}
           alt={name || 'Preview'}
-          className="max-w-full max-h-[85vh] rounded-xl object-contain shadow-2xl"
+          className={`max-w-full max-h-[85vh] rounded-xl object-contain shadow-2xl transition-opacity duration-300 ${isRotating ? 'opacity-50' : 'opacity-100'}`}
           onClick={(e) => e.stopPropagation()}
         />
       ) : type === 'video' ? (
