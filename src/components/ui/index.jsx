@@ -403,8 +403,18 @@ export function Lightbox({ item, onClose }) {
       // Force reload image by appending timestamp
       const newUrl = new URL(imgSrc, window.location.origin);
       newUrl.searchParams.set('t', Date.now());
-      setImgSrc(newUrl.toString());
+      const newUrlStr = newUrl.toString();
+      setImgSrc(newUrlStr);
       setVisualRotation(0);
+      
+      // Update all matching images on the background page to reflect the rotated image immediately
+      const baseSrc = item.url.split('?')[0];
+      document.querySelectorAll('img').forEach(img => {
+        if (img.src.startsWith(baseSrc)) {
+          img.src = newUrlStr;
+        }
+      });
+      
       showToast('Perubahan rotasi berhasil disimpan!');
     } catch (err) {
       console.error('Failed to save image rotation', err);
