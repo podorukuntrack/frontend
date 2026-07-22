@@ -406,14 +406,14 @@ export function Lightbox({ item, onClose }) {
     
     try {
       setIsRotating(true);
-      const res = await utilsAPI.rotateImage({ fileUrl: item.url, degrees });
+      const res = await utilsAPI.rotateImage({ fileUrl: imgSrc, degrees });
       const newUrlStr = res.data.newUrl;
       
       setImgSrc(newUrlStr);
       setVisualRotation(0);
       
       // Update all matching images on the background page to reflect the rotated image immediately
-      const baseSrc = item.url.split('?')[0];
+      const baseSrc = imgSrc.split('?')[0];
       document.querySelectorAll('img').forEach(img => {
         if (img.src.startsWith(baseSrc)) {
           img.src = newUrlStr;
