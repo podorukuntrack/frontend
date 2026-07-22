@@ -356,10 +356,13 @@ export function Avatar({ name, size = 'md' }) {
 export function Lightbox({ item, onClose }) {
   const [isRotating, setIsRotating] = useState(false);
   const [imgSrc, setImgSrc] = useState('');
+  const [visualRotation, setVisualRotation] = useState(0);
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     if (item?.url) {
       setImgSrc(item.url);
+      setVisualRotation(0);
     }
   }, [item]);
 
@@ -378,37 +381,73 @@ export function Lightbox({ item, onClose }) {
   if (!item) return null;
   const { type, name } = item;
 
-  const handleRotate = async (e, direction) => {
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleVisualRotate = (e) => {
     e.stopPropagation();
+    setVisualRotation(prev => prev + 90);
+  };
+
+  const handleSaveRotation = async (e) => {
+    e.stopPropagation();
+    const degrees = visualRotation % 360;
+    if (degrees === 0) return;
+    
     try {
       setIsRotating(true);
-      await utilsAPI.rotateImage({ fileUrl: item.url, direction });
+      await utilsAPI.rotateImage({ fileUrl: item.url, degrees });
+      
       // Force reload image by appending timestamp
-      const newUrl = new URL(imgSrc, window.location.origin); // safe for relative/absolute
+      const newUrl = new URL(imgSrc, window.location.origin);
       newUrl.searchParams.set('t', Date.now());
       setImgSrc(newUrl.toString());
+      setVisualRotation(0);
+      showToast('Perubahan rotasi berhasil disimpan!');
     } catch (err) {
-      console.error('Failed to rotate image', err);
-      alert('Gagal merotasi gambar. Silakan coba lagi.');
+      console.error('Failed to save image rotation', err);
+      showToast('Gagal merotasi gambar. Silakan coba lagi.', 'error');
     } finally {
       setIsRotating(false);
     }
   };
+
+  const hasRotationChanges = visualRotation % 360 !== 0;
 
   return createPortal(
     <div
       className="fixed inset-0 z-[99999] bg-black/95 flex flex-col items-center justify-center p-4 backdrop-blur-sm"
       onClick={onClose}
     >
-      <div className="absolute top-6 right-6 flex gap-3">
+      {toast && (
+        <div className={`absolute top-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full font-medium text-sm shadow-xl transition-all flex items-center gap-2 ${toast.type === 'success' ? 'bg-emerald-500/90 text-white' : 'bg-rose-500/90 text-white'}`}>
+          {toast.type === 'success' ? <CheckCircle className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+          {toast.message}
+        </div>
+      )}
+
+      <div className="absolute top-6 right-6 flex gap-3 items-center">
+        {type === 'image' && hasRotationChanges && (
+          <button
+            className="text-white text-sm font-medium bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-full transition-all flex items-center justify-center disabled:opacity-50 gap-2 shadow-lg"
+            onClick={handleSaveRotation}
+            disabled={isRotating}
+          >
+            {isRotating ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+            {isRotating ? 'Menyimpan...' : 'Simpan Perubahan'}
+          </button>
+        )}
+        
         {type === 'image' && (
           <button
             className="text-white/70 hover:text-white bg-white/10 hover:bg-indigo-500 p-2 rounded-full transition-all flex items-center justify-center disabled:opacity-50"
-            onClick={(e) => handleRotate(e, 'cw')}
+            onClick={handleVisualRotate}
             title="Rotate Gambar"
             disabled={isRotating}
           >
-            {isRotating ? <Loader2 className="w-6 h-6 animate-spin" /> : <RefreshCw className="w-6 h-6" />}
+            <RefreshCw className="w-6 h-6" />
           </button>
         )}
         <button
@@ -421,12 +460,15 @@ export function Lightbox({ item, onClose }) {
       </div>
       {name && <p className="text-white/80 font-medium text-sm mb-4 max-w-lg text-center truncate">{name}</p>}
       {type === 'image' ? (
-        <img
-          src={imgSrc}
-          alt={name || 'Preview'}
-          className={`max-w-full max-h-[85vh] rounded-xl object-contain shadow-2xl transition-opacity duration-300 ${isRotating ? 'opacity-50' : 'opacity-100'}`}
-          onClick={(e) => e.stopPropagation()}
-        />
+        <div className="relative max-w-full max-h-[85vh] flex items-center justify-center">
+          <img
+            src={imgSrc}
+            alt={name || 'Preview'}
+            style={{ transform: `rotate(${visualRotation}deg)`, transition: 'transform 0.3s ease' }}
+            className={`max-w-full max-h-[85vh] rounded-xl object-contain shadow-2xl transition-opacity duration-300 ${isRotating ? 'opacity-50' : 'opacity-100'}`}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
       ) : type === 'video' ? (
         <video
           src={url}
