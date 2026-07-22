@@ -354,6 +354,8 @@ export function Avatar({ name, size = 'md' }) {
 // ==========================================
 // 8. LIGHTBOX / MEDIA VIEWER
 // ==========================================
+const rotatedImageCache = new Map();
+
 export function Lightbox({ item, onClose }) {
   const queryClient = useQueryClient();
   const [isRotating, setIsRotating] = useState(false);
@@ -363,7 +365,11 @@ export function Lightbox({ item, onClose }) {
 
   useEffect(() => {
     if (item?.url) {
-      setImgSrc(item.url);
+      let actualUrl = item.url;
+      while (rotatedImageCache.has(actualUrl) && rotatedImageCache.get(actualUrl) !== actualUrl) {
+        actualUrl = rotatedImageCache.get(actualUrl);
+      }
+      setImgSrc(actualUrl);
       setVisualRotation(0);
     }
   }, [item]);
@@ -413,6 +419,11 @@ export function Lightbox({ item, onClose }) {
           img.src = newUrlStr;
         }
       });
+      
+      // Cache the rotation mapping so if the user clicks the thumbnail again before 
+      // the parent component's state is fully updated, we still show the new image
+      rotatedImageCache.set(item.url, newUrlStr);
+      rotatedImageCache.set(imgSrc, newUrlStr);
       
       // Update item url so if the lightbox is reopened without page reload it uses the new one
       item.url = newUrlStr;
