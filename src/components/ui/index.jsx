@@ -398,12 +398,9 @@ export function Lightbox({ item, onClose }) {
     
     try {
       setIsRotating(true);
-      await utilsAPI.rotateImage({ fileUrl: item.url, degrees });
+      const res = await utilsAPI.rotateImage({ fileUrl: item.url, degrees });
+      const newUrlStr = res.data.newUrl;
       
-      // Force reload image by appending timestamp
-      const newUrl = new URL(imgSrc, window.location.origin);
-      newUrl.searchParams.set('t', Date.now());
-      const newUrlStr = newUrl.toString();
       setImgSrc(newUrlStr);
       setVisualRotation(0);
       
@@ -414,6 +411,9 @@ export function Lightbox({ item, onClose }) {
           img.src = newUrlStr;
         }
       });
+      
+      // Update item url so if the lightbox is reopened without page reload it uses the new one
+      item.url = newUrlStr;
       
       showToast('Perubahan rotasi berhasil disimpan!');
     } catch (err) {
