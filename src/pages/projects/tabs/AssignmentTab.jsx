@@ -6,7 +6,7 @@ import { extractError, formatCurrency, formatDate } from '../../../utils/helpers
 import { useAuth } from '../../../context/AuthContext';
 import { UserCheck, Pencil, Trash2, Search, Check, ChevronDown, User } from 'lucide-react';
 import { CustomDatePicker } from '../../../components/ui';
-import CustomMultiDatePicker from '../../../components/ui/CustomMultiDatePicker';
+
 
 export default function AssignmentTab({ unit, project, onAssigned }) {
   const { isRole } = useAuth();
@@ -263,12 +263,11 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
                           <td className="text-right pt-2">
                             <div className="flex flex-wrap justify-end gap-1.5">
                               {assignment.pembayaran.reminder_kpr_dates.map((r, idx) => {
-                                const dateStr = typeof r === 'string' ? r : r.date;
-                                if (!dateStr) return null;
-                                const diffDays = Math.ceil((new Date(assignment.pembayaran.jatuh_tempo_kpr).getTime() - new Date(dateStr).getTime()) / (1000 * 3600 * 24));
+                                let dayNum = typeof r === 'number' ? r : (typeof r === 'object' && r.date ? new Date(r.date).getDate() : (typeof r === 'string' ? new Date(r).getDate() : null));
+                                if (!dayNum || isNaN(dayNum)) return null;
                                 return (
                                   <span key={idx} className="bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded text-[11px] font-semibold border border-indigo-200 dark:border-indigo-500/30">
-                                    H-{diffDays} ({formatDate(dateStr)})
+                                    Tgl {dayNum} tiap bulan
                                   </span>
                                 )
                               })}
@@ -491,48 +490,41 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
                         />
                       </div>
                   )}
-                  {['kredit_kpr', 'cash_cicil'].includes(form.tipe_pembayaran) && form.jatuh_tempo_kpr && (
+                  {['kredit_kpr', 'cash_cicil'].includes(form.tipe_pembayaran) && (
                       <div className="md:col-span-2 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
                         <label className="label">Pengingat Jatuh Tempo</label>
-                            <p className="text-xs text-slate-500 mb-2">Tambahkan tanggal pengingat (sebelum hari-H). Notifikasi akan dikirim ke customer pada tanggal tersebut.</p>
+                            <p className="text-xs text-slate-500 mb-2">Pilih tanggal di bawah ini. Notifikasi akan dikirim otomatis setiap bulan pada tanggal tersebut selama tagihan belum lunas.</p>
                             
-                            <div className="mb-3">
-                              <CustomMultiDatePicker
-                                selectedDates={form.reminder_kpr_dates || []}
-                                onChange={(dates) => {
-                                  setForm({ ...form, reminder_kpr_dates: dates.sort() });
-                                }}
-                                minDate={new Date()}
-                                maxDate={new Date(new Date(form.jatuh_tempo_kpr).getTime() - 86400000)}
-                                placeholder="Pilih beberapa tanggal..."
-                              />
+                            <div className="grid grid-cols-7 gap-1.5 mb-3 mt-3">
+                              {Array.from({ length: 31 }, (_, i) => i + 1).map(day => {
+                                const isSelected = (form.reminder_kpr_dates || []).includes(day);
+                                return (
+                                  <button
+                                    key={day}
+                                    type="button"
+                                    onClick={() => {
+                                      const current = form.reminder_kpr_dates || [];
+                                      let newDates;
+                                      if (isSelected) {
+                                        newDates = current.filter(d => d !== day);
+                                      } else {
+                                        newDates = [...current, day].sort((a, b) => a - b);
+                                      }
+                                      setForm({ ...form, reminder_kpr_dates: newDates });
+                                    }}
+                                    className={`w-full aspect-square flex items-center justify-center rounded-lg text-xs font-semibold transition-all duration-200 ${isSelected ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30 ring-2 ring-indigo-600 ring-offset-1 dark:ring-offset-slate-900' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'}`}
+                                  >
+                                    {day}
+                                  </button>
+                                );
+                              })}
                             </div>
                             
-                            {(form.reminder_kpr_dates || []).length > 0 ? (
-                              <div className="flex flex-wrap gap-2 mt-2">
-                                {(form.reminder_kpr_dates || []).map((date, idx) => {
-                                  const diffDays = Math.ceil((new Date(form.jatuh_tempo_kpr).getTime() - new Date(date).getTime()) / (1000 * 3600 * 24));
-                                  return (
-                                    <div key={idx} className="flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 px-3 py-1.5 rounded-full text-xs font-semibold border border-indigo-200 dark:border-indigo-500/30">
-                                      <span>H-{diffDays} ({formatDate(date)})</span>
-                                      <button 
-                                        type="button"
-                                        className="hover:bg-indigo-200 dark:hover:bg-indigo-500/50 p-0.5 rounded-full"
-                                        onClick={() => {
-                                          setForm({
-                                            ...form,
-                                            reminder_kpr_dates: form.reminder_kpr_dates.filter(d => d !== date)
-                                          });
-                                        }}
-                                      >
-                                        <Trash2 className="w-3 h-3" />
-                                      </button>
-                                    </div>
-                                  )
-                                })}
+                            {(form.reminder_kpr_dates || []).length > 0 && (
+                              <div className="text-xs text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 p-2 rounded-lg border border-indigo-100 dark:border-indigo-800/30">
+                                <span className="font-semibold">Terpilih: </span>
+                                {form.reminder_kpr_dates.join(", ")}
                               </div>
-                            ) : (
-                              <p className="text-xs text-slate-400 italic">Belum ada tanggal pengingat yang ditambahkan.</p>
                             )}
                           </div>
                   )}
