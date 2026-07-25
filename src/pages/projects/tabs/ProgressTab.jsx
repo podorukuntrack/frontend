@@ -1124,12 +1124,11 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
         title={payModal.mode.includes("refund") ? (payModal.mode === "edit-refund" ? "Edit Pengembalian" : `Pengembalian Dana: Unit ${unit.nomor_unit}`) : (payModal.mode === "edit" ? "Edit Pembayaran" : `Catat Pembayaran: Unit ${unit.nomor_unit}`)}
       >
         <form onSubmit={handleSavePay} className="space-y-4">
-          <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 p-3 rounded-lg text-sm border border-amber-200 dark:border-amber-800/50 mb-4">
-            {payModal.mode === "edit" ? (
-              <>Maksimal tagihan yang bisa ditambahkan dari nominal sekarang adalah <strong>{formatCurrency(sisaTagihan)}</strong>.</>
-            ) : (
-              <>Sisa tagihan yang harus dilunasi adalah <strong>{formatCurrency(sisaTagihan)}</strong>. Anda tidak dapat menginput melebihi nominal ini.</>
-            )}
+          <div className={`p-3 rounded-lg text-sm mb-4 border ${payModal.mode.includes("refund") ? "bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-900/20 dark:text-rose-300 dark:border-rose-800/50" : "bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800/50"}`}>
+            {payModal.mode === "edit" && <>Maksimal tagihan yang bisa ditambahkan dari nominal sekarang adalah <strong>{formatCurrency(sisaTagihan)}</strong>.</>}
+            {payModal.mode === "create" && <>Sisa tagihan yang harus dilunasi adalah <strong>{formatCurrency(sisaTagihan)}</strong>. Anda tidak dapat menginput melebihi nominal ini.</>}
+            {payModal.mode === "edit-refund" && <>Maksimal pengembalian dana adalah <strong>{formatCurrency(totalDibayar - payModal.oldAmount)}</strong>.</>}
+            {payModal.mode === "create-refund" && <>Maksimal pengembalian dana yang bisa dilakukan saat ini adalah <strong>{formatCurrency(totalDibayar)}</strong>.</>}
           </div>
 
           <div className="space-y-1.5">
@@ -1144,7 +1143,9 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                 const rawValue = e.target.value.replace(/[^0-9]/g, '');
                 let numValue = rawValue ? Number(rawValue) : '';
                 if (numValue !== '') {
-                  const maxAllowed = payModal.mode === "edit" ? payModal.oldAmount + sisaTagihan : sisaTagihan;
+                  const maxAllowed = payModal.mode === "edit" 
+                    ? payModal.oldAmount + sisaTagihan 
+                    : (payModal.mode === "create" ? sisaTagihan : (payModal.mode === "edit-refund" ? totalDibayar - payModal.oldAmount : totalDibayar));
                   if (numValue > maxAllowed) numValue = maxAllowed;
                 }
                 setPayForm((f) => ({ ...f, jumlah_bayar: numValue }));
