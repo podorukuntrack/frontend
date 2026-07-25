@@ -61,7 +61,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
     originalPct: 0,
   });
   const [payModal, setPayModal] = useState({ open: false, mode: "view" });
-  const [showPaymentSelect, setShowPaymentSelect] = useState(false);
+  const [showTransactionTypeModal, setShowTransactionTypeModal] = useState(false);
 
   const [confirmBuildOpen, setConfirmBuildOpen] = useState(false);
   const [progressToDelete, setProgressToDelete] = useState(null);
@@ -1097,6 +1097,61 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* MODAL PILIH TRANSAKSI */}
+      <Modal
+        open={showTransactionTypeModal}
+        onClose={() => setShowTransactionTypeModal(false)}
+        title="Pilih Jenis Transaksi"
+      >
+        <div className="grid grid-cols-1 gap-4 pt-2">
+          <button
+            onClick={() => {
+              setShowTransactionTypeModal(false);
+              if (sisaTagihan > 0) {
+                setPayForm({
+                  ...EMPTY_PAY_FORM,
+                  tanggal_bayar: new Date().toISOString().split("T")[0],
+                });
+                setPayModal({ open: true, mode: "create" });
+              }
+            }}
+            disabled={sisaTagihan <= 0}
+            className="flex items-start gap-4 p-5 rounded-2xl border-2 border-slate-100 dark:border-slate-800 hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-left transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+          >
+            <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+              <ArrowDownToLine className="w-6 h-6" />
+            </div>
+            <div>
+              <h4 className="font-bold text-slate-900 dark:text-white text-lg">Pembayaran Masuk</h4>
+              <p className="text-sm text-slate-500 mt-1">Catat pembayaran angsuran, DP, atau pelunasan dari customer.</p>
+            </div>
+          </button>
+          
+          <button
+            onClick={() => {
+              setShowTransactionTypeModal(false);
+              if (totalDibayar > 0) {
+                setPayForm({
+                  ...EMPTY_PAY_FORM,
+                  tanggal_bayar: new Date().toISOString().split("T")[0],
+                });
+                setPayModal({ open: true, mode: "create-refund" });
+              }
+            }}
+            disabled={totalDibayar <= 0}
+            className="flex items-start gap-4 p-5 rounded-2xl border-2 border-slate-100 dark:border-slate-800 hover:border-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 text-left transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+          >
+            <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 dark:bg-rose-900/50 dark:text-rose-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+              <ArrowUpFromLine className="w-6 h-6" />
+            </div>
+            <div>
+              <h4 className="font-bold text-slate-900 dark:text-white text-lg">Pengembalian Dana</h4>
+              <p className="text-sm text-slate-500 mt-1">Lakukan refund dana kepada customer jika terjadi pembatalan atau kelebihan bayar.</p>
+            </div>
+          </button>
+        </div>
       </Modal>
 
       {/* MODAL PEMBAYARAN */}
