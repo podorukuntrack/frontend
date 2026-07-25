@@ -119,7 +119,7 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
   }, [searchTerm, isOpen]);
 
   const startEdit = () => {
-    const defaultReminders = (assignment.pembayaran?.reminder_kpr_dates || []).map(r => typeof r === 'string' ? r : r.date).filter(Boolean);
+    const defaultReminders = (assignment.pembayaran?.reminder_kpr_dates || []).map(r => { if (typeof r === 'number') return r; if (typeof r === 'string') return new Date(r).getDate(); if (typeof r === 'object' && r.date) return new Date(r.date).getDate(); return null; }).filter(Boolean).filter(n => !isNaN(n));
     setForm({
       user_id: assignment.user?.id || assignment.user_id,
       tanggal_pembelian: assignment.tanggal_pembelian?.split("T")[0] || "",
@@ -485,12 +485,7 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
                         <CustomDatePicker
                           value={form.jatuh_tempo_kpr}
                           onChange={(val) => {
-                            let newReminders = form.reminder_kpr_dates || [];
-                            if (val) {
-                              const dueTime = new Date(val).getTime();
-                              newReminders = newReminders.filter(d => new Date(d).getTime() < dueTime);
-                            }
-                            setForm({...form, jatuh_tempo_kpr: val, reminder_kpr_dates: newReminders});
+                            setForm({...form, jatuh_tempo_kpr: val});
                           }}
                           placeholder="Pilih Tanggal Jatuh Tempo"
                         />
