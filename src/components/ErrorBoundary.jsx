@@ -26,7 +26,7 @@ class ErrorBoundary extends React.Component {
             </div>
             <h1 className="text-2xl font-bold text-slate-900 mb-2">Terjadi Kesalahan Sistem</h1>
             <p className="text-slate-600 mb-6">
-              Maaf, terjadi kesalahan tak terduga pada antarmuka aplikasi. Tim kami telah diberitahu.
+              Maaf, terjadi kesalahan tak terduga pada antarmuka aplikasi. Beritahu tim pengembang.
             </p>
             <button
               onClick={() => window.location.reload()}

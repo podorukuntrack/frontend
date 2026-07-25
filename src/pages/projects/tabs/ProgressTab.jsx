@@ -816,51 +816,12 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
             </div>
 
             {isRole('admin') && (
-                <div className="relative mt-auto">
-                  <button
-                    className="btn-primary !bg-emerald-600 hover:!bg-emerald-700 w-full"
-                    onClick={() => setShowPaymentSelect(!showPaymentSelect)}
-                  >
-                    <Plus className="w-4 h-4 mr-1.5" /> Pembayaran & Pengembalian
-                  </button>
-                  
-                  {showPaymentSelect && (
-                    <div className="absolute bottom-full left-0 w-full mb-2 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden z-[99]">
-                      <button
-                        className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium border-b border-slate-100 dark:border-slate-700 text-emerald-600 dark:text-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={sisaTagihan <= 0}
-                        onClick={() => {
-                          setShowPaymentSelect(false);
-                          if (sisaTagihan > 0) {
-                            setPayForm({
-                              ...EMPTY_PAY_FORM,
-                              tanggal_bayar: new Date().toISOString().split("T")[0],
-                            });
-                            setPayModal({ open: true, mode: "create" });
-                          }
-                        }}
-                      >
-                        Tambah Progress Pembayaran
-                      </button>
-                      <button
-                        className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium text-rose-600 dark:text-rose-400 disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={totalDibayar <= 0}
-                        onClick={() => {
-                          setShowPaymentSelect(false);
-                          if (totalDibayar > 0) {
-                            setPayForm({
-                              ...EMPTY_PAY_FORM,
-                              tanggal_bayar: new Date().toISOString().split("T")[0],
-                            });
-                            setPayModal({ open: true, mode: "create-refund" });
-                          }
-                        }}
-                      >
-                        Tambah Pengembalian Dana
-                      </button>
-                    </div>
-                  )}
-                </div>
+                <button
+                  className="btn-primary !bg-emerald-600 hover:!bg-emerald-700 w-full mt-auto shadow-emerald-500/20"
+                  onClick={() => setShowTransactionTypeModal(true)}
+                >
+                  <Plus className="w-4 h-4 mr-1.5" /> Catat Transaksi
+                </button>
               )}
           </div>
         </div>
