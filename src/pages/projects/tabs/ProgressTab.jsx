@@ -27,6 +27,8 @@ import {
   X,
   FileImage,
   Trash2,
+  ArrowDownToLine,
+  ArrowUpFromLine,
 } from "lucide-react";
 
 const EMPTY_BUILD_FORM = {
