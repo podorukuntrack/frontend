@@ -523,3 +523,5 @@ export function Lightbox({ item, onClose }) {
 
 export { default as CircularTimePicker } from './CircularTimePicker';
 export { default as DateTimePickerModal } from './DateTimePickerModal';
+
+export { default as CustomDayPicker } from './CustomDayPicker';

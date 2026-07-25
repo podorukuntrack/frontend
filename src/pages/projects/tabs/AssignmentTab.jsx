@@ -5,7 +5,7 @@ import { useToast } from '../../../hooks/useToast';
 import { extractError, formatCurrency, formatDate } from '../../../utils/helpers';
 import { useAuth } from '../../../context/AuthContext';
 import { UserCheck, Pencil, Trash2, Search, Check, ChevronDown, User } from 'lucide-react';
-import { CustomDatePicker } from '../../../components/ui';
+import { CustomDatePicker, CustomDayPicker } from '../../../components/ui';
 
 
 export default function AssignmentTab({ unit, project, onAssigned }) {
@@ -267,7 +267,7 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
                                 if (!dayNum || isNaN(dayNum)) return null;
                                 return (
                                   <span key={idx} className="bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded text-[11px] font-semibold border border-indigo-200 dark:border-indigo-500/30">
-                                    Tgl {dayNum} tiap bulan
+                                    Tgl {dayNum}
                                   </span>
                                 )
                               })}
@@ -495,37 +495,13 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
                         <label className="label">Pengingat Jatuh Tempo</label>
                             <p className="text-xs text-slate-500 mb-2">Pilih tanggal di bawah ini. Notifikasi akan dikirim otomatis setiap bulan pada tanggal tersebut selama tagihan belum lunas.</p>
                             
-                            <div className="grid grid-cols-7 gap-1.5 mb-3 mt-3">
-                              {Array.from({ length: 31 }, (_, i) => i + 1).map(day => {
-                                const isSelected = (form.reminder_kpr_dates || []).includes(day);
-                                return (
-                                  <button
-                                    key={day}
-                                    type="button"
-                                    onClick={() => {
-                                      const current = form.reminder_kpr_dates || [];
-                                      let newDates;
-                                      if (isSelected) {
-                                        newDates = current.filter(d => d !== day);
-                                      } else {
-                                        newDates = [...current, day].sort((a, b) => a - b);
-                                      }
-                                      setForm({ ...form, reminder_kpr_dates: newDates });
-                                    }}
-                                    className={`w-full aspect-square flex items-center justify-center rounded-lg text-xs font-semibold transition-all duration-200 ${isSelected ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30 ring-2 ring-indigo-600 ring-offset-1 dark:ring-offset-slate-900' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'}`}
-                                  >
-                                    {day}
-                                  </button>
-                                );
-                              })}
+                            <div className="mb-3">
+                              <CustomDayPicker
+                                selectedDates={form.reminder_kpr_dates || []}
+                                onChange={(dates) => setForm({ ...form, reminder_kpr_dates: dates })}
+                                placeholder="Pilih beberapa tanggal..."
+                              />
                             </div>
-                            
-                            {(form.reminder_kpr_dates || []).length > 0 && (
-                              <div className="text-xs text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 p-2 rounded-lg border border-indigo-100 dark:border-indigo-800/30">
-                                <span className="font-semibold">Terpilih: </span>
-                                {form.reminder_kpr_dates.join(", ")}
-                              </div>
-                            )}
                           </div>
                   )}
                   <div className="md:col-span-2">
