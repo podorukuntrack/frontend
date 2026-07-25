@@ -61,6 +61,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
     originalPct: 0,
   });
   const [payModal, setPayModal] = useState({ open: false, mode: "view" });
+  const [showPaymentSelect, setShowPaymentSelect] = useState(false);
 
   const [confirmBuildOpen, setConfirmBuildOpen] = useState(false);
   const [progressToDelete, setProgressToDelete] = useState(null);
@@ -363,12 +364,13 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
       }
     }
 
+    const isRefund = Number(p.jumlah_bayar) < 0;
     setPayForm({
-      jumlah_bayar: p.jumlah_bayar ? Number(p.jumlah_bayar) : 0,
+      jumlah_bayar: p.jumlah_bayar ? Math.abs(Number(p.jumlah_bayar)) : 0,
       tanggal_bayar: p.tanggal_bayar?.split("T")[0] || "",
       catatan: p.catatan || "",
     });
-    setPayModal({ open: true, mode: "edit", editId: p.id, oldAmount: Number(p.jumlah_bayar) });
+    setPayModal({ open: true, mode: isRefund ? "edit-refund" : "edit", editId: p.id, oldAmount: Number(p.jumlah_bayar) });
     setPayFiles([]);
     setExistingPayUrls(parsedUrls);
   };
@@ -1069,7 +1071,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
       <Modal
         open={payModal.open}
         onClose={() => setPayModal({ open: false, mode: "view" })}
-        title={payModal.mode === "edit" ? `Edit Pembayaran` : `Catat Pembayaran: Unit ${unit.nomor_unit}`}
+        title={payModal.mode.includes("refund") ? (payModal.mode === "edit-refund" ? "Edit Pengembalian" : `Pengembalian Dana: Unit ${unit.nomor_unit}`) : (payModal.mode === "edit" ? "Edit Pembayaran" : `Catat Pembayaran: Unit ${unit.nomor_unit}`)}
       >
         <form onSubmit={handleSavePay} className="space-y-4">
           <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 p-3 rounded-lg text-sm border border-amber-200 dark:border-amber-800/50 mb-4">
@@ -1081,7 +1083,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
           </div>
 
           <div className="space-y-1.5">
-            <label className="label">Jumlah Nominal Transfer/Cash (Rp)</label>
+            <label className="label">{payModal.mode.includes("refund") ? "Jumlah Nominal Pengembalian (Rp)" : "Jumlah Nominal Transfer/Cash (Rp)"}</label>
             <input
               type="text"
               required

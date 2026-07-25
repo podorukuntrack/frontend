@@ -171,9 +171,9 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
         tipe_pembayaran: form.tipe_pembayaran,
         harga_total: Number(form.harga_total),
         dp: form.tipe_pembayaran === 'kredit_kpr' ? Number(form.dp) : 0,
-        jatuh_tempo_kpr: form.tipe_pembayaran === 'kredit_kpr' ? form.jatuh_tempo_kpr : null,
-        reminder_kpr_dates: form.tipe_pembayaran === 'kredit_kpr' ? form.reminder_kpr_dates : [],
-        tenor_bulan: form.tipe_pembayaran === 'cash_cicil' ? Number(form.tenor_bulan) : 0,
+        jatuh_tempo_kpr: ['kredit_kpr', 'cash_cicil'].includes(form.tipe_pembayaran) ? form.jatuh_tempo_kpr : null,
+        reminder_kpr_dates: ['kredit_kpr', 'cash_cicil'].includes(form.tipe_pembayaran) ? form.reminder_kpr_dates : [],
+        tenor_bulan: 0,
         keterangan_kpr: form.keterangan_kpr,
         status_kepemilikan: form.status_kepemilikan
       };
@@ -251,13 +251,7 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
                     <td className="text-slate-500 py-1">Harga Net</td>
                     <td className="font-mono font-semibold text-right text-slate-900 dark:text-white">{formatCurrency(assignment.pembayaran?.harga_total)}</td>
                   </tr>
-                  {assignment.pembayaran?.tipe === "cash_cicil" && (
-                    <tr>
-                      <td className="text-slate-500 py-1">Tenor</td>
-                      <td className="font-semibold text-right text-slate-900 dark:text-white">{assignment.pembayaran?.tenor_bulan} Bulan</td>
-                    </tr>
-                  )}
-                  {assignment.pembayaran?.tipe === "kredit_kpr" && (
+                  {['kredit_kpr', 'cash_cicil'].includes(assignment.pembayaran?.tipe) && (
                     <>
                       <tr>
                         <td className="text-slate-500 py-1">Tanggal Jatuh Tempo</td>
@@ -265,7 +259,7 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
                       </tr>
                       {assignment.pembayaran?.reminder_kpr_dates?.length > 0 && (
                         <tr>
-                          <td className="text-slate-500 py-1 align-top pt-2">Pengingat KPR</td>
+                          <td className="text-slate-500 py-1 align-top pt-2">Pengingat {assignment.pembayaran?.tipe === 'cash_cicil' ? 'Pembayaran' : 'KPR'}</td>
                           <td className="text-right pt-2">
                             <div className="flex flex-wrap justify-end gap-1.5">
                               {assignment.pembayaran.reminder_kpr_dates.map((r, idx) => {
@@ -485,15 +479,9 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
                       />
                     </div>
                   )}
-                  {form.tipe_pembayaran === 'cash_cicil' && (
-                    <div>
-                      <label className="label">Tenor (Bulan)</label>
-                      <input type="number" className="input" value={form.tenor_bulan === 0 ? '' : form.tenor_bulan} onChange={e => setForm({...form, tenor_bulan: e.target.value})} placeholder="0" />
-                    </div>
-                  )}
-                  {form.tipe_pembayaran === 'kredit_kpr' && (
+                  {['kredit_kpr', 'cash_cicil'].includes(form.tipe_pembayaran) && (
                       <div>
-                        <label className="label">Tanggal Jatuh Tempo (KPR)</label>
+                        <label className="label">Tanggal Jatuh Tempo</label>
                         <CustomDatePicker
                           value={form.jatuh_tempo_kpr}
                           onChange={(val) => {
@@ -508,9 +496,9 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
                         />
                       </div>
                   )}
-                  {form.tipe_pembayaran === 'kredit_kpr' && form.jatuh_tempo_kpr && (
+                  {['kredit_kpr', 'cash_cicil'].includes(form.tipe_pembayaran) && form.jatuh_tempo_kpr && (
                       <div className="md:col-span-2 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
-                        <label className="label">Pengingat Jatuh Tempo (KPR)</label>
+                        <label className="label">Pengingat Jatuh Tempo</label>
                             <p className="text-xs text-slate-500 mb-2">Tambahkan tanggal pengingat (sebelum hari-H). Notifikasi akan dikirim ke customer pada tanggal tersebut.</p>
                             
                             <div className="mb-3">
