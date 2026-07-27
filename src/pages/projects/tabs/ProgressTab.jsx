@@ -745,15 +745,30 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                   Belum ada riwayat pembayaran.
                 </p>
               ) : (
-                historyDana.map((p, idx) => (
-                  <div
-                    key={p.id || idx}
-                    className="p-3 border border-slate-100 dark:border-slate-700 rounded-xl relative group"
-                  >
-                    <div className="flex justify-between items-start">
-                      <p className="font-bold text-slate-900 dark:text-white text-base">
-                        {formatCurrency(p.jumlah_bayar)}
-                      </p>
+                historyDana.map((p, idx) => {
+                  const isRefund = Number(p.jumlah_bayar) < 0;
+                  const isKprInject = p.catatan === 'Auto-injeksi Pencairan KPR';
+                  
+                  let themeClasses = "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50";
+                  let noteClasses = "bg-slate-100/50 text-slate-600 dark:bg-slate-800/50 dark:text-slate-400";
+                  
+                  if (isRefund) {
+                    themeClasses = "border-rose-200 dark:border-rose-800/50 bg-rose-50/30 hover:bg-rose-50/80 dark:bg-rose-900/10 dark:hover:bg-rose-900/20";
+                    noteClasses = "bg-rose-100/50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300";
+                  } else if (!isKprInject) {
+                    themeClasses = "border-emerald-200 dark:border-emerald-800/50 bg-emerald-50/30 hover:bg-emerald-50/80 dark:bg-emerald-900/10 dark:hover:bg-emerald-900/20";
+                    noteClasses = "bg-emerald-100/50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300";
+                  }
+
+                  return (
+                    <div
+                      key={p.id || idx}
+                      className={`p-3 border rounded-xl relative group transition-colors duration-300 ${themeClasses}`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <p className={`font-bold text-base ${isRefund ? "text-rose-700 dark:text-rose-400" : (!isKprInject ? "text-emerald-700 dark:text-emerald-400" : "text-slate-900 dark:text-white")}`}>
+                          {formatCurrency(p.jumlah_bayar)}
+                        </p>
                       {isRole('admin') && (
                          <div className="flex gap-1 transition-opacity">
                            <button
@@ -783,7 +798,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                     </div>
                     {p.catatan && (
                       <p
-                        className={`text-xs mt-2 p-2 rounded-lg italic ${isCashLunas ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30" : "bg-slate-50 text-slate-600 dark:bg-slate-800/50"}`}
+                        className={`text-xs mt-2 p-2 rounded-lg italic ${noteClasses}`}
                       >
                         "{p.catatan}"
                       </p>
@@ -813,8 +828,8 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                       );
                     })()}
                   </div>
-                ))
-              )}
+                );
+              })}
             </div>
 
             {isRole('admin') && (
