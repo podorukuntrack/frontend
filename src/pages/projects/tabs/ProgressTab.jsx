@@ -688,8 +688,8 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                   <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{formatCurrency(hargaTotal)}</p>
                 </div>
                 <div className="bg-white dark:bg-slate-900 border-x border-slate-200 dark:border-slate-700 p-3 px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                  <p className="text-xs uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">Tenor</p>
-                  <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{tenorBulan} Bulan</p>
+                  <p className="text-xs uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">Tanggal Jatuh Tempo</p>
+                  <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{assignment.pembayaran?.jatuh_tempo_kpr ? formatDate(assignment.pembayaran.jatuh_tempo_kpr) : '-'}</p>
                 </div>
                 <div className={`p-4 rounded-b-xl flex flex-col sm:flex-row justify-between gap-3 sm:gap-0 border transition-colors duration-300 ${sisaTagihan <= 0 ? "border-emerald-300 dark:border-emerald-700 bg-emerald-100/80 hover:bg-emerald-200/80 dark:bg-emerald-900/40 dark:hover:bg-emerald-900/60" : "border-slate-200 dark:border-slate-700 bg-slate-50/80 hover:bg-slate-100/80 dark:bg-slate-800/50 dark:hover:bg-slate-800/80"}`}>
                   <div className="flex-1">
@@ -712,9 +712,13 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                   <p className="text-xs uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">Harga Keseluruhan Rumah</p>
                   <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{formatCurrency(hargaTotal)}</p>
                 </div>
-                <div className="bg-white dark:bg-slate-900 border-x border-slate-200 dark:border-slate-700 p-3 px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                <div className="bg-white dark:bg-slate-900 border-x border-b border-slate-200 dark:border-slate-700 p-3 px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                   <p className="text-xs uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">Target DP</p>
                   <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{formatCurrency(targetTagihan)}</p>
+                </div>
+                <div className="bg-white dark:bg-slate-900 border-x border-slate-200 dark:border-slate-700 p-3 px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <p className="text-xs uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">Tanggal Jatuh Tempo</p>
+                  <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{assignment.pembayaran?.jatuh_tempo_kpr ? formatDate(assignment.pembayaran.jatuh_tempo_kpr) : '-'}</p>
                 </div>
                 <div className={`p-4 rounded-b-xl flex flex-col sm:flex-row justify-between gap-3 sm:gap-0 border transition-colors duration-300 ${sisaTagihan <= 0 ? "border-emerald-300 dark:border-emerald-700 bg-emerald-100/80 hover:bg-emerald-200/80 dark:bg-emerald-900/40 dark:hover:bg-emerald-900/60" : "border-slate-200 dark:border-slate-700 bg-slate-50/80 hover:bg-slate-100/80 dark:bg-slate-800/50 dark:hover:bg-slate-800/80"}`}>
                   <div className="flex-1">
