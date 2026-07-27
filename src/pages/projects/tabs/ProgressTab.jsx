@@ -829,7 +829,8 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                     })()}
                   </div>
                 );
-              })}
+              })
+            )}
             </div>
 
             {isRole('admin') && (
