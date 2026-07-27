@@ -782,72 +782,74 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                   return (
                     <div
                       key={p.id || idx}
-                      className={`p-3 border rounded-xl relative group transition-colors duration-300 ${themeClasses}`}
+                      className={`p-3 border rounded-xl relative group transition-colors duration-300 flex gap-3 ${themeClasses}`}
                     >
-                      <div className="flex justify-between items-start">
-                        <p className={`font-bold text-base ${isRefund ? "text-rose-700 dark:text-rose-400" : (!isKprInject ? "text-emerald-700 dark:text-emerald-400" : "text-slate-900 dark:text-white")}`}>
-                          {formatCurrency(p.jumlah_bayar)}
-                        </p>
-                      {isRole('admin') && (
-                         <div className="flex gap-1 transition-opacity">
-                           <button
-                             onClick={() => handleOpenEditPayment(p)}
-                             className="p-1 rounded-md text-slate-400 hover:text-indigo-600 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600"
-                             title="Edit Pembayaran"
-                           >
-                             <Pencil className="w-3 h-3" />
-                           </button>
-                           <button
-                             onClick={() => handleDeletePaymentClick(p.id)}
-                             className="p-1 rounded-md text-slate-400 hover:text-rose-600 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600"
-                             title="Hapus Pembayaran"
-                           >
-                             <Trash2 className="w-3 h-3" />
-                           </button>
-                         </div>
-                      )}
-                    </div>
-                    <div className="flex items-center text-xs text-slate-500 mt-1 gap-2">
-                      <span>
-                        <Calendar className="w-3.5 h-3.5 inline mr-1 -mt-0.5" />
-                        {formatDate(p.tanggal_bayar)}
-                      </span>
-                      <span>•</span>
-                      <span>Oleh: {p.dicatat_oleh || "Sistem"}</span>
-                    </div>
-                    {p.catatan && (
-                      <p
-                        className={`text-xs mt-2 p-2 rounded-lg italic ${noteClasses}`}
-                      >
-                        "{p.catatan}"
-                      </p>
-                    )}
-                    {p.bukti_pembayaran && (() => {
-                      let urls = [];
-                      try {
-                        urls = JSON.parse(p.bukti_pembayaran);
-                        if (!Array.isArray(urls)) urls = [p.bukti_pembayaran];
-                      } catch {
-                        urls = [p.bukti_pembayaran];
-                      }
-                      
-                      return (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {urls.map((url, i) => (
-                            <button 
-                              key={i}
-                              onClick={() => setLightbox({ url, type: 'image', name: 'Bukti Pembayaran' })}
-                              className="text-xs text-indigo-600 flex flex-col items-center justify-center gap-1 hover:bg-indigo-100 p-2 rounded bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 transition-colors"
-                            >
-                              <FileImage className="w-5 h-5" />
-                              <span>Lihat Bukti {urls.length > 1 ? i + 1 : ''}</span>
-                            </button>
-                          ))}
+                      <div className="flex-1 min-w-0 flex flex-col justify-center">
+                        <div className="flex justify-between items-start">
+                          <p className={`font-bold text-base ${isRefund ? "text-rose-700 dark:text-rose-400" : (!isKprInject ? "text-emerald-700 dark:text-emerald-400" : "text-slate-900 dark:text-white")}`}>
+                            {formatCurrency(p.jumlah_bayar)}
+                          </p>
+                        {isRole('admin') && (
+                           <div className="flex gap-1 transition-opacity">
+                             <button
+                               onClick={() => handleOpenEditPayment(p)}
+                               className="p-1 rounded-md text-slate-400 hover:text-indigo-600 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600"
+                               title="Edit Pembayaran"
+                             >
+                               <Pencil className="w-3 h-3" />
+                             </button>
+                             <button
+                               onClick={() => handleDeletePaymentClick(p.id)}
+                               className="p-1 rounded-md text-slate-400 hover:text-rose-600 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600"
+                               title="Hapus Pembayaran"
+                             >
+                               <Trash2 className="w-3 h-3" />
+                             </button>
+                           </div>
+                        )}
                         </div>
-                      );
-                    })()}
-                  </div>
-                );
+                        <div className="flex items-center text-xs text-slate-500 mt-1 gap-2">
+                          <span>
+                            <Calendar className="w-3.5 h-3.5 inline mr-1 -mt-0.5" />
+                            {formatDate(p.tanggal_bayar)}
+                          </span>
+                          <span>•</span>
+                          <span className="truncate">Oleh: {p.dicatat_oleh || "Sistem"}</span>
+                        </div>
+                        {p.catatan && (
+                          <p
+                            className={`text-xs mt-2 p-2 rounded-lg italic break-words ${noteClasses}`}
+                          >
+                            "{p.catatan}"
+                          </p>
+                        )}
+                      </div>
+                      {p.bukti_pembayaran && (() => {
+                        let urls = [];
+                        try {
+                          urls = JSON.parse(p.bukti_pembayaran);
+                          if (!Array.isArray(urls)) urls = [p.bukti_pembayaran];
+                        } catch {
+                          urls = [p.bukti_pembayaran];
+                        }
+                        
+                        return (
+                          <div className={`flex flex-col justify-center gap-2 pl-3 border-l ${isRefund ? 'border-rose-200 dark:border-rose-800' : (!isKprInject ? 'border-emerald-200 dark:border-emerald-800' : 'border-slate-200 dark:border-slate-700/50')}`}>
+                            {urls.map((url, i) => (
+                              <button 
+                                key={i}
+                                onClick={() => setLightbox({ url, type: 'image', name: 'Bukti Pembayaran' })}
+                                className="text-xs text-indigo-600 flex flex-col items-center justify-center gap-1 hover:bg-indigo-100 p-2 rounded bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 transition-colors h-full min-h-[60px] min-w-[70px]"
+                              >
+                                <FileImage className="w-5 h-5" />
+                                <span>Lihat Bukti {urls.length > 1 ? i + 1 : ''}</span>
+                              </button>
+                            ))}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  );
               })
             )}
             </div>
