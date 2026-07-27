@@ -31,17 +31,21 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  if (isRole('direksi', 'owner', 'super_admin', 'admin')) {
-    return <ExecutiveDashboard />;
-  }
+  const isExecutive = isRole('direksi', 'owner', 'super_admin', 'admin');
 
   useEffect(() => {
+    if (isExecutive) return;
+
     dashboardAPI
       .stats()
       .then((res) => setStats(res.data.data))
       .catch((err) => setError(extractError(err)))
       .finally(() => setLoading(false));
-  }, []);
+  }, [isExecutive]);
+
+  if (isExecutive) {
+    return <ExecutiveDashboard />;
+  }
 
   if (loading) return <DashboardSkeleton />;
   if (error)

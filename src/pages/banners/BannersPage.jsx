@@ -23,7 +23,7 @@ export default function BannersPage() {
     fetchData();
   }, []);
 
-  const fetchData = async () => {
+  async function fetchData() {
     try {
       setLoading(true);
       const [bannersRes, companiesRes] = await Promise.all([
@@ -41,7 +41,7 @@ export default function BannersPage() {
     }
   };
 
-  const fetchBanners = async () => {
+  async function fetchBanners() {
     try {
       const res = await bannersAPI.list();
       setBanners(res.data.data || []);

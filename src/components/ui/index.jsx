@@ -387,7 +387,7 @@ export function Lightbox({ item, onClose }) {
   }, [item, onClose]);
 
   if (!item) return null;
-  const { type, name } = item;
+  const { type, name, url } = item;
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -425,8 +425,9 @@ export function Lightbox({ item, onClose }) {
       rotatedImageCache.set(item.url, newUrlStr);
       rotatedImageCache.set(imgSrc, newUrlStr);
       
-      // Update item url so if the lightbox is reopened without page reload it uses the new one
-      item.url = newUrlStr;
+      // Update cache so if the lightbox is reopened without page reload it uses the new one
+      // In a strict React flow, mutating item.url directly is forbidden.
+      // We rely on queryClient.invalidateQueries() to fetch the new URL.
       
       showToast('Perubahan rotasi berhasil disimpan!');
       

@@ -32,6 +32,26 @@ import { useTheme } from "../../../hooks/useTheme";
 
 const COLORS = ["var(--color-primary, #3b82f6)", "#64748b", "#94a3b8", "#cbd5e1", "#e2e8f0"];
 
+const CustomTooltip = ({ active, payload }) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-xl shadow-lg">
+        <p className="font-bold text-slate-900 dark:text-white mb-2">{data.company_name}</p>
+        <div className="space-y-1">
+          <p className="text-sm text-emerald-600 dark:text-emerald-400 font-bold">
+            Total Penjualan: {formatCurrency(data.total_revenue)}
+          </p>
+          <p className="text-sm text-indigo-600 dark:text-indigo-400 font-semibold">
+            Unit Terjual: {data.units_sold} Unit
+          </p>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
 export default function ExecutiveDashboard() {
   const { theme } = useTheme();
   const { isRole } = useAuth();
@@ -151,25 +171,6 @@ export default function ExecutiveDashboard() {
     },
   ];
 
-  const CustomTooltip = ({ active, payload }) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-xl shadow-lg">
-          <p className="font-bold text-slate-900 dark:text-white mb-2">{data.company_name}</p>
-          <div className="space-y-1">
-            <p className="text-sm text-emerald-600 dark:text-emerald-400 font-bold">
-              Total Penjualan: {formatCurrency(data.total_revenue)}
-            </p>
-            <p className="text-sm text-indigo-600 dark:text-indigo-400 font-semibold">
-              Unit Terjual: {data.units_sold} Unit
-            </p>
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
     <div className="space-y-6">
