@@ -793,17 +793,17 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                            <div className="flex gap-1 transition-opacity">
                              <button
                                onClick={() => handleOpenEditPayment(p)}
-                               className="p-1 rounded-md text-slate-400 hover:text-indigo-600 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600"
+                               className="p-1.5 rounded-md text-slate-400 hover:text-indigo-600 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 shadow-sm"
                                title="Edit Pembayaran"
                              >
-                               <Pencil className="w-3 h-3" />
+                               <Pencil className="w-4 h-4" />
                              </button>
                              <button
                                onClick={() => handleDeletePaymentClick(p.id)}
-                               className="p-1 rounded-md text-slate-400 hover:text-rose-600 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600"
+                               className="p-1.5 rounded-md text-slate-400 hover:text-rose-600 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 shadow-sm"
                                title="Hapus Pembayaran"
                              >
-                               <Trash2 className="w-3 h-3" />
+                               <Trash2 className="w-4 h-4" />
                              </button>
                            </div>
                         )}
@@ -839,10 +839,15 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                               <button 
                                 key={i}
                                 onClick={() => setLightbox({ url, type: 'image', name: 'Bukti Pembayaran' })}
-                                className="text-xs text-indigo-600 flex flex-col items-center justify-center gap-1 hover:bg-indigo-100 p-2 rounded bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 transition-colors h-full min-h-[60px] min-w-[70px]"
+                                className="relative flex-shrink-0 group/img rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 hover:ring-2 hover:ring-indigo-400 transition-all w-[60px] h-[60px] sm:w-[70px] sm:h-[70px]"
+                                title="Lihat Bukti Pembayaran"
                               >
-                                <FileImage className="w-5 h-5" />
-                                <span>Lihat Bukti {urls.length > 1 ? i + 1 : ''}</span>
+                                <img src={url} alt="Bukti" className="w-full h-full object-cover" />
+                                <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/30 transition-colors flex items-center justify-center">
+                                  <span className="text-white opacity-0 group-hover/img:opacity-100 transition-opacity drop-shadow-md">
+                                    <FileImage className="w-5 h-5" />
+                                  </span>
+                                </div>
                               </button>
                             ))}
                           </div>
