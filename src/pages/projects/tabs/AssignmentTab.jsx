@@ -119,7 +119,13 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
   }, [searchTerm, isOpen]);
 
   const startEdit = () => {
-    const defaultReminders = (assignment.pembayaran?.reminder_kpr_dates || []).map(r => { if (typeof r === 'number') return r; if (typeof r === 'string') return new Date(r).getDate(); if (typeof r === 'object' && r.date) return new Date(r.date).getDate(); return null; }).filter(Boolean).filter(n => !isNaN(n));
+    let rawReminders = assignment.pembayaran?.reminder_kpr_dates || [];
+    if (typeof rawReminders === 'string') {
+      try { rawReminders = JSON.parse(rawReminders); } catch(e) { rawReminders = []; }
+    }
+    if (!Array.isArray(rawReminders)) rawReminders = [];
+    
+    const defaultReminders = rawReminders.map(r => { if (typeof r === 'number') return r; if (typeof r === 'string') return new Date(r).getDate(); if (typeof r === 'object' && r.date) return new Date(r.date).getDate(); return null; }).filter(Boolean).filter(n => !isNaN(n));
     setForm({
       user_id: assignment.user?.id || assignment.user_id,
       tanggal_pembelian: assignment.tanggal_pembelian?.split("T")[0] || "",
@@ -257,24 +263,33 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
                         <td className="text-slate-500 py-1">Tanggal Jatuh Tempo</td>
                         <td className="font-semibold text-right text-slate-900 dark:text-white">{assignment.pembayaran?.jatuh_tempo_kpr ? formatDate(assignment.pembayaran.jatuh_tempo_kpr) : '-'}</td>
                       </tr>
-                      {assignment.pembayaran?.reminder_kpr_dates?.length > 0 && (
-                        <tr>
-                          <td className="text-slate-500 py-1 align-top pt-2">Pengingat {assignment.pembayaran?.tipe === 'cash_cicil' ? 'Pembayaran' : 'KPR'}</td>
-                          <td className="text-right pt-2">
-                            <div className="flex flex-wrap justify-end gap-1.5">
-                              {assignment.pembayaran.reminder_kpr_dates.map((r, idx) => {
-                                let dayNum = typeof r === 'number' ? r : (typeof r === 'object' && r.date ? new Date(r.date).getDate() : (typeof r === 'string' ? new Date(r).getDate() : null));
-                                if (!dayNum || isNaN(dayNum)) return null;
-                                return (
-                                  <span key={idx} className="bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded text-[11px] font-semibold border border-indigo-200 dark:border-indigo-500/30">
-                                    Tgl {dayNum}
-                                  </span>
-                                )
-                              })}
-                            </div>
-                          </td>
-                        </tr>
-                      )}
+                      {(() => {
+                        let rawReminders = assignment.pembayaran?.reminder_kpr_dates || [];
+                        if (typeof rawReminders === 'string') {
+                          try { rawReminders = JSON.parse(rawReminders); } catch(e) { rawReminders = []; }
+                        }
+                        if (!Array.isArray(rawReminders)) rawReminders = [];
+                        
+                        if (rawReminders.length === 0) return null;
+                        return (
+                          <tr>
+                            <td className="text-slate-500 py-1 align-top pt-2">Pengingat {assignment.pembayaran?.tipe === 'cash_cicil' ? 'Pembayaran' : 'KPR'}</td>
+                            <td className="text-right pt-2">
+                              <div className="flex flex-wrap justify-end gap-1.5">
+                                {rawReminders.map((r, idx) => {
+                                  let dayNum = typeof r === 'number' ? r : (typeof r === 'object' && r.date ? new Date(r.date).getDate() : (typeof r === 'string' ? new Date(r).getDate() : null));
+                                  if (!dayNum || isNaN(dayNum)) return null;
+                                  return (
+                                    <span key={idx} className="bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded text-[11px] font-semibold border border-indigo-200 dark:border-indigo-500/30">
+                                      Tgl {dayNum}
+                                    </span>
+                                  )
+                                })}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })()}
                     </>
                   )}
                   <tr>
