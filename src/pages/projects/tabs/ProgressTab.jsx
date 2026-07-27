@@ -387,33 +387,48 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
 
     setSaving(true);
     try {
+      const isRefundMode = payModal.mode.includes("refund");
+      const finalJumlahBayar = isRefundMode
+        ? -Math.abs(Number(payForm.jumlah_bayar))
+        : Math.abs(Number(payForm.jumlah_bayar));
+
       const payload = {
-        jumlah_bayar: Number(payForm.jumlah_bayar),
+        jumlah_bayar: finalJumlahBayar,
         tanggal_bayar: new Date(payForm.tanggal_bayar).toISOString(),
         catatan: payForm.catatan,
       };
 
       let savedPaymentId = payModal.editId;
 
-      if (payModal.mode === "edit") {
+      if (payModal.mode.startsWith("edit")) {
         payload.bukti_pembayaran = existingPayUrls;
         const diff = payload.jumlah_bayar - payModal.oldAmount;
-        if (diff > sisaTagihan) {
+        if (!isRefundMode && diff > sisaTagihan) {
           toast(`Gagal: Maksimal penambahan pembayaran adalah ${formatCurrency(sisaTagihan)}`, "error");
           setSaving(false);
           return;
         }
+        if (isRefundMode && (totalDibayar + diff) < 0) {
+          toast(`Gagal: Total pengembalian dana tidak bisa melebihi total dana yang sudah dibayar.`, "error");
+          setSaving(false);
+          return;
+        }
         await assignmentsAPI.updatePayment(assignment.id, payModal.editId, payload);
-        toast("Pembayaran berhasil diperbarui", "success");
+        toast(isRefundMode ? "Pengembalian dana diperbarui" : "Pembayaran berhasil diperbarui", "success");
       } else {
-        if (payload.jumlah_bayar > sisaTagihan) {
+        if (!isRefundMode && payload.jumlah_bayar > sisaTagihan) {
           toast(`Gagal: Maksimal pembayaran adalah ${formatCurrency(sisaTagihan)}`, "error");
+          setSaving(false);
+          return;
+        }
+        if (isRefundMode && Math.abs(payload.jumlah_bayar) > totalDibayar) {
+          toast(`Gagal: Maksimal pengembalian dana adalah ${formatCurrency(totalDibayar)}`, "error");
           setSaving(false);
           return;
         }
         const res = await assignmentsAPI.createPayment(assignment.id, payload);
         savedPaymentId = res.data?.data?.id || res.data?.id; // Depends on backend response format
-        toast("Pembayaran berhasil dicatat", "success");
+        toast(isRefundMode ? "Pengembalian dana berhasil dicatat" : "Pembayaran berhasil dicatat", "success");
       }
 
       setPayModal({ open: false, mode: "view" });
@@ -753,11 +768,11 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                   let noteClasses = "bg-slate-100/50 text-slate-600 dark:bg-slate-800/50 dark:text-slate-400";
                   
                   if (isRefund) {
-                    themeClasses = "border-rose-200 dark:border-rose-800/50 bg-rose-50/30 hover:bg-rose-50/80 dark:bg-rose-900/10 dark:hover:bg-rose-900/20";
-                    noteClasses = "bg-rose-100/50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300";
+                    themeClasses = "border-rose-300 dark:border-rose-700 bg-rose-100/80 hover:bg-rose-200/80 dark:bg-rose-900/40 dark:hover:bg-rose-900/60";
+                    noteClasses = "bg-rose-50 text-rose-800 dark:bg-rose-950/50 dark:text-rose-200";
                   } else if (!isKprInject) {
-                    themeClasses = "border-emerald-200 dark:border-emerald-800/50 bg-emerald-50/30 hover:bg-emerald-50/80 dark:bg-emerald-900/10 dark:hover:bg-emerald-900/20";
-                    noteClasses = "bg-emerald-100/50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300";
+                    themeClasses = "border-emerald-300 dark:border-emerald-700 bg-emerald-100/80 hover:bg-emerald-200/80 dark:bg-emerald-900/40 dark:hover:bg-emerald-900/60";
+                    noteClasses = "bg-emerald-50 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200";
                   }
 
                   return (
