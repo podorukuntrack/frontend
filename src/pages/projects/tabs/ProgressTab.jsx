@@ -380,10 +380,10 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
   const handleSavePay = async (e) => {
     e.preventDefault();
 
-    if (payModal.mode === "create" && payFiles.length === 0) {
-      toast("Bukti pembayaran (gambar) wajib diunggah", "error");
-      return;
-    }
+    // if (payModal.mode === "create" && payFiles.length === 0) {
+    //   toast("Bukti pembayaran (gambar) wajib diunggah", "error");
+    //   return;
+    // }
 
     setSaving(true);
     try {
@@ -1218,7 +1218,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
           </div>
 
           <div className="space-y-1.5">
-            <label className="label">Bukti Pembayaran (Gambar) {payModal.mode === "create" && <span className="text-rose-500">*</span>}</label>
+            <label className="label">Bukti Pembayaran (Gambar) <span className="text-slate-400 font-normal text-xs">(opsional)</span></label>
             {payModal.mode === "edit" && existingPayUrls.length > 0 && (
                 <div className="mb-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
                   <p className="text-xs text-slate-500 mb-2">Bukti Pembayaran Saat Ini:</p>
