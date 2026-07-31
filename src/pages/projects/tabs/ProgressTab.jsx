@@ -335,6 +335,12 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
       toast("Pembayaran Cash Lunas otomatis terhapus jika Penugasannya dibatalkan. Silakan langsung ke Tab Assignment untuk Membatalkan Penugasan.", "info");
       return;
     }
+    // Cek apakah ini auto-injeksi KPR — tidak boleh dihapus
+    const payment = historyDana.find(p => p.id === paymentId);
+    if (payment?.is_auto_inject || payment?.catatan === 'Auto-injeksi Pencairan KPR') {
+      toast("Pembayaran Auto-injeksi Pencairan KPR tidak dapat dihapus karena merupakan pencatatan otomatis pencairan dana bank.", "error");
+      return;
+    }
     setPaymentToDelete(paymentId);
     setConfirmPayOpen(true);
   };
@@ -766,7 +772,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
               ) : (
                 historyDana.map((p, idx) => {
                   const isRefund = Number(p.jumlah_bayar) < 0;
-                  const isKprInject = p.catatan === 'Auto-injeksi Pencairan KPR';
+                  const isKprInject = p.is_auto_inject === true || p.catatan === 'Auto-injeksi Pencairan KPR';
                   
                   let themeClasses = "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50";
                   let noteClasses = "bg-slate-100/50 text-slate-600 dark:bg-slate-800/50 dark:text-slate-400";
@@ -789,7 +795,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                           <p className={`font-bold text-base ${isRefund ? "text-rose-700 dark:text-rose-400" : (!isKprInject ? "text-emerald-700 dark:text-emerald-400" : "text-slate-900 dark:text-white")}`}>
                             {formatCurrency(p.jumlah_bayar)}
                           </p>
-                        {isRole('admin') && (
+                        {isRole('admin') && !isKprInject && (
                            <div className="flex gap-1 transition-opacity">
                              <button
                                onClick={() => handleOpenEditPayment(p)}
@@ -806,6 +812,22 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                                <Trash2 className="w-4 h-4" />
                              </button>
                            </div>
+                        )}
+                        {isKprInject && (
+                          <div className="flex items-center gap-1.5">
+                            {isRole('admin') && (
+                              <button
+                                onClick={() => handleOpenEditPayment(p)}
+                                className="p-1.5 rounded-md text-slate-400 hover:text-indigo-600 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 shadow-sm"
+                                title="Edit Nominal Pencairan KPR"
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </button>
+                            )}
+                            <span className="text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-500/30 whitespace-nowrap">
+                              🏦 Otomatis
+                            </span>
+                          </div>
                         )}
                         </div>
                         <div className="flex items-center text-xs text-slate-500 mt-1 gap-2">
