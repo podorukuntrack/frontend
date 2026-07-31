@@ -156,6 +156,11 @@ export default function AssignmentTab({ unit, project, onAssigned }) {
       return;
     }
 
+    if (form.tipe_pembayaran === 'kredit_kpr' && Number(form.dp) > Number(form.harga_total)) {
+      toast(`Down Payment (DP) tidak boleh melebihi Harga Total (NET). DP: Rp ${formatCurrency(form.dp)}, Harga Total: Rp ${formatCurrency(form.harga_total)}`, 'error');
+      return;
+    }
+
     if (assignment) {
       setConfirmSaveOpen(true);
       return;
