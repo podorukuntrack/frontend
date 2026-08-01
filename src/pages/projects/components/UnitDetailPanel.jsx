@@ -25,6 +25,7 @@ export default function UnitDetailPanel({ unit, cluster, project }) {
     setSearchParams({ tab: tabId }, { replace: true });
   };
   const [loading, setLoading] = useState(false);
+  const [panelRefreshKey, setPanelRefreshKey] = useState(0);
   
   // State untuk melacak data di setiap tab
   const [assignment, setAssignment] = useState(null);
@@ -74,15 +75,17 @@ export default function UnitDetailPanel({ unit, cluster, project }) {
     })();
   };
 
-  const fetchUnitContext = async () => {
+  // forceFresh=true menambah _t timestamp agar Redis cache di-bypass
+  const fetchUnitContext = async (forceFresh = false) => {
     setLoading(true);
+    const cacheBust = forceFresh ? { _t: Date.now() } : {};
     try {
       // Fetch latest unit data
       const unitRes = await unitsAPI.get(unit.id);
       if (unitRes.data?.data) setCurrentUnit(unitRes.data.data);
 
       const [asgRes, progRes, hoRes] = await Promise.all([
-        assignmentsAPI.list({ unitId: unit.id, limit: 1 }),
+        assignmentsAPI.list({ unitId: unit.id, limit: 1, ...cacheBust }),
         progressAPI.list({ unitId: unit.id }),
         handoversAPI.list({ unitId: unit.id })
       ]);
@@ -105,6 +108,12 @@ export default function UnitDetailPanel({ unit, cluster, project }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handler untuk onUpdate dari tab anak — force fresh agar bypass Redis cache
+  const handleTabUpdate = () => {
+    fetchUnitContext(true);
+    setPanelRefreshKey(prev => prev + 1);
   };
 
   useEffect(() => {
@@ -260,10 +269,10 @@ export default function UnitDetailPanel({ unit, cluster, project }) {
 
       {/* TAB CONTENT */}
       <div className="flex-1 p-6 bg-slate-50/30 dark:bg-slate-900/50 relative">
-        {activeTab === 'assignment' && <AssignmentTab unit={currentUnit} project={project} onAssigned={fetchUnitContext} />}
-        {activeTab === 'timeline' && <TimelineTab unit={currentUnit} project={project} onUpdate={fetchUnitContext} />}
-        {activeTab === 'progress' && <ProgressTab unit={currentUnit} assignment={assignment} onUpdate={fetchUnitContext} />}
-        {activeTab === 'handover' && <HandoverTab unit={currentUnit} project={project} onHandover={fetchUnitContext} />}
+        {activeTab === 'assignment' && <AssignmentTab unit={currentUnit} project={project} onAssigned={handleTabUpdate} />}
+        {activeTab === 'timeline' && <TimelineTab unit={currentUnit} project={project} onUpdate={handleTabUpdate} />}
+        {activeTab === 'progress' && <ProgressTab key={panelRefreshKey} unit={currentUnit} assignment={assignment} onUpdate={handleTabUpdate} />}
+        {activeTab === 'handover' && <HandoverTab unit={currentUnit} project={project} onHandover={handleTabUpdate} />}
         {activeTab === 'retention' && <RetentionTab unit={currentUnit} project={project} />}
       </div>
 
