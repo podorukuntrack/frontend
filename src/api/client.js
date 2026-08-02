@@ -11,8 +11,19 @@ const api = axios.create({
 
 export const navigateRef = { current: null };
 
-// Request interceptor
+// Request interceptor — inject company context header for backend validation
 api.interceptors.request.use((config) => {
+  try {
+    const stored = localStorage.getItem('user');
+    if (stored) {
+      const user = JSON.parse(stored);
+      if (user.companyId) {
+        config.headers['X-Company-ID'] = user.companyId;
+      }
+    }
+  } catch {
+    // Ignore parse errors
+  }
   return config;
 });
 
@@ -46,15 +57,30 @@ api.interceptors.response.use(
       return Promise.resolve({ data: { success: false, data: [] } });
     }
 
-    if (err.response?.status === 401 && !original._retry) {
-      original._retry = true;
-      try {
-        await axios.post(`${BASE_URL}/auth/refresh`, {}, { withCredentials: true });
-        return api(original);
-      } catch {
+    // Handle company session mismatch (cookie overwritten by another tab)
+    if (err.response?.status === 401) {
+      const errors = err.response?.data?.errors;
+      const isCompanyMismatch = Array.isArray(errors) && errors.some(e => e.code === 'COMPANY_MISMATCH');
+      
+      if (isCompanyMismatch) {
+        window.dispatchEvent(new CustomEvent('show-toast', { 
+          detail: { id: "session_conflict", msg: "Sesi konflik: Anda login dengan akun berbeda di tab lain. Silakan login ulang.", type: 'error' } 
+        }));
         localStorage.removeItem("user");
         window.location.href = "/login";
         return Promise.reject(err);
+      }
+
+      if (!original._retry) {
+        original._retry = true;
+        try {
+          await axios.post(`${BASE_URL}/auth/refresh`, {}, { withCredentials: true });
+          return api(original);
+        } catch {
+          localStorage.removeItem("user");
+          window.location.href = "/login";
+          return Promise.reject(err);
+        }
       }
     }
     return Promise.reject(err);

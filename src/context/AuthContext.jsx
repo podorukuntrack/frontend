@@ -43,6 +43,11 @@ export function AuthProvider({ children }) {
             nama: data.data.nama ?? data.data.name,
             name: data.data.name ?? data.data.nama,
           };
+          // If company context changed (e.g., cookie was overwritten by another tab), clear stale cache
+          const previousUser = getInitialUser();
+          if (previousUser && previousUser.companyId !== freshUser.companyId) {
+            queryClient.clear();
+          }
           localStorage.setItem('user', JSON.stringify(freshUser));
           setUser(freshUser);
         }
@@ -54,7 +59,38 @@ export function AuthProvider({ children }) {
     };
 
     fetchMe();
-  }, []);
+  }, [queryClient]);
+
+  // Cross-tab session isolation: detect when another tab logs in/out or switches company
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'user') {
+        const currentUser = user;
+        const newUser = e.newValue ? (() => { try { return JSON.parse(e.newValue); } catch { return null; } })() : null;
+
+        if (!newUser) {
+          // Another tab logged out
+          setUser(null);
+          queryClient.clear();
+          window.location.href = '/login';
+          return;
+        }
+
+        // If company changed or user changed, clear cache and reload
+        const companyChanged = newUser.companyId !== currentUser?.companyId;
+        const userChanged = newUser.id !== currentUser?.id;
+
+        if (companyChanged || userChanged) {
+          queryClient.clear();
+          setUser(newUser);
+          window.location.reload();
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [user, queryClient]);
 
   /**
    * Normalizes and persists the user session in state and localStorage.
