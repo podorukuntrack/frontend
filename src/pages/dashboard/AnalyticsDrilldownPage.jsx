@@ -659,6 +659,7 @@ export default function AnalyticsDrilldownPage() {
                   {metric === 'revenue' && <th className="px-5 py-4 font-semibold text-right">Nilai Transaksi</th>}
                   {metric === 'cash-in' && <th className="px-5 py-4 font-semibold text-right">Kas Masuk (Valid)</th>}
                   {metric === 'piutang' && <th className="px-5 py-4 font-semibold text-right">Sisa Piutang</th>}
+                  {metric === 'piutang' && <th className="px-5 py-4 font-semibold">Tenggat</th>}
                   {metric === 'occupancy' && <th className="px-5 py-4 font-semibold">Status Pembangunan</th>}
                   {metric === 'occupancy' && <th className="px-5 py-4 font-semibold">Status Penjualan</th>}
                   {metric === 'occupancy' && <th className="px-5 py-4 font-semibold">Retensi</th>}
@@ -757,7 +758,32 @@ export default function AnalyticsDrilldownPage() {
                         {formatCurrency(row.effective_piutang)}
                       </td>
                     )}
-                    
+                    {metric === 'piutang' && (
+                      <td className="px-5 py-4 whitespace-nowrap">
+                        {!row.jatuh_tempo_kpr ? (
+                          <span className="text-xs text-slate-400 dark:text-slate-500">—</span>
+                        ) : Number(row.hari_telat) > 0 ? (
+                          <>
+                            <span className="px-2 py-1 rounded text-xs font-bold bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400">
+                              TELAT {row.hari_telat} HARI
+                            </span>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 font-medium">
+                              Jatuh tempo {formatDate(row.jatuh_tempo_kpr)}
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <span className="px-2 py-1 rounded text-xs font-bold bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                              BELUM JATUH TEMPO
+                            </span>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 font-medium">
+                              {formatDate(row.jatuh_tempo_kpr)}
+                            </div>
+                          </>
+                        )}
+                      </td>
+                    )}
+
                     {metric === 'occupancy' && (
                       <td className="px-5 py-4">
                         <span className={`px-2 py-1 rounded text-xs font-bold whitespace-nowrap ${

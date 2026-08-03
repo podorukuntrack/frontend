@@ -11,6 +11,28 @@ const api = axios.create({
 
 export const navigateRef = { current: null };
 
+/**
+ * Satu proses refresh dipakai bersama oleh semua request yang kena 401.
+ *
+ * Backend merotasi refresh token setiap dipakai dan mencabut yang lama. Tanpa
+ * penggabungan ini, sekumpulan request paralel yang expired bersamaan akan
+ * memicu beberapa /auth/refresh sekaligus: yang pertama berhasil, sisanya
+ * mengirim token yang sudah dicabut, gagal, lalu memaksa logout — inilah
+ * penyebab ter-logout mendadak saat membuka dashboard.
+ */
+let refreshPromise = null;
+
+const refreshSession = () => {
+  if (!refreshPromise) {
+    refreshPromise = axios
+      .post(`${BASE_URL}/auth/refresh`, {}, { withCredentials: true })
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+  return refreshPromise;
+};
+
 // Request interceptor — inject company context header for backend validation
 api.interceptors.request.use((config) => {
   try {
@@ -50,11 +72,14 @@ api.interceptors.response.use(
 
     // Handle 429 Rate Limit gracefully
     if (err.response?.status === 429) {
-      window.dispatchEvent(new CustomEvent('show-toast', { 
-        detail: { id: "rate_limit", msg: "Sistem sedang sibuk sinkronisasi data. Mohon tunggu beberapa detik...", type: 'error' } 
+      window.dispatchEvent(new CustomEvent('show-toast', {
+        detail: { id: "rate_limit", msg: "Sistem sedang sibuk sinkronisasi data. Mohon tunggu beberapa detik...", type: 'error' }
       }));
-      // Resolve promise gracefully with empty data instead of rejecting to prevent UI freeze
-      return Promise.resolve({ data: { success: false, data: [] } });
+      // Sebelumnya di-resolve dengan data kosong untuk semua method. Akibatnya
+      // POST/PATCH/DELETE yang kena 429 dianggap BERHASIL oleh pemanggilnya —
+      // toast hijau muncul padahal tidak ada yang tersimpan. Kegagalan harus
+      // tetap kegagalan; toast di atas sudah cukup mencegah UI terasa membeku.
+      return Promise.reject(err);
     }
 
     // Handle company session mismatch (cookie overwritten by another tab)
@@ -74,7 +99,7 @@ api.interceptors.response.use(
       if (!original._retry) {
         original._retry = true;
         try {
-          await axios.post(`${BASE_URL}/auth/refresh`, {}, { withCredentials: true });
+          await refreshSession();
           return api(original);
         } catch {
           localStorage.removeItem("user");

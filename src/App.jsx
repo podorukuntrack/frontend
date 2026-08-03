@@ -34,8 +34,7 @@ function NavigateSetter() {
 }
 
 function PrivateRoute({ children, roles }) {
-  const { user, loading } = useAuth();
-  if (loading) return null;
+  const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
   // Jika role user tidak ada di dalam array roles yang diizinkan
   if (roles && !roles.includes(user.role))
@@ -44,8 +43,7 @@ function PrivateRoute({ children, roles }) {
 }
 
 function PublicRoute({ children }) {
-  const { user, loading } = useAuth();
-  if (loading) return null;
+  const { user } = useAuth();
   if (user) {
     if (user.role === "customer") {
       // Jika nanti customer punya dashboard sendiri, ganti path ini (misal: to="/my-units")

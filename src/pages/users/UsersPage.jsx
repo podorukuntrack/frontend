@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { usersAPI, companiesAPI, assignmentsAPI } from '../../api/services';
+import { usersAPI, companiesAPI } from '../../api/services';
 import { PageLoader, EmptyState, SearchInput, Modal, Confirm, Pagination, Avatar, Select } from '../../components/ui';
 import { useToast } from '../../hooks/useToast';
 import { getStatusColor, getStatusLabel, formatDate, extractError } from '../../utils/helpers';
@@ -32,6 +32,7 @@ export default function UsersPage() {
   const [tick, setTick] = useState(0);
   // additional UI states
   const [roleConfirm, setRoleConfirm] = useState({ open: false, userId: null, newRole: '', oldRole: '', userName: '', companyId: '' });
+  const [statusConfirm, setStatusConfirm] = useState({ open: false, userId: null, newStatus: '', userName: '', activeUnits: 0 });
 
   const [modal, setModal] = useState({ open: false, mode: 'create', data: null });
   const [confirm, setConfirm] = useState({ open: false, id: null });
@@ -148,6 +149,25 @@ export default function UsersPage() {
     }
   };
 
+  const confirmStatusUpdate = async () => {
+    setSaving(true);
+    try {
+      await usersAPI.update(statusConfirm.userId, { status: statusConfirm.newStatus });
+      toast(
+        statusConfirm.newStatus === 'active'
+          ? 'Akun berhasil diaktifkan'
+          : 'Akun berhasil dinonaktifkan. Sesi aktif pengguna langsung diputus.',
+        'success'
+      );
+      setStatusConfirm({ open: false, userId: null, newStatus: '', userName: '', activeUnits: 0 });
+      refetch();
+    } catch (err) {
+      toast(extractError(err), 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleDelete = async () => {
     setSaving(true);
     try {
@@ -221,6 +241,7 @@ export default function UsersPage() {
                   <th className="px-6 py-4 font-semibold">Akses / Role</th>
                   <th className="px-6 py-4 font-semibold">No. Telepon</th>
                   { !isRole('admin') && <th className="px-6 py-4 font-semibold">Perusahaan</th> }
+                  <th className="px-6 py-4 font-semibold">Status</th>
                   <th className="px-6 py-4 font-semibold">Tanggal Bergabung</th>
                   <th className="px-6 py-4 font-semibold text-right">Aksi</th>
                 </tr>
@@ -276,6 +297,47 @@ export default function UsersPage() {
                         {u.company_id ? companies.find(c => c.id === u.company_id)?.kode_pt || '-' : '-'}
                       </td>
                     ) }
+                    <td className="px-6 py-4">
+                      {u.id === me?.id ? (
+                        <span className={`badge ${getStatusColor(u.status)}`}>{getStatusLabel(u.status)}</span>
+                      ) : (
+                        <button
+                          type="button"
+                          title={u.status === 'active' ? 'Klik untuk menonaktifkan' : 'Klik untuk mengaktifkan'}
+                          onClick={() => setStatusConfirm({
+                            open: true,
+                            userId: u.id,
+                            newStatus: u.status === 'active' ? 'inactive' : 'active',
+                            userName: u.nama,
+                            activeUnits: u.active_units ?? 0,
+                          })}
+                          className="inline-flex items-center gap-2 group"
+                        >
+                          <span
+                            className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors ${
+                              u.status === 'active'
+                                ? 'bg-emerald-500'
+                                : 'bg-slate-300 dark:bg-slate-600'
+                            }`}
+                          >
+                            <span
+                              className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                                u.status === 'active' ? 'translate-x-4' : 'translate-x-0.5'
+                              }`}
+                            />
+                          </span>
+                          <span
+                            className={`text-xs font-semibold ${
+                              u.status === 'active'
+                                ? 'text-emerald-600 dark:text-emerald-400'
+                                : 'text-slate-500 dark:text-slate-400'
+                            }`}
+                          >
+                            {getStatusLabel(u.status)}
+                          </span>
+                        </button>
+                      )}
+                    </td>
                     <td className="px-6 py-4 text-slate-500 dark:text-slate-400 text-xs font-medium">
                       {formatDate(u.created_at)}
                     </td>
@@ -473,6 +535,47 @@ export default function UsersPage() {
             </button>
             <button className="btn-primary" onClick={confirmRoleUpdate} disabled={saving}>
               {saving ? 'Menyimpan...' : 'Ya, Ubah Role'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Confirm Status Change */}
+      <Modal
+        open={statusConfirm.open}
+        onClose={() => setStatusConfirm({ open: false, userId: null, newStatus: '', userName: '', activeUnits: 0 })}
+        title={statusConfirm.newStatus === 'active' ? 'Aktifkan Akun' : 'Nonaktifkan Akun'}
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-slate-600 dark:text-slate-300">
+            {statusConfirm.newStatus === 'active' ? (
+              <>Aktifkan kembali akun <strong className="text-slate-900 dark:text-white">{statusConfirm.userName}</strong>? Pengguna akan bisa login lagi.</>
+            ) : (
+              <>Nonaktifkan akun <strong className="text-slate-900 dark:text-white">{statusConfirm.userName}</strong>? Pengguna tidak akan bisa login, dan sesi aplikasi yang sedang berjalan langsung diputus.</>
+            )}
+          </p>
+
+          {statusConfirm.newStatus === 'inactive' && statusConfirm.activeUnits > 0 && (
+            <div className="px-4 py-3 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30">
+              <p className="text-sm text-amber-800 dark:text-amber-300">
+                Pengguna ini masih memiliki <strong>{statusConfirm.activeUnits} unit aktif</strong>.
+                Setelah dinonaktifkan, ia kehilangan akses ke progress pembangunan,
+                jadwal serah terima, dan riwayat pembayaran unitnya.
+              </p>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <button
+              className="btn-secondary"
+              onClick={() => setStatusConfirm({ open: false, userId: null, newStatus: '', userName: '', activeUnits: 0 })}
+              disabled={saving}
+            >
+              Batal
+            </button>
+            <button className="btn-primary" onClick={confirmStatusUpdate} disabled={saving}>
+              {saving ? 'Menyimpan...' : statusConfirm.newStatus === 'active' ? 'Ya, Aktifkan' : 'Ya, Nonaktifkan'}
             </button>
           </div>
         </div>

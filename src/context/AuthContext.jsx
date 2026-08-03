@@ -30,7 +30,10 @@ const getInitialUser = () => {
  */
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(getInitialUser);
-  const [loading, setLoading] = useState(false);
+  // Tidak ada state `loading`: profil dipulihkan dari localStorage secara sinkron,
+  // lalu disegarkan di latar belakang lewat /auth/me. State `loading` yang dulu ada
+  // tidak pernah di-set sehingga pemeriksaan `if (loading) return null` di
+  // PrivateRoute/PublicRoute selalu bernilai false — menyesatkan pembaca kode.
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -161,7 +164,7 @@ export function AuthProvider({ children }) {
   }, [user]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, isRole }}>
+    <AuthContext.Provider value={{ user, login, register, logout, isRole }}>
       {children}
     </AuthContext.Provider>
   );
