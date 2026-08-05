@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, UserCheck, CalendarDays, BarChart3, Key, ShieldCheck, Pencil, Home } from 'lucide-react';
 import { unitsAPI, assignmentsAPI, timelinesAPI, progressAPI, handoversAPI, retentionsAPI, documentationAPI } from '../../../api/services';
@@ -16,6 +17,7 @@ import RetentionTab from '../tabs/RetentionTab';
 
 export default function UnitDetailPanel({ unit, cluster, project }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const { isRole } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -114,6 +116,22 @@ export default function UnitDetailPanel({ unit, cluster, project }) {
   const handleTabUpdate = () => {
     fetchUnitContext(true);
     setPanelRefreshKey(prev => prev + 1);
+
+    /**
+     * Daftar unit dan daftar proyek disimpan React Query, dan keduanya
+     * menampilkan nilai turunan dari apa yang diubah di tab-tab ini —
+     * status terjual dihitung dari data penugasan, progress dan status
+     * pembangunan berubah dari tab progress dan serah terima.
+     *
+     * Sebelumnya tidak ada yang memberi tahu cache itu, sehingga kembali ke
+     * daftar unit setelah meng-assign masih memperlihatkan unit sebagai
+     * tersedia sampai staleTime habis atau jendela mendapat fokus lagi.
+     *
+     * Sengaja tanpa cluster.id: satu permintaan tambahan jauh lebih murah
+     * daripada bug diam-diam kalau kunci cache-nya meleset.
+     */
+    queryClient.invalidateQueries({ queryKey: ['units'] });
+    queryClient.invalidateQueries({ queryKey: ['projects'] });
   };
 
   useEffect(() => {
