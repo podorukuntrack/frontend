@@ -101,3 +101,16 @@ export const formatCurrency = (amount, showDecimal = false) => {
     maximumFractionDigits: showDecimal ? 2 : 0,
   }).format(amount);
 };
+/**
+ * Perusahaan uji coba ("Tester") disembunyikan dari filter dashboard/analitik.
+ * Backend sudah menolak datanya (dan membalas 403 bila di-request eksplisit);
+ * ini hanya supaya opsinya tidak muncul di dropdown dan membingungkan.
+ * Pola namanya harus sama dengan TEST_COMPANY_NAME_PATTERN di backend.
+ */
+const TEST_COMPANY_PATTERN = /tester/i;
+
+export const isTestCompany = (company) =>
+  TEST_COMPANY_PATTERN.test(company?.nama_pt || company?.name || '');
+
+export const excludeTestCompanies = (companies) =>
+  (companies || []).filter((c) => !isTestCompany(c));

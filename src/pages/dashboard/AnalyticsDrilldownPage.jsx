@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { dashboardAPI } from "../../api/services";
 import { useAuth } from "../../context/AuthContext";
 import { PageLoader } from "../../components/ui";
-import { extractError, formatCurrency, formatDate } from "../../utils/helpers";
+import { extractError, formatCurrency, formatDate, excludeTestCompanies } from "../../utils/helpers";
 import { ArrowLeft, TrendingUp, Wallet, Landmark, Home, Users, Search, Building2, CalendarRange, Filter, X } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -111,9 +111,18 @@ export default function AnalyticsDrilldownPage() {
   useEffect(() => {
     if (isRole("owner", "super_admin")) {
       companiesAPI.list()
-        .then(res => setCompanies(res.data.data))
+        .then(res => {
+          const list = excludeTestCompanies(res.data.data);
+          setCompanies(list);
+          // Filter tersimpan bisa menunjuk perusahaan tester yang kini
+          // disembunyikan — backend membalas 403 kalau tetap dikirim.
+          if (companyId && !list.some(c => c.id === companyId)) {
+            updateFilter("companyId", "");
+          }
+        })
         .catch(console.error);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRole]);
 
   useEffect(() => {

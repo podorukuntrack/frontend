@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { dashboardAPI, companiesAPI } from "../../../api/services";
 import { DashboardSkeleton } from "../../../components/ui";
-import { extractError, formatCurrency } from "../../../utils/helpers";
+import { extractError, formatCurrency, excludeTestCompanies } from "../../../utils/helpers";
 import { useAuth } from "../../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import {
@@ -31,6 +31,101 @@ import { id } from "date-fns/locale";
 import { useTheme } from "../../../hooks/useTheme";
 
 const COLORS = ["var(--color-primary, #3b82f6)", "#64748b", "#94a3b8", "#cbd5e1", "#e2e8f0"];
+
+// Batas titik pada grafik tren. Data harian bertahun-tahun menghasilkan ratusan
+// titik yang saling menempel dan tidak terbaca, jadi rentangnya diringkas
+// (mingguan/bulanan/kuartalan) sampai jumlah titiknya masuk batas ini.
+const MAX_TREND_POINTS = 40;
+
+const GRANULARITY_LABEL = {
+  day: "Harian",
+  week: "Mingguan",
+  month: "Bulanan",
+  quarter: "Kuartalan",
+};
+
+// Tanggal lokal -> "YYYY-MM-DD" tanpa lompat hari karena konversi UTC.
+const toDateKey = (date) => {
+  const shifted = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return shifted.toISOString().split("T")[0];
+};
+
+const bucketStart = (value, granularity) => {
+  const d = new Date(value);
+  d.setHours(0, 0, 0, 0);
+  if (granularity === "week") {
+    const dayOfWeek = (d.getDay() + 6) % 7; // Senin = 0
+    d.setDate(d.getDate() - dayOfWeek);
+  } else if (granularity === "month") {
+    d.setDate(1);
+  } else if (granularity === "quarter") {
+    d.setMonth(Math.floor(d.getMonth() / 3) * 3, 1);
+  }
+  return d;
+};
+
+const bucketEnd = (value, granularity) => {
+  const d = bucketStart(value, granularity);
+  if (granularity === "week") d.setDate(d.getDate() + 6);
+  else if (granularity === "month") d.setMonth(d.getMonth() + 1, 0);
+  else if (granularity === "quarter") d.setMonth(d.getMonth() + 3, 0);
+  return d;
+};
+
+const pickGranularity = (rows) => {
+  if (rows.length <= 1) return "day";
+  const first = new Date(rows[0].date);
+  const last = new Date(rows[rows.length - 1].date);
+  const spanDays = Math.round((last - first) / 86400000) + 1;
+
+  if (spanDays <= MAX_TREND_POINTS) return "day";
+  if (spanDays / 7 <= MAX_TREND_POINTS) return "week";
+  if (spanDays / 30.44 <= MAX_TREND_POINTS) return "month";
+  return "quarter";
+};
+
+const aggregateTrend = (rows, granularity) => {
+  if (granularity === "day") {
+    return rows.map((r) => ({ date: r.date, revenue: Number(r.revenue) || 0, entries: 1 }));
+  }
+
+  const buckets = new Map();
+  rows.forEach((r) => {
+    const key = toDateKey(bucketStart(r.date, granularity));
+    const bucket = buckets.get(key) || { date: key, revenue: 0, entries: 0 };
+    bucket.revenue += Number(r.revenue) || 0;
+    bucket.entries += 1;
+    buckets.set(key, bucket);
+  });
+
+  return Array.from(buckets.values()).sort((a, b) => (a.date < b.date ? -1 : 1));
+};
+
+const formatTrendTick = (value, granularity) => {
+  const d = new Date(value);
+  if (granularity === "month") {
+    return d.toLocaleDateString("id-ID", { month: "short", year: "2-digit" });
+  }
+  if (granularity === "quarter") {
+    return `Q${Math.floor(d.getMonth() / 3) + 1} '${String(d.getFullYear()).slice(-2)}`;
+  }
+  return d.toLocaleDateString("id-ID", { day: "2-digit", month: "short" });
+};
+
+const formatTrendPeriod = (value, granularity) => {
+  const start = new Date(value);
+  if (granularity === "day") {
+    return start.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  }
+  if (granularity === "month") {
+    return start.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
+  }
+  if (granularity === "quarter") {
+    return `Kuartal ${Math.floor(start.getMonth() / 3) + 1} ${start.getFullYear()}`;
+  }
+  const end = bucketEnd(value, "week");
+  return `${start.toLocaleDateString("id-ID", { day: "numeric", month: "short" })} – ${end.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}`;
+};
 
 const CustomTooltip = ({ active, payload }) => {
   if (active && payload && payload.length) {
@@ -67,6 +162,11 @@ export default function ExecutiveDashboard() {
   const [startDate, setStartDate] = useState(() => sessionStorage.getItem("exec_startDate") || "");
   const [endDate, setEndDate] = useState(() => sessionStorage.getItem("exec_endDate") || "");
   const [hoverDate, setHoverDate] = useState(null);
+  const [trendMode, setTrendMode] = useState(() => sessionStorage.getItem("exec_trendMode") || "auto");
+
+  useEffect(() => {
+    sessionStorage.setItem("exec_trendMode", trendMode);
+  }, [trendMode]);
 
   useEffect(() => {
     sessionStorage.setItem("exec_companyId", selectedCompanyId);
@@ -80,7 +180,13 @@ export default function ExecutiveDashboard() {
   useEffect(() => {
     if (isRole("owner", "super_admin")) {
       companiesAPI.list()
-        .then(res => setCompanies(res.data.data))
+        .then(res => {
+          const list = excludeTestCompanies(res.data.data);
+          setCompanies(list);
+          // Pilihan tersimpan bisa menunjuk perusahaan tester yang kini
+          // disembunyikan — backend membalas 403 kalau tetap dikirim.
+          setSelectedCompanyId(prev => (prev && !list.some(c => c.id === prev) ? "" : prev));
+        })
         .catch(console.error);
     }
   }, [isRole]);
@@ -111,6 +217,14 @@ export default function ExecutiveDashboard() {
     
     fetchDashboard();
   }, [selectedCompanyId, startDate, endDate, isRole]);
+
+  const trend = useMemo(() => {
+    const rows = stats?.sales_trend || [];
+    if (!rows.length) return { data: [], granularity: "day", auto: "day" };
+    const auto = pickGranularity(rows);
+    const granularity = trendMode === "auto" ? auto : trendMode;
+    return { data: aggregateTrend(rows, granularity), granularity, auto };
+  }, [stats, trendMode]);
 
   if (loading) return <DashboardSkeleton />;
   if (error)
@@ -401,30 +515,56 @@ export default function ExecutiveDashboard() {
 
       {/* SALES TREND LINE CHART */}
       <div className="card p-6 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl flex flex-col shadow-sm">
-        <div className="flex items-center gap-2 mb-2">
-          <TrendingUp className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
-          <h3 className="font-bold text-slate-900 dark:text-white text-lg">Tren Uang Masuk (Cash In) Harian</h3>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
+            <h3 className="font-bold text-slate-900 dark:text-white text-lg">
+              Tren Uang Masuk (Cash In) {GRANULARITY_LABEL[trend.granularity]}
+            </h3>
+          </div>
+
+          {/* PILIHAN RENTANG TITIK GRAFIK */}
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+            {["auto", "day", "week", "month"].map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setTrendMode(mode)}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
+                  trendMode === mode
+                    ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                }`}
+              >
+                {mode === "auto" ? "Otomatis" : GRANULARITY_LABEL[mode]}
+              </button>
+            ))}
+          </div>
         </div>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Berdasarkan tanggal masuknya uang di riwayat pembayaran (Status Verified).</p>
-        
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+          Berdasarkan tanggal masuknya uang di riwayat pembayaran (Status Verified).
+          {trendMode === "auto" && trend.auto !== "day" && (
+            <> Rentang panjang diringkas otomatis menjadi {GRANULARITY_LABEL[trend.auto].toLowerCase()} agar grafik tetap terbaca.</>
+          )}
+        </p>
+
         <div className="w-full h-[300px]">
-          {stats?.sales_trend && stats.sales_trend.length > 0 ? (
+          {trend.data.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
-                data={stats.sales_trend}
+                data={trend.data}
                 margin={{ top: 5, right: 20, left: 20, bottom: 5 }}
               >
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#334155' : '#e2e8f0'} />
-                <XAxis 
-                  dataKey="date" 
-                  tickFormatter={(val) => {
-                    const d = new Date(val);
-                    return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
-                  }}
+                <XAxis
+                  dataKey="date"
+                  tickFormatter={(val) => formatTrendTick(val, trend.granularity)}
                   tick={{ fill: theme === 'dark' ? '#94a3b8' : '#475569', fontSize: 12 }}
                   axisLine={false}
                   tickLine={false}
                   dy={10}
+                  interval="preserveStartEnd"
+                  minTickGap={32}
                 />
                 <YAxis 
                   tickFormatter={(val) => {
@@ -441,25 +581,31 @@ export default function ExecutiveDashboard() {
                   cursor={{ stroke: theme === 'dark' ? '#334155' : '#e2e8f0', strokeWidth: 2, strokeDasharray: '5 5' }}
                   content={({ active, payload, label }) => {
                     if (active && payload && payload.length) {
-                      const dateStr = new Date(label).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                      const periodStr = formatTrendPeriod(label, trend.granularity);
+                      const entries = payload[0].payload?.entries ?? 0;
                       return (
                         <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3 rounded-xl shadow-lg">
-                          <p className="font-semibold text-slate-500 dark:text-slate-400 mb-1">{dateStr}</p>
+                          <p className="font-semibold text-slate-500 dark:text-slate-400 mb-1">{periodStr}</p>
                           <p className="font-bold text-emerald-600 dark:text-emerald-400 text-lg">
                             {formatCurrency(payload[0].value)}
                           </p>
+                          {trend.granularity !== 'day' && (
+                            <p className="text-xs text-slate-400 mt-1">{entries} hari ada pemasukan</p>
+                          )}
                         </div>
                       );
                     }
                     return null;
                   }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="revenue" 
-                  stroke="var(--color-primary, #3b82f6)" 
-                  strokeWidth={4}
-                  dot={{ r: 4, strokeWidth: 2, fill: 'white' }}
+                <Line
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="var(--color-primary, #3b82f6)"
+                  strokeWidth={3}
+                  // Titik disembunyikan saat datanya rapat; kalau tidak, garis
+                  // tertutup lingkaran dan bentuk trennya hilang.
+                  dot={trend.data.length <= 20 ? { r: 4, strokeWidth: 2, fill: 'white' } : false}
                   activeDot={{ r: 6, strokeWidth: 0, fill: 'var(--color-primary, #3b82f6)' }}
                 />
               </LineChart>
