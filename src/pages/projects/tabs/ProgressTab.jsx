@@ -15,6 +15,8 @@ import {
 } from "../../../utils/helpers";
 import { useAuth } from "../../../context/AuthContext";
 import { CustomDatePicker } from "../../../components/ui";
+import BillPaymentModal from "./components/BillPaymentModal";
+import { isBillPayable } from "./components/billing";
 import {
   Hammer,
   Receipt,
@@ -39,6 +41,14 @@ const EMPTY_BUILD_FORM = {
 };
 const EMPTY_PAY_FORM = { jumlah_bayar: "", tanggal_bayar: "", catatan: "" };
 
+const STATUS_SI = {
+  menunggu: { label: "Menunggu verifikasi Keuangan", cls: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300" },
+  dijurnal: { label: "Diterima Keuangan", cls: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300" },
+  ditolak: { label: "Ditolak Keuangan", cls: "bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300" },
+  gagal_validasi: { label: "Perlu dilengkapi", cls: "bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300" },
+  perlu_ditinjau: { label: "Sedang ditinjau Keuangan", cls: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300" },
+};
+
 export default function ProgressTab({ unit, assignment, onUpdate }) {
   const { isRole } = useAuth();
   const { toast } = useToast();
@@ -53,7 +63,10 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
 
   // Dana (Pembayaran)
   const [historyDana, setHistoryDana] = useState([]);
-  const [payPct, setPayPct] = useState(0);
+  // Tagihan dari Keuangan SI. billingEnabled=false berarti input pembayaran lama dipakai.
+  const [bills, setBills] = useState([]);
+  const [billingEnabled, setBillingEnabled] = useState(false);
+  const [billModalOpen, setBillModalOpen] = useState(false);
 
   // Modals
   const [buildModal, setBuildModal] = useState({
@@ -100,10 +113,18 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
   const tenorBulan = assignment?.pembayaran?.tenor_bulan || 0;
   const targetTagihan = isKpr ? dp : hargaTotal;
   const kprAmount = isKpr ? Math.max(0, hargaTotal - dp) : 0;
-  const totalDibayar = isKpr 
-    ? Math.max(0, (assignment?.pembayaran?.total_dibayar || 0) - kprAmount) 
-    : (assignment?.pembayaran?.total_dibayar || 0);
+  const rawTotalDibayar = assignment?.pembayaran?.total_dibayar || 0;
+  // Sebelum kontrak SI, total_dibayar KPR memuat auto-injeksi pencairan sebesar kprAmount.
+  // Sesudahnya total hanya kas yang dijurnal SI, termasuk pencairan KPR yang benar-benar cair.
+  const hasSiContract = assignment?.pembayaran?.si_contract_total != null;
+  const kprCairSi = historyDana
+    .filter((p) => p.si_jadwal_id && p.status_si === "dijurnal" && bills.find((b) => b.id === p.si_jadwal_id)?.jenis === "pencairan_kpr")
+    .reduce((sum, p) => sum + Number(p.jumlah_bayar || 0), 0);
+  const totalDibayar = isKpr
+    ? Math.max(0, rawTotalDibayar - (hasSiContract ? kprCairSi : kprAmount))
+    : rawTotalDibayar;
   const sisaTagihan = targetTagihan - totalDibayar;
+  const payPct = targetTagihan > 0 ? Math.min(100, Math.max(0, (totalDibayar / targetTagihan) * 100)) : 0;
 
   useEffect(() => {
     let isMounted = true;
@@ -111,11 +132,12 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
       setLoading(true);
       try {
         // Fetch everything in parallel
-        const [rProg, rTime, rDocsRes, rPayRes] = await Promise.allSettled([
+        const [rProg, rTime, rDocsRes, rPayRes, rBillsRes] = await Promise.allSettled([
           progressAPI.list({ unitId: unit.id }),
           timelinesAPI.list({ unitId: unit.id }),
           documentationAPI.list({ unitId: unit.id }),
-          assignment ? assignmentsAPI.getPayments(assignment.id) : Promise.resolve({ data: { data: [] } })
+          assignment ? assignmentsAPI.getPayments(assignment.id) : Promise.resolve({ data: { data: [] } }),
+          assignment ? assignmentsAPI.getBills(assignment.id) : Promise.resolve({ data: { data: [] } })
         ]);
 
         const filteredFisik = (rProg.status === 'fulfilled' ? rProg.value.data?.data || [] : [])
@@ -147,14 +169,15 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
         }
         
         let fDana = rPayRes.status === 'fulfilled' ? rPayRes.value.data?.data || [] : [];
-        let pPct = targetTagihan > 0 ? Math.min(100, (totalDibayar / targetTagihan) * 100) : 0;
 
         if (isMounted) {
           setHistoryFisik(filteredFisik);
           setTimelines(unitTimelines);
           setFisikPct(Number(unit.progress_percentage || 0));
           setHistoryDana(fDana);
-          setPayPct(Math.min(pPct, 100));
+          const billsBody = rBillsRes.status === 'fulfilled' ? rBillsRes.value.data : null;
+          setBills(billsBody?.data || []);
+          setBillingEnabled(billsBody?.billing_enabled === true);
           setDocsMap(dMap);
         }
       } catch (err) {
@@ -498,6 +521,9 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
 
   if (loading) return <PageLoader />;
 
+  const billingMode = billingEnabled;
+  const hasPayableBill = bills.some(isBillPayable);
+
   const selectedTahap = buildForm.tahap;
   const otherFisikForSelectedTahap = historyFisik.filter(
     (p) => p.tahap === selectedTahap &&
@@ -773,6 +799,10 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                 historyDana.map((p, idx) => {
                   const isRefund = Number(p.jumlah_bayar) < 0;
                   const isKprInject = p.is_auto_inject === true || p.catatan === 'Auto-injeksi Pencairan KPR' || p.catatan === 'Auto-injeksi Pencairan KPR otomatis oleh sistem';
+                  // Pengajuan bertagihan dikelola Keuangan SI: tidak bisa diedit/dihapus dari Track.
+                  const isBillPayment = Boolean(p.si_jadwal_id);
+                  const statusSi = isBillPayment ? STATUS_SI[p.status_si] : null;
+                  const paidBill = isBillPayment ? bills.find((b) => b.id === p.si_jadwal_id) : null;
                   
                   let themeClasses = "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50";
                   let noteClasses = "bg-slate-100/50 text-slate-600 dark:bg-slate-800/50 dark:text-slate-400";
@@ -795,7 +825,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                           <p className={`font-bold text-base ${isRefund ? "text-rose-700 dark:text-rose-400" : (!isKprInject ? "text-emerald-700 dark:text-emerald-400" : "text-slate-900 dark:text-white")}`}>
                             {formatCurrency(p.jumlah_bayar)}
                           </p>
-                        {isRole('admin') && !isKprInject && (
+                        {isRole('admin') && !isKprInject && !isBillPayment && (
                            <div className="flex gap-1 transition-opacity">
                              <button
                                onClick={() => handleOpenEditPayment(p)}
@@ -831,6 +861,15 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                           <span>•</span>
                           <span className="truncate">Oleh: {p.dicatat_oleh || "Sistem"}</span>
                         </div>
+                        {isBillPayment && (
+                          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs">
+                            {paidBill && <span className="text-slate-500">Tagihan ke-{paidBill.no_urut}</span>}
+                            <span className={`rounded-md px-2 py-0.5 font-semibold ${statusSi?.cls || "bg-slate-100 text-slate-700"}`}>
+                              {statusSi?.label || p.status_si}
+                            </span>
+                            {p.alasan_si && <span className="w-full text-rose-700 dark:text-rose-300">Alasan: {p.alasan_si}</span>}
+                          </div>
+                        )}
                         {p.catatan && (
                           <p
                             className={`text-xs mt-2 p-2 rounded-lg italic break-words ${noteClasses}`}
@@ -1129,7 +1168,9 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
           <button
             onClick={() => {
               setShowTransactionTypeModal(false);
-              if (sisaTagihan > 0) {
+              if (billingMode) {
+                if (hasPayableBill) setBillModalOpen(true);
+              } else if (sisaTagihan > 0) {
                 setPayForm({
                   ...EMPTY_PAY_FORM,
                   tanggal_bayar: new Date().toISOString().split("T")[0],
@@ -1137,7 +1178,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                 setPayModal({ open: true, mode: "create" });
               }
             }}
-            disabled={sisaTagihan <= 0}
+            disabled={billingMode ? !hasPayableBill : sisaTagihan <= 0}
             className="flex items-start gap-4 p-5 rounded-2xl border-2 border-slate-100 dark:border-slate-800 hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-left transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
           >
             <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
@@ -1145,14 +1186,22 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
             </div>
             <div>
               <h4 className="font-bold text-slate-900 dark:text-white text-lg">Pembayaran Masuk</h4>
-              <p className="text-sm text-slate-500 mt-1">Catat pembayaran angsuran, DP, atau pelunasan dari customer.</p>
+              <p className="text-sm text-slate-500 mt-1">
+                {billingMode
+                  ? (hasPayableBill
+                      ? "Pilih tagihan dari Keuangan, lalu unggah bukti transfer customer."
+                      : bills.length === 0
+                        ? "Belum ada tagihan dari Keuangan untuk unit ini."
+                        : "Tidak ada tagihan yang bisa dibayar. Tagihan lunas atau sedang diverifikasi Keuangan.")
+                  : "Catat pembayaran angsuran, DP, atau pelunasan dari customer."}
+              </p>
             </div>
           </button>
           
           <button
             onClick={() => {
               setShowTransactionTypeModal(false);
-              if (totalDibayar > 0) {
+              if (!billingMode && totalDibayar > 0) {
                 setPayForm({
                   ...EMPTY_PAY_FORM,
                   tanggal_bayar: new Date().toISOString().split("T")[0],
@@ -1160,7 +1209,7 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
                 setPayModal({ open: true, mode: "create-refund" });
               }
             }}
-            disabled={totalDibayar <= 0}
+            disabled={billingMode || totalDibayar <= 0}
             className="flex items-start gap-4 p-5 rounded-2xl border-2 border-slate-100 dark:border-slate-800 hover:border-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 text-left transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
           >
             <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 dark:bg-rose-900/50 dark:text-rose-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
@@ -1168,7 +1217,11 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
             </div>
             <div>
               <h4 className="font-bold text-slate-900 dark:text-white text-lg">Pengembalian Dana</h4>
-              <p className="text-sm text-slate-500 mt-1">Lakukan refund dana kepada customer jika terjadi pembatalan atau kelebihan bayar.</p>
+              <p className="text-sm text-slate-500 mt-1">
+                {billingMode
+                  ? "Pengembalian dana dikelola Keuangan melalui koreksi jurnal."
+                  : "Lakukan refund dana kepada customer jika terjadi pembatalan atau kelebihan bayar."}
+              </p>
             </div>
           </button>
         </div>
@@ -1323,6 +1376,21 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
           </div>
         </form>
       </Modal>
+
+      {assignment && billingMode && (
+        <BillPaymentModal
+          open={billModalOpen}
+          onClose={() => setBillModalOpen(false)}
+          onSubmitted={() => {
+            setBillModalOpen(false);
+            setRefreshKey((prev) => prev + 1);
+            if (onUpdate) onUpdate();
+          }}
+          assignmentId={assignment.id}
+          unit={unit}
+          bills={bills}
+        />
+      )}
 
       {/* LIGHTBOX */}
       <Lightbox item={lightbox} onClose={() => setLightbox(null)} />
