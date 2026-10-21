@@ -47,6 +47,7 @@ const STATUS_SI = {
   ditolak: { label: "Ditolak Keuangan", cls: "bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300" },
   gagal_validasi: { label: "Perlu dilengkapi", cls: "bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300" },
   perlu_ditinjau: { label: "Sedang ditinjau Keuangan", cls: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300" },
+  dikoreksi: { label: "Dikoreksi Keuangan (jurnal dibalik)", cls: "bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-200" },
 };
 
 export default function ProgressTab({ unit, assignment, onUpdate }) {
