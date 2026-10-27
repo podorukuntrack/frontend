@@ -154,7 +154,9 @@ export default function BillPaymentModal({ open, onClose, onSubmitted, assignmen
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => {
               e.preventDefault();
-              setFiles((prev) => [...prev, ...Array.from(e.dataTransfer.files)]);
+              // dataTransfer tidak bisa dibaca lagi setelah event selesai.
+              const dropped = Array.from(e.dataTransfer.files ?? []).filter((f) => f.type.startsWith("image/"));
+              if (dropped.length) setFiles((prev) => [...prev, ...dropped]);
             }}
           >
             <ImagePlus className="w-8 h-8 text-slate-300 mx-auto mb-2" />
@@ -167,8 +169,11 @@ export default function BillPaymentModal({ open, onClose, onSubmitted, assignmen
             accept="image/*"
             className="hidden"
             onChange={(e) => {
-              setFiles((prev) => [...prev, ...Array.from(e.target.files)]);
+              // Salin daftar file sebelum input dikosongkan; updater setFiles bisa
+              // berjalan belakangan dan saat itu e.target.files sudah kosong.
+              const picked = Array.from(e.target.files ?? []);
               e.target.value = "";
+              if (picked.length) setFiles((prev) => [...prev, ...picked]);
             }}
           />
           {files.length > 0 && (
