@@ -7,7 +7,7 @@ import { formatCurrency, formatDate, extractError } from "../../../../utils/help
 import { billLabel, isBillPayable } from "./billing";
 
 const today = () => new Date().toISOString().split("T")[0];
-const emptyForm = () => ({ si_jadwal_id: "", tanggal_bayar: today(), rekening_tujuan: "", catatan: "" });
+const emptyForm = () => ({ si_jadwal_id: "", tanggal_bayar: today(), catatan: "" });
 
 /**
  * Pengajuan pembayaran berdasarkan tagihan SI. Nominal diambil dari sisa tagihan
@@ -62,7 +62,6 @@ export default function BillPaymentModal({ open, onClose, onSubmitted, assignmen
     e.preventDefault();
     if (!selected || !isBillPayable(selected)) return toast("Pilih tagihan yang masih bisa dibayar", "error");
     if (!form.tanggal_bayar) return toast("Tanggal pembayaran wajib diisi", "error");
-    if (!form.rekening_tujuan.trim()) return toast("Rekening tujuan wajib diisi", "error");
     if (files.length === 0) return toast("Bukti pembayaran wajib diunggah", "error");
 
     setSaving(true);
@@ -71,7 +70,6 @@ export default function BillPaymentModal({ open, onClose, onSubmitted, assignmen
       const payload = {
         si_jadwal_id: selected.id,
         tanggal_bayar: form.tanggal_bayar,
-        rekening_tujuan: form.rekening_tujuan.trim(),
         bukti_pembayaran: bukti,
         ...(form.catatan.trim() ? { catatan: form.catatan.trim() } : {}),
       };
@@ -135,21 +133,6 @@ export default function BillPaymentModal({ open, onClose, onSubmitted, assignmen
           <div className="z-[100]">
             <CustomDatePicker value={form.tanggal_bayar} onChange={(v) => setForm((f) => ({ ...f, tanggal_bayar: v }))} />
           </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="label" htmlFor="bill-account">Rekening Tujuan</label>
-          <input
-            id="bill-account"
-            type="text"
-            required
-            maxLength={30}
-            inputMode="numeric"
-            className="input"
-            placeholder="Nomor rekening penerima"
-            value={form.rekening_tujuan}
-            onChange={(e) => setForm((f) => ({ ...f, rekening_tujuan: e.target.value }))}
-          />
         </div>
 
         <div className="space-y-1.5">
