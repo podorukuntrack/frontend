@@ -745,7 +745,11 @@ export default function AnalyticsDrilldownPage() {
                   <tr 
                     key={i} 
                     className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group cursor-pointer"
-                    onClick={() => navigate(`/projects/${row.project_id}/clusters/${row.cluster_id}/units/${row.unit_id}`)}
+                    onClick={() => navigate(
+                      `/projects/${row.project_id}/clusters/${row.cluster_id}/units/${row.unit_id}`,
+                      // Penanda asal: halaman unit kembali ke drilldown ini, bukan ke daftar unit project.
+                      { state: { fromAnalytics: { title: cfg.title, returnTo: location.pathname + location.search } } }
+                    )}
                   >
                     <td className="px-5 py-4">
                       <div className="font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">

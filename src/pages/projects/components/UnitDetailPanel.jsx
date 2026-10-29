@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, UserCheck, CalendarDays, BarChart3, Key, ShieldCheck, Pencil, Home } from 'lucide-react';
 import { unitsAPI, assignmentsAPI, timelinesAPI, progressAPI, handoversAPI, retentionsAPI, documentationAPI } from '../../../api/services';
 import { PageLoader, Lightbox } from '../../../components/ui';
@@ -20,11 +20,27 @@ export default function UnitDetailPanel({ unit, cluster, project }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { isRole } = useAuth();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'assignment';
-  
+
+  // Diisi kalau unit dibuka dari halaman drilldown analytics (dashboard).
+  const fromAnalytics = location.state?.fromAnalytics;
+
   const setActiveTab = (tabId) => {
-    setSearchParams({ tab: tabId }, { replace: true });
+    // state ikut dibawa supaya penanda asal tidak hilang saat ganti tab.
+    setSearchParams({ tab: tabId }, { replace: true, state: location.state });
+  };
+
+  const goBack = () => {
+    if (fromAnalytics) {
+      // Mundur lewat history: drilldown pulih dengan filternya, dan tombol back
+      // di sana tetap mengarah ke dashboard.
+      if (location.key !== 'default') navigate(-1);
+      else navigate(fromAnalytics.returnTo || '/');
+      return;
+    }
+    navigate(`/projects/${project.id}/clusters/${cluster.id}/units`);
   };
   const [loading, setLoading] = useState(false);
   const [panelRefreshKey, setPanelRefreshKey] = useState(0);
@@ -162,8 +178,8 @@ export default function UnitDetailPanel({ unit, cluster, project }) {
     <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col min-h-[80vh] overflow-hidden">
       {/* HEADER PANEL */}
       <div className="p-6 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
-        <button onClick={() => navigate(`/projects/${project.id}/clusters/${cluster.id}/units`)} className="btn-ghost w-fit text-slate-500 hover:text-slate-900 dark:hover:text-white -ml-2 mb-4">
-          <ArrowLeft className="w-4 h-4 mr-1" /> Kembali ke Daftar Unit
+        <button type="button" onClick={goBack} className="btn-ghost w-fit text-slate-500 hover:text-slate-900 dark:hover:text-white -ml-2 mb-4">
+          <ArrowLeft className="w-4 h-4 mr-1" /> {fromAnalytics ? `Kembali ke ${fromAnalytics.title}` : 'Kembali ke Daftar Unit'}
         </button>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
            <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">

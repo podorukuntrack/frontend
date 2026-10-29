@@ -68,10 +68,17 @@ export default function Sidebar() {
     ];
   }
 
-  const isItemActive = (item) =>
-    item.match.some((path) =>
+  // Unit yang dibuka dari drilldown analytics tetap bagian dari alur Dashboard,
+  // jadi menu Dashboard yang menyala, bukan Proyek.
+  const inDashboardFlow =
+    location.pathname.startsWith("/analytics") || Boolean(location.state?.fromAnalytics);
+
+  const isItemActive = (item) => {
+    if (inDashboardFlow) return item.to === "/";
+    return item.match.some((path) =>
       path === "/" ? location.pathname === "/" : location.pathname.startsWith(path)
     );
+  };
 
   const renderNavItems = (items) =>
     items.map((item) => {
