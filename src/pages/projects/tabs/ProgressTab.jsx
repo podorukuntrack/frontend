@@ -16,6 +16,7 @@ import {
 import { useAuth } from "../../../context/AuthContext";
 import { CustomDatePicker } from "../../../components/ui";
 import BillPaymentModal from "./components/BillPaymentModal";
+import Foto360Link from "./components/Foto360Link";
 import { isBillPayable } from "./components/billing";
 import {
   Hammer,
@@ -538,11 +539,14 @@ export default function ProgressTab({ unit, assignment, onUpdate }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-700 pb-4">
-        <BarChart3 className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-        <h3 className="text-xl font-bold text-slate-900 dark:text-white">
-          Progress & Dokumentasi
-        </h3>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-700 pb-4">
+        <div className="flex items-center gap-3">
+          <BarChart3 className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+            Progress & Dokumentasi
+          </h3>
+        </div>
+        <Foto360Link unit={unit} canEdit={isRole('admin')} onSaved={onUpdate} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

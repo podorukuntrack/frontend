@@ -36,7 +36,7 @@ export default function RetentionTab({ unit }) {
 
   const [modal, setModal] = useState({ open: false, mode: 'create', data: null });
   const [confirm, setConfirm] = useState({ open: false, id: null });
-  const [form, setForm] = useState({ due_date: '', notes: '', status: 'active', linkFoto360: '' });
+  const [form, setForm] = useState({ due_date: '', notes: '', status: 'active' });
 
   const [startDate, setStartDate] = useState('');
   const [durationDays, setDurationDays] = useState(100);
@@ -80,7 +80,6 @@ export default function RetentionTab({ unit }) {
         dueDate: new Date(form.due_date).toISOString(),
         status: 'active', // Default active, automatically release on expired
         notes: form.notes || null,
-        linkFoto360: form.linkFoto360 || null,
       };
       if (modal.mode === 'create') {
         await retentionsAPI.create(payload);
@@ -116,7 +115,7 @@ export default function RetentionTab({ unit }) {
     const today = new Date().toISOString().split('T')[0];
     setStartDate(today);
     setDurationDays(100);
-    setForm({ due_date: '', notes: '', status: 'active', linkFoto360: '' });
+    setForm({ due_date: '', notes: '', status: 'active' });
     setModal({ open: true, mode: 'create', data: null });
   };
 
@@ -136,10 +135,13 @@ export default function RetentionTab({ unit }) {
       due_date: dueDate ? dueDate.split('T')[0] : '',
       notes: r.notes || '',
       status: r.status || 'active',
-      linkFoto360: r.link_foto_360 ?? r.linkFoto360 ?? '',
     });
     setModal({ open: true, mode: 'edit', data: r });
   };
+
+  const link360 = (r) => (unit.link_foto_360 !== undefined
+    ? unit.link_foto_360
+    : (r.link_foto_360 ?? r.linkFoto360)) || null;
 
   if (loading) return <PageLoader />;
 
@@ -163,7 +165,7 @@ export default function RetentionTab({ unit }) {
           <ShieldCheck className="w-12 h-12 text-slate-300 mx-auto mb-3" />
           <p className="text-slate-500 font-medium mb-1">Belum ada data garansi/retensi</p>
           <p className="text-sm text-slate-400">
-            Setelah serah terima selesai, tambahkan data masa garansi dan kaitkan link foto 360 unit ini.
+            Setelah serah terima selesai, tambahkan data masa garansi unit ini. Link foto 360 diisi di tab Progress &amp; Docs.
           </p>
         </div>
       ) : (
@@ -250,12 +252,13 @@ export default function RetentionTab({ unit }) {
                     </div>
                   )}
 
-                  {/* Link Foto 360 */}
-                  {(r.link_foto_360 ?? r.linkFoto360) && (
+                  {/* Link Foto 360: milik unit (diisi di tab Progress); link lama di retensi
+                      hanya dipakai bila backend belum mengirim link_foto_360 unit. */}
+                  {link360(r) && (
                     <div className="mb-4">
                       <span className="font-semibold block mb-1.5 text-xs uppercase tracking-wide text-slate-400">Foto 360 Unit</span>
                       <a
-                        href={r.link_foto_360 ?? r.linkFoto360}
+                        href={link360(r)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 rounded-xl border border-indigo-100 dark:border-indigo-800 text-sm font-semibold transition-all shadow-sm active:scale-95"
@@ -332,16 +335,6 @@ export default function RetentionTab({ unit }) {
             />
           </div>
 
-          <div className="space-y-1.5">
-            <label className="label">Link Foto 360 (Opsional)</label>
-            <input
-              type="url"
-              className="input"
-              value={form.linkFoto360}
-              onChange={e => setForm({ ...form, linkFoto360: e.target.value })}
-              placeholder="https://example.com/360-photo-link"
-            />
-          </div>
 
 
 
