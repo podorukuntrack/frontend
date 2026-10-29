@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { dashboardAPI } from "../../api/services";
 import { useAuth } from "../../context/AuthContext";
 import { PageLoader } from "../../components/ui";
@@ -51,7 +51,15 @@ const metricConfig = {
 export default function AnalyticsDrilldownPage() {
   const { metric } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  // Datang dari dashboard: mundur lewat history supaya dashboard pulih persis
+  // (filter, posisi). Link langsung / tab baru: tidak ada history in-app, ke "/".
+  const goBack = () => {
+    if (location.state?.fromDashboard && location.key !== "default") navigate(-1);
+    else navigate("/");
+  };
   const urlCompanyId = searchParams.get("companyId");
   const urlStartDate = searchParams.get("startDate");
   const urlEndDate = searchParams.get("endDate");
@@ -76,18 +84,45 @@ export default function AnalyticsDrilldownPage() {
   
   const [hoverDate, setHoverDate] = useState(null);
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterTipePembayaran, setFilterTipePembayaran] = useState("");
-  const [filterStatusPembangunan, setFilterStatusPembangunan] = useState("");
-  const [filterStatusPenjualan, setFilterStatusPenjualan] = useState("");
-  const [filterStatusRetensi, setFilterStatusRetensi] = useState("");
-  const [filterProject, setFilterProject] = useState("");
-  const [filterCluster, setFilterCluster] = useState("");
   const [showFilter, setShowFilter] = useState(false);
 
-  useEffect(() => {
-    setFilterCluster("");
-  }, [filterProject]);
+  /**
+   * Ubah beberapa query param sekaligus. Nilai kosong menghapus key-nya.
+   * Satu panggilan per aksi: setSearchParams tidak merangkai beberapa
+   * panggilan dalam satu render, jadi hanya yang terakhir yang tersimpan.
+   * - replace: ganti filter tidak menambah entri history.
+   * - state ikut dibawa supaya penanda fromDashboard tidak hilang.
+   */
+  const patchParams = (changes) => {
+    const newParams = new URLSearchParams(searchParams);
+    Object.entries(changes).forEach(([key, value]) => {
+      if (value) newParams.set(key, value);
+      else newParams.delete(key);
+    });
+    setSearchParams(newParams, { replace: true, state: location.state });
+  };
+
+  // Filter tabel disimpan di URL, jadi tetap ada saat user buka detail unit
+  // lalu kembali, refresh, atau membagikan link.
+  const searchTerm = searchParams.get("q") || "";
+  const filterTipePembayaran = searchParams.get("tipe") || "";
+  const filterStatusPembangunan = searchParams.get("bangunan") || "";
+  const filterStatusPenjualan = searchParams.get("penjualan") || "";
+  const filterStatusRetensi = searchParams.get("retensi") || "";
+  const filterProject = searchParams.get("project") || "";
+  const filterCluster = searchParams.get("cluster") || "";
+
+  const setSearchTerm = (v) => patchParams({ q: v });
+  const setFilterTipePembayaran = (v) => patchParams({ tipe: v });
+  const setFilterStatusPembangunan = (v) => patchParams({ bangunan: v });
+  const setFilterStatusPenjualan = (v) => patchParams({ penjualan: v });
+  const setFilterStatusRetensi = (v) => patchParams({ retensi: v });
+  // Cluster milik project, jadi ganti project selalu mengosongkan cluster.
+  const setFilterProject = (v) => patchParams({ project: v, cluster: "" });
+  const setFilterCluster = (v) => patchParams({ cluster: v });
+  const resetUnitFilters = () =>
+    patchParams({ project: "", cluster: "", penjualan: "", bangunan: "", retensi: "" });
+
   /**
    * Updates a filter value in both SessionStorage and URL Query Parameters.
    * This guarantees cross-page state persistence without requiring a complex Redux/Zustand store.
@@ -95,17 +130,8 @@ export default function AnalyticsDrilldownPage() {
    * @param {string} value - The new filter value
    */
   const updateFilter = (key, value) => {
-    // Save to sessionStorage
     sessionStorage.setItem(`exec_${key}`, value);
-    
-    // Update URL params
-    const newParams = new URLSearchParams(searchParams);
-    if (value) {
-      newParams.set(key, value);
-    } else {
-      newParams.delete(key);
-    }
-    setSearchParams(newParams);
+    patchParams({ [key]: value });
   };
 
   useEffect(() => {
@@ -274,7 +300,17 @@ export default function AnalyticsDrilldownPage() {
   }, 0);
 
   if (loading) return <PageLoader />;
-  if (error) return <div className="text-rose-500 p-4 bg-rose-50 rounded-xl">{error}</div>;
+  if (error) return (
+    <div className="space-y-4 max-w-7xl mx-auto">
+      <button
+        onClick={goBack}
+        className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-sm transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" /> Kembali ke dashboard
+      </button>
+      <div className="text-rose-500 p-4 bg-rose-50 rounded-xl">{error}</div>
+    </div>
+  );
   if (!cfg) return null;
 
   const Icon = cfg.icon;
@@ -283,11 +319,15 @@ export default function AnalyticsDrilldownPage() {
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <button 
-            onClick={() => navigate(-1)} 
-            className="p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-500 transition-colors"
+          <button
+            type="button"
+            onClick={goBack}
+            aria-label="Kembali ke dashboard"
+            title="Kembali ke dashboard"
+            className="group inline-flex items-center gap-1.5 p-2 sm:pr-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5 transition-transform group-hover:-translate-x-0.5" />
+            <span className="hidden sm:inline">Dashboard</span>
           </button>
           <div className="flex items-center gap-3">
             <div className={`w-10 h-10 ${cfg.bg} rounded-xl flex items-center justify-center shadow-sm`}>
@@ -565,13 +605,7 @@ export default function AnalyticsDrilldownPage() {
 
                     <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-2">
                       <button 
-                        onClick={() => {
-                          setFilterProject("");
-                          setFilterCluster("");
-                          setFilterStatusPenjualan("");
-                          setFilterStatusPembangunan("");
-                          setFilterStatusRetensi("");
-                        }}
+                        onClick={resetUnitFilters}
                         className="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
                       >
                         Reset
@@ -633,13 +667,7 @@ export default function AnalyticsDrilldownPage() {
             )}
             
             <button 
-              onClick={() => {
-                setFilterProject("");
-                setFilterCluster("");
-                setFilterStatusPenjualan("");
-                setFilterStatusPembangunan("");
-                setFilterStatusRetensi("");
-              }}
+              onClick={resetUnitFilters}
               className="text-xs font-bold text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 underline ml-2 transition-colors"
             >
               Hapus Semua

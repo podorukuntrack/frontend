@@ -120,7 +120,7 @@ export default function DashboardPage() {
           <div 
             key={s.label} 
             onClick={() => {
-              if (s.metricPath) navigate(`/analytics/${s.metricPath}`);
+              if (s.metricPath) navigate(`/analytics/${s.metricPath}`, { state: { fromDashboard: true } });
               else if (s.path) navigate(s.path);
             }}
             className="card-hover p-6 flex flex-col justify-between border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/50 rounded-2xl relative overflow-hidden group cursor-pointer"
