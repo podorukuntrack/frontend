@@ -411,7 +411,7 @@ export default function ExecutiveDashboard() {
           <div 
             onClick={() => {
               const query = selectedCompanyId ? `?companyId=${selectedCompanyId}` : '';
-              navigate(`/analytics/revenue${query}`);
+              navigate(`/analytics/revenue${query}`, { state: { fromDashboard: true } });
             }}
             className="card-hover p-6 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl relative overflow-hidden group cursor-pointer shadow-sm hover:shadow-md transition-all duration-300"
           >
@@ -446,7 +446,7 @@ export default function ExecutiveDashboard() {
                     if (selectedCompanyId) queryParams.set("companyId", selectedCompanyId);
                     if (startDate) queryParams.set("startDate", startDate);
                     if (endDate) queryParams.set("endDate", endDate);
-                    navigate(`/analytics/${s.metricPath}?${queryParams.toString()}`);
+                    navigate(`/analytics/${s.metricPath}?${queryParams.toString()}`, { state: { fromDashboard: true } });
                   }
                 }}
                 className={`card-hover p-5 border ${s.borderColor} bg-white dark:bg-slate-900 rounded-2xl relative overflow-hidden group cursor-pointer shadow-sm hover:shadow-md transition-all duration-300`}
@@ -486,7 +486,7 @@ export default function ExecutiveDashboard() {
                     if (selectedCompanyId) queryParams.set("companyId", selectedCompanyId);
                     if (startDate) queryParams.set("startDate", startDate);
                     if (endDate) queryParams.set("endDate", endDate);
-                    navigate(`/analytics/${s.metricPath}?${queryParams.toString()}`);
+                    navigate(`/analytics/${s.metricPath}?${queryParams.toString()}`, { state: { fromDashboard: true } });
                   }
                 }}
                 className={`card-hover p-6 flex-1 border ${s.borderColor} bg-white dark:bg-slate-900 rounded-2xl relative overflow-hidden group cursor-pointer flex flex-col justify-center shadow-sm hover:shadow-md transition-all duration-300`}
@@ -652,7 +652,7 @@ export default function ExecutiveDashboard() {
                     barSize={32}
                     onClick={(data) => {
                       if (data?.company_id) {
-                        navigate(`/analytics/revenue?companyId=${data.company_id}`);
+                        navigate(`/analytics/revenue?companyId=${data.company_id}`, { state: { fromDashboard: true } });
                       }
                     }}
                     className="cursor-pointer"
